@@ -1,0 +1,18 @@
+[project]
+name = "fosit-core"
+version = "0.1.0"
+description = "FOSIT core: geo-experiment design and analysis (ridge-augmented synthetic control with conformal inference). Runs in the browser via Pyodide."
+license = "Apache-2.0"
+requires-python = ">=3.12"
+# Only packages that ship with Pyodide. Do not add dependencies without discussion.
+dependencies = ["numpy>=2.0", "scipy>=1.14", "pandas>=2.2"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["fosit*"]
+
+[tool.setuptools.package-data]
+fosit = ["geo_data/*.csv", "geo_data/*.json", "geo_data/*.md"]

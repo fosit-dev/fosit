@@ -1,0 +1,15 @@
+{
+  "$comment": "Frictionless Table Schema v1. Shipped for CBSA and state units; optional for custom units.",
+  "name": "geo_attributes",
+  "title": "Geo attributes",
+  "fields": [
+    {"name": "geo_id", "type": "string", "constraints": {"required": true}},
+    {"name": "geo_name", "type": "string", "constraints": {"required": true}},
+    {"name": "state", "type": "string", "description": "Primary state (2-letter); multi-state CBSAs list the principal city's state."},
+    {"name": "population", "type": "integer", "constraints": {"minimum": 0}},
+    {"name": "treatment_eligible", "type": "boolean",
+     "description": "False for units vendors rarely target cleanly (e.g. {STATE}-NONCBSA). Defaults to true."}
+  ],
+  "primaryKey": ["geo_id"],
+  "missingValues": [""]
+}

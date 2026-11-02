@@ -1,0 +1,85 @@
+{
+  "description": "Provenance of the FOSIT geography tables. All sources are works of the U.S. Government (U.S. Census Bureau / OMB) and are in the public domain in the United States (17 U.S.C. 105).",
+  "generated_by": "core/tools/build_geo_data.py",
+  "scope": "50 states + DC. Puerto Rico and the Island Areas are excluded.",
+  "population_column": "POPESTIMATE2025",
+  "population_reference_date": "2025-07-01",
+  "sources": [
+    {
+      "id": "zcta_county",
+      "publisher": "U.S. Census Bureau",
+      "url": "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt",
+      "file": "tab20_zcta520_county20_natl.txt",
+      "vintage": "2020 Census tabulation geography (2020 ZCTA5 to 2020 county relationship file)",
+      "description": "Pipe-delimited ZCTA-to-county relationship file with land and water area of every ZCTA-county part. National.",
+      "retrieved": "2026-11-02",
+      "bytes": 6821287,
+      "sha256": "3ed41278d637dc249e0323306f68be8a6c234e3090f4de88ef328dee71aeaaaf"
+    },
+    {
+      "id": "ct_cousub_zcta",
+      "publisher": "U.S. Census Bureau",
+      "url": "https://www2.census.gov/geo/docs/maps-data/data/rel2022/acs22_cousub22_zcta520_st09.txt",
+      "file": "acs22_cousub22_zcta520_st09.txt",
+      "vintage": "2022 ACS geography (2022 Connecticut county subdivisions to 2020 ZCTA5)",
+      "description": "Pipe-delimited Connecticut county-subdivision-to-ZCTA relationship file. 2022 county subdivision GEOIDs embed the planning-region county code (09110-09190), so it re-assigns CT ZCTA parts from the 8 legacy counties to the 9 planning regions.",
+      "retrieved": "2026-11-02",
+      "bytes": 62822,
+      "sha256": "1ef973388b3c3f9e9553b60aa7db0ee47762d3cb2b3d03f5b7796165590f1820"
+    },
+    {
+      "id": "delineation",
+      "publisher": "U.S. Office of Management and Budget; file published by the U.S. Census Bureau",
+      "url": "https://www2.census.gov/programs-surveys/metro-micro/geographies/reference-files/2023/delineation-files/list1_2023.xlsx",
+      "file": "list1_2023.xlsx",
+      "vintage": "July 2023 (OMB Bulletin No. 23-01)",
+      "description": "CBSAs, Metropolitan Divisions and CSAs with their component counties.",
+      "retrieved": "2026-11-02",
+      "bytes": 143798,
+      "sha256": "952c4b1e78acbb54e6ec9412434b7602fedacbf021736351a63c181bdb753629"
+    },
+    {
+      "id": "popest",
+      "publisher": "U.S. Census Bureau",
+      "url": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2025/counties/totals/co-est2025-alldata.csv",
+      "file": "co-est2025-alldata.csv",
+      "vintage": "Vintage 2025 county population estimates (column POPESTIMATE2025, July 1 2025)",
+      "description": "Annual resident population estimates for states (SUMLEV 040) and counties (SUMLEV 050).",
+      "retrieved": "2026-11-02",
+      "bytes": 2071735,
+      "sha256": "4f5a499d851e2cb48fd7a5405e5a9235453a8a66933657aacd10df0e264f35d5"
+    }
+  ],
+  "checks": {
+    "ct_zctas_reassigned": 288,
+    "ct_max_relative_land_difference_2020_vs_2022": 0.011911,
+    "zctas_out_of_scope_dropped": 149,
+    "cbsas_out_of_scope_dropped": [
+      "10380",
+      "11640",
+      "17620",
+      "17640",
+      "25020",
+      "29720",
+      "32420",
+      "38660",
+      "41980",
+      "46580"
+    ],
+    "national_population": 341784857
+  },
+  "outputs": {
+    "zcta_to_geo.csv": {
+      "rows": 33642,
+      "sha256": "cd8ffdd946055406cb74acd28e43507fdacd12077aa9038df882581f26225d75"
+    },
+    "cbsa_attributes.csv": {
+      "rows": 969,
+      "sha256": "6b2e2872d67b8e7d49eeec4c66225458e3fe75c670aa0eca9dc891e3bf511733"
+    },
+    "state_attributes.csv": {
+      "rows": 51,
+      "sha256": "d81b35f5c323fb523ecb674417d33e4228ba4cb7823af39992703dc2711163cb"
+    }
+  }
+}

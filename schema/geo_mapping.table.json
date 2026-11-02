@@ -1,0 +1,12 @@
+{
+  "$comment": "Frictionless Table Schema v1. Optional user-supplied ZIP-to-geo mapping (e.g. an advertiser's own DMA list). Its SHA-256 is locked in the plan.",
+  "name": "geo_mapping",
+  "title": "ZIP to geo mapping",
+  "fields": [
+    {"name": "zip", "type": "string", "constraints": {"required": true, "pattern": "^\\d{5}$"}},
+    {"name": "geo_id", "type": "string", "constraints": {"required": true, "pattern": "^[A-Za-z0-9_.:-]{1,64}$"}},
+    {"name": "geo_name", "type": "string"}
+  ],
+  "primaryKey": ["zip"],
+  "missingValues": [""]
+}

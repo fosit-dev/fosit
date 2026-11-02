@@ -1,0 +1,18 @@
+{
+  "$comment": "Frictionless Table Schema v1. One file per test; rows from all cells.",
+  "name": "spend_delivery",
+  "title": "Spend and delivery by cell, geo and day",
+  "description": "Used by Read for iCPA/iROAS and the geo-leakage check.",
+  "fields": [
+    {"name": "date", "type": "date", "format": "%Y-%m-%d", "constraints": {"required": true}},
+    {"name": "cell", "type": "string", "constraints": {"required": true},
+     "description": "Must equal a cell label or cell id in the locked plan."},
+    {"name": "geo_id", "type": "string", "constraints": {"required": true, "pattern": "^([A-Za-z0-9_.:-]{1,64}|\\*)$"},
+     "description": "Geo where impressions were delivered, in the plan's geo unit. Use * for spend or impressions the vendor cannot attribute to a geo."},
+    {"name": "impressions", "type": "integer", "constraints": {"required": true, "minimum": 0}},
+    {"name": "spend", "type": "number", "constraints": {"required": true, "minimum": 0},
+     "description": "Media cost in the plan currency. May be 0 on geo rows if the vendor reports spend only on a * row."}
+  ],
+  "primaryKey": ["date", "cell", "geo_id"],
+  "missingValues": [""]
+}

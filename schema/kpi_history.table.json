@@ -1,0 +1,18 @@
+{
+  "$comment": "Frictionless Table Schema v1. Cross-field rules live in docs/SCHEMA.md and are enforced by core/fosit/panel.py (CLI: schema/validate.py).",
+  "name": "kpi_history",
+  "title": "Historical KPI by geo and day",
+  "description": "Long format, one row per date and geo. Used by Plan (history) and Read (history through end of test).",
+  "fields": [
+    {"name": "date", "type": "date", "format": "%Y-%m-%d", "constraints": {"required": true},
+     "description": "Calendar day in the advertiser's reporting time zone."},
+    {"name": "geo_id", "type": "string", "constraints": {"required": true, "pattern": "^[A-Za-z0-9_.:-]{1,64}$"},
+     "description": "Geo identifier in the plan's geo unit (CBSA code, state code, or user mapping ID)."},
+    {"name": "orders", "type": "number", "constraints": {"minimum": 0},
+     "description": "Count of orders (or conversions). Optional if revenue is present."},
+    {"name": "revenue", "type": "number",
+     "description": "Revenue in the plan currency. Optional if orders is present. Negative values (net of returns) are allowed with a warning."}
+  ],
+  "primaryKey": ["date", "geo_id"],
+  "missingValues": [""]
+}

@@ -1,0 +1,140 @@
+{
+  "fosit_plan_version": "1.0",
+  "commitment": {
+    "tool": {
+      "name": "FOSIT",
+      "version": "0.1.0",
+      "core_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "created_at": "2026-11-02T12:00:00Z",
+    "test_name": "Fixture: two-vendor test with ünïcode",
+    "currency": "USD",
+    "geo": {
+      "unit": "cbsa",
+      "mapping_name": "Census 2020 ZCTA-county + OMB July 2023 CBSA delineation (FOSIT geo_data)",
+      "mapping_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "kpi": {
+      "primary": "orders",
+      "secondary": [
+        "revenue"
+      ],
+      "aggregation": "daily"
+    },
+    "dates": {
+      "pre_start": "2026-06-08",
+      "pre_end": "2026-11-29",
+      "test_start": "2026-11-30",
+      "test_end": "2026-12-27",
+      "cooldown_end": "2027-01-03"
+    },
+    "cells": [
+      {
+        "id": "cell_1",
+        "label": "Vendor Ä",
+        "geo_ids": [
+          "12060",
+          "19100",
+          "41740"
+        ],
+        "budget": 50000
+      },
+      {
+        "id": "cell_2",
+        "label": "Vendor B",
+        "geo_ids": [
+          "16980",
+          "38060",
+          "47900"
+        ],
+        "budget": 49999.5
+      }
+    ],
+    "control": {
+      "geo_ids": [
+        "14460",
+        "31080",
+        "35620"
+      ]
+    },
+    "excluded": {
+      "geo_ids": [
+        "26420"
+      ],
+      "reasons": {
+        "26420": "local promo"
+      }
+    },
+    "method": {
+      "estimator": "ridge_ascm",
+      "fixed_effects": true,
+      "lambda_selection": "cv_1se",
+      "inference": "conformal",
+      "permutations": {
+        "kind": "moving_block"
+      },
+      "test_statistic": "abs_sum",
+      "alpha": 0.1,
+      "report_levels": [
+        0.9,
+        0.95
+      ],
+      "head_to_head": "joint_conformal_projection",
+      "donor_min_nonzero_share": 0.5,
+      "seed": 123456789
+    },
+    "thresholds": {
+      "pre_fit_nrmse_max": {
+        "cell_1": {
+          "orders": 0.0812,
+          "revenue": 0.0812
+        },
+        "cell_2": {
+          "orders": 0.0975,
+          "revenue": 0.0975
+        }
+      },
+      "leakage_warn_share": 0.05,
+      "spend_share_tolerance_pp": 5,
+      "min_budget_delivery": 0.9,
+      "power_target": 0.8
+    },
+    "decision": {
+      "primary_metric": "delta_icpa",
+      "meaningful_effect_basis": "target_icpa",
+      "target_icpa": 42.5
+    },
+    "assignment": {
+      "method": "stratified_random_search",
+      "candidates_searched": 2000,
+      "design_rank": 1,
+      "label_assignment": "coin_flip",
+      "coin_flip_result": {
+        "market_set_1": "cell_2",
+        "market_set_2": "cell_1"
+      }
+    },
+    "vendor_targeting_confirmed": [
+      {
+        "cell_id": "cell_1",
+        "confirmed": true
+      },
+      {
+        "cell_id": "cell_2",
+        "confirmed": true
+      }
+    ],
+    "data_fingerprint": {
+      "kpi_history_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "rows": 45500,
+      "geos": 250,
+      "first_date": "2026-05-04",
+      "last_date": "2026-11-01"
+    }
+  },
+  "hash": {
+    "algorithm": "SHA-256",
+    "canonicalization": "RFC8785",
+    "value": "01793080c4dc660dc5fcbd9d2c092a0b55855d29440d2f757094576816c1c19a"
+  }
+}

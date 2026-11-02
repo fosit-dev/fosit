@@ -1,0 +1,26 @@
+{
+  "$comment": "Frictionless Table Schema v1. Output of Read: raw results CSV.",
+  "name": "results",
+  "title": "FOSIT results (long format)",
+  "fields": [
+    {"name": "plan_hash", "type": "string", "constraints": {"required": true, "pattern": "^[0-9a-f]{64}$"}},
+    {"name": "scope", "type": "string", "constraints": {"enum": ["cell", "head_to_head"]}},
+    {"name": "cell_id", "type": "string", "description": "cell id, or 'a|b' for head-to-head rows"},
+    {"name": "cell_label", "type": "string", "description": "cell label, or 'label_a vs label_b'"},
+    {"name": "kpi", "type": "string", "constraints": {"enum": ["orders", "revenue"]}},
+    {"name": "metric", "type": "string", "constraints": {"enum": [
+      "observed", "counterfactual", "incremental", "lift_pct", "spend", "icpa", "iroas",
+      "incremental_per_1000", "p_value", "pre_fit_nrmse",
+      "delta_icpa", "ratio_icpa", "delta_iroas", "delta_incremental_per_1000"]}},
+    {"name": "estimate", "type": "number"},
+    {"name": "ci90_low", "type": "number", "description": "Empty = unbounded or not defined (see note)."},
+    {"name": "ci90_high", "type": "number"},
+    {"name": "ci95_low", "type": "number"},
+    {"name": "ci95_high", "type": "number"},
+    {"name": "primary", "type": "boolean", "description": "True for the single pre-registered primary metric."},
+    {"name": "verdict", "type": "string"},
+    {"name": "note", "type": "string"},
+    {"name": "method_ref", "type": "string", "description": "Anchor in docs/METHODOLOGY.md, e.g. #6-business-metrics"}
+  ],
+  "missingValues": [""]
+}

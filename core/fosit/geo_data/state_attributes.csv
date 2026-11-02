@@ -1,0 +1,52 @@
+geo_id,geo_name,state,population,treatment_eligible,kind
+AK,Alaska,AK,737270,true,state
+AL,Alabama,AL,5193088,true,state
+AR,Arkansas,AR,3114791,true,state
+AZ,Arizona,AZ,7623818,true,state
+CA,California,CA,39355309,true,state
+CO,Colorado,CO,6012561,true,state
+CT,Connecticut,CT,3688496,true,state
+DC,District of Columbia,DC,693645,true,state
+DE,Delaware,DE,1059952,true,state
+FL,Florida,FL,23462518,true,state
+GA,Georgia,GA,11302748,true,state
+HI,Hawaii,HI,1432820,true,state
+IA,Iowa,IA,3238387,true,state
+ID,Idaho,ID,2029733,true,state
+IL,Illinois,IL,12719141,true,state
+IN,Indiana,IN,6973333,true,state
+KS,Kansas,KS,2977220,true,state
+KY,Kentucky,KY,4606864,true,state
+LA,Louisiana,LA,4618189,true,state
+MA,Massachusetts,MA,7154084,true,state
+MD,Maryland,MD,6265347,true,state
+ME,Maine,ME,1414874,true,state
+MI,Michigan,MI,10127884,true,state
+MN,Minnesota,MN,5830405,true,state
+MO,Missouri,MO,6270541,true,state
+MS,Mississippi,MS,2954160,true,state
+MT,Montana,MT,1144694,true,state
+NC,North Carolina,NC,11197968,true,state
+ND,North Dakota,ND,799358,true,state
+NE,Nebraska,NE,2018006,true,state
+NH,New Hampshire,NH,1415342,true,state
+NJ,New Jersey,NJ,9548215,true,state
+NM,New Mexico,NM,2125498,true,state
+NV,Nevada,NV,3282188,true,state
+NY,New York,NY,20002427,true,state
+OH,Ohio,OH,11900510,true,state
+OK,Oklahoma,OK,4123288,true,state
+OR,Oregon,OR,4273586,true,state
+PA,Pennsylvania,PA,13059432,true,state
+RI,Rhode Island,RI,1114521,true,state
+SC,South Carolina,SC,5570274,true,state
+SD,South Dakota,SD,935094,true,state
+TN,Tennessee,TN,7315076,true,state
+TX,Texas,TX,31709821,true,state
+UT,Utah,UT,3538904,true,state
+VA,Virginia,VA,8880107,true,state
+VT,Vermont,VT,644663,true,state
+WA,Washington,WA,8001020,true,state
+WI,Wisconsin,WI,5972787,true,state
+WV,West Virginia,WV,1766147,true,state
+WY,Wyoming,WY,588753,true,state

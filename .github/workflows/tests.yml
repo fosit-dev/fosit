@@ -1,0 +1,51 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"   # nightly: full 500-panel coverage simulation
+
+permissions:
+  contents: read
+
+jobs:
+  python-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"   # matches the Pyodide runtime
+      - name: Install core dependencies (the Pyodide set only)
+        run: pip install "numpy>=2.0" "scipy>=1.14" "pandas>=2.2"
+      - name: Unit tests
+        env:
+          FOSIT_COVERAGE_SIMS: ${{ github.event_name == 'schedule' && '500' || '200' }}
+        run: python -m unittest discover -s tests -t . -v
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Self-hosted Pyodide runtime + core bundle
+        run: pnpm prepare-runtime
+      - run: pnpm build
+      - name: Unit tests (JCS, plan hashing cross-checked with Python)
+        run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: End-to-end + privacy test (fails if any user data leaves the browser)
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: web/test-results/

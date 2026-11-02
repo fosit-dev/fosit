@@ -1,0 +1,970 @@
+geo_id,geo_name,state,population,treatment_eligible,kind
+10100,"Aberdeen, SD",SD,41583,true,micro
+10140,"Aberdeen, WA",WA,78144,true,micro
+10180,"Abilene, TX",TX,185429,true,metro
+10220,"Ada, OK",OK,38528,true,micro
+10300,"Adrian, MI",MI,97779,true,micro
+10420,"Akron, OH",OH,701780,true,metro
+10460,"Alamogordo, NM",NM,70368,true,micro
+10480,"Alamosa, CO",CO,27896,true,micro
+10500,"Albany, GA",GA,145510,true,metro
+10540,"Albany, OR",OR,132843,true,metro
+10580,"Albany-Schenectady-Troy, NY",NY,915835,true,metro
+10620,"Albemarle, NC",NC,68830,true,micro
+10660,"Albert Lea, MN",MN,30440,true,micro
+10700,"Albertville, AL",AL,103537,true,micro
+10740,"Albuquerque, NM",NM,925279,true,metro
+10760,"Alexander City, AL",AL,40953,true,micro
+10780,"Alexandria, LA",LA,147952,true,metro
+10820,"Alexandria, MN",MN,40120,true,micro
+10860,"Alice, TX",TX,45383,true,micro
+10900,"Allentown-Bethlehem-Easton, PA-NJ",PA,887615,true,metro
+10940,"Alma, MI",MI,41190,true,micro
+10980,"Alpena, MI",MI,28853,true,micro
+11020,"Altoona, PA",PA,119541,true,metro
+11060,"Altus, OK",OK,24764,true,micro
+11100,"Amarillo, TX",TX,276235,true,metro
+11140,"Americus, GA",GA,33394,true,micro
+11180,"Ames, IA",IA,128090,true,metro
+11200,"Amherst Town-Northampton, MA",MA,164065,true,metro
+11220,"Amsterdam, NY",NY,50046,true,micro
+11260,"Anchorage, AK",AK,405821,true,metro
+11360,"Anderson Creek, NC",NC,150137,true,micro
+11380,"Andrews, TX",TX,18914,true,micro
+11420,"Angola, IN",IN,34799,true,micro
+11460,"Ann Arbor, MI",MI,370214,true,metro
+11500,"Anniston-Oxford, AL",AL,115834,true,metro
+11540,"Appleton, WI",WI,249876,true,metro
+11580,"Arcadia, FL",FL,37078,true,micro
+11620,"Ardmore, OK",OK,48910,true,micro
+11660,"Arkadelphia, AR",AR,20938,true,micro
+11680,"Arkansas City-Winfield, KS",KS,34382,true,micro
+11700,"Asheville, NC",NC,422345,true,metro
+11740,"Ashland, OH",OH,52523,true,micro
+11820,"Astoria, OR",OR,40926,true,micro
+11860,"Atchison, KS",KS,16172,true,micro
+11900,"Athens, OH",OH,63197,true,micro
+11940,"Athens, TN",TN,71590,true,micro
+11980,"Athens, TX",TX,88595,true,micro
+12020,"Athens-Clarke County, GA",GA,224148,true,metro
+12060,"Atlanta-Sandy Springs-Roswell, GA",GA,6482182,true,metro
+12100,"Atlantic City-Hammonton, NJ",NJ,372047,true,metro
+12140,"Auburn, IN",IN,44535,true,micro
+12180,"Auburn, NY",NY,74365,true,micro
+12220,"Auburn-Opelika, AL",AL,208013,true,metro
+12260,"Augusta-Richmond County, GA-SC",GA,641231,true,metro
+12300,"Augusta-Waterville, ME",ME,129067,true,micro
+12380,"Austin, MN",MN,40971,true,micro
+12420,"Austin-Round Rock-San Marcos, TX",TX,2620945,true,metro
+12460,"Bainbridge, GA",GA,29432,true,micro
+12520,"Baker City, OR",OR,16658,true,micro
+12540,"Bakersfield-Delano, CA",CA,927068,true,metro
+12580,"Baltimore-Columbia-Towson, MD",MD,2857781,true,metro
+12620,"Bangor, ME",ME,157967,true,metro
+12660,"Baraboo, WI",WI,66652,true,micro
+12700,"Barnstable Town, MA",MA,233539,true,metro
+12740,"Barre, VT",VT,59652,true,micro
+12780,"Bartlesville, OK",OK,54037,true,micro
+12860,"Batavia, NY",NY,58416,true,micro
+12900,"Batesville, AR",AR,38785,true,micro
+12940,"Baton Rouge, LA",LA,888699,true,metro
+12980,"Battle Creek, MI",MI,133408,true,metro
+13020,"Bay City, MI",MI,102123,true,metro
+13060,"Bay City, TX",TX,36463,true,micro
+13100,"Beatrice, NE",NE,21711,true,micro
+13140,"Beaumont-Port Arthur, TX",TX,399310,true,metro
+13180,"Beaver Dam, WI",WI,89097,true,micro
+13220,"Beckley, WV",WV,109940,true,metro
+13260,"Bedford, IN",IN,45568,true,micro
+13300,"Beeville, TX",TX,32515,true,micro
+13340,"Bellefontaine, OH",OH,46302,true,micro
+13380,"Bellingham, WA",WA,236392,true,metro
+13420,"Bemidji, MN",MN,47055,true,micro
+13460,"Bend, OR",OR,266376,true,metro
+13540,"Bennington, VT",VT,36630,true,micro
+13660,"Big Rapids, MI",MI,42320,true,micro
+13700,"Big Spring, TX",TX,30504,true,micro
+13740,"Billings, MT",MT,193603,true,metro
+13780,"Binghamton, NY",NY,243189,true,metro
+13820,"Birmingham, AL",AL,1197766,true,metro
+13860,"Bishop, CA",CA,18158,true,micro
+13900,"Bismarck, ND",ND,139750,true,metro
+13940,"Blackfoot, ID",ID,51153,true,micro
+13980,"Blacksburg-Christiansburg-Radford, VA",VA,181616,true,metro
+14010,"Bloomington, IL",IL,171419,true,metro
+14020,"Bloomington, IN",IN,165231,true,metro
+14100,"Bloomsburg-Berwick, PA",PA,66193,true,micro
+14140,"Bluefield, WV-VA",WV,96138,true,micro
+14180,"Blytheville, AR",AR,37828,true,micro
+14220,"Bogalusa, LA",LA,44937,true,micro
+14260,"Boise City, ID",ID,864243,true,metro
+14300,"Bonham, TX",TX,39265,true,micro
+14380,"Boone, NC",NC,54786,true,micro
+14420,"Borger, TX",TX,19633,true,micro
+14460,"Boston-Cambridge-Newton, MA-NH",MA,5034221,true,metro
+14500,"Boulder, CO",CO,328560,true,metro
+14540,"Bowling Green, KY",KY,197180,true,metro
+14580,"Bozeman, MT",MT,128740,true,metro
+14620,"Bradford, PA",PA,38984,true,micro
+14660,"Brainerd, MN",MN,100562,true,micro
+14700,"Branson, MO",MO,57001,true,micro
+14710,"Brattleboro, VT",VT,45204,true,micro
+14720,"Breckenridge, CO",CO,39069,true,micro
+14740,"Bremerton-Silverdale-Port Orchard, WA",WA,283374,true,metro
+14780,"Brenham, TX",TX,38288,true,micro
+14820,"Brevard, NC",NC,34211,true,micro
+14860,"Bridgeport-Stamford-Danbury, CT",CT,978179,true,metro
+14940,"Brigham City, UT-ID",UT,70405,true,micro
+15020,"Brookhaven, MS",MS,35012,true,micro
+15060,"Brookings, OR",OR,22621,true,micro
+15100,"Brookings, SD",SD,37635,true,micro
+15180,"Brownsville-Harlingen, TX",TX,433946,true,metro
+15220,"Brownwood, TX",TX,38711,true,micro
+15260,"Brunswick-St. Simons, GA",GA,118524,true,metro
+15340,"Bucyrus, OH",OH,41896,true,micro
+15380,"Buffalo-Cheektowaga, NY",NY,1155653,true,metro
+15420,"Burley, ID",ID,49308,true,micro
+15460,"Burlington, IA-IL",IA,44061,true,micro
+15500,"Burlington, NC",NC,186177,true,metro
+15540,"Burlington-South Burlington, VT",VT,227803,true,metro
+15580,"Butte-Silver Bow, MT",MT,36118,true,micro
+15620,"Cadillac, MI",MI,49719,true,micro
+15660,"Calhoun, GA",GA,61701,true,micro
+15700,"Cambridge, MD",MD,33628,true,micro
+15740,"Cambridge, OH",OH,38379,true,micro
+15780,"Camden, AR",AR,26363,true,micro
+15820,"Campbellsville, KY",KY,38407,true,micro
+15860,"Cañon City, CO",CO,50039,true,micro
+15900,"Canton, IL",IL,32901,true,micro
+15940,"Canton-Massillon, OH",OH,400246,true,metro
+15980,"Cape Coral-Fort Myers, FL",FL,875607,true,metro
+16020,"Cape Girardeau, MO-IL",MO,99215,true,metro
+16060,"Carbondale, IL",IL,52501,true,micro
+16100,"Carlsbad-Artesia, NM",NM,62509,true,micro
+16140,"Carroll, IA",IA,20303,true,micro
+16180,"Carson City, NV",NV,58571,true,metro
+16220,"Casper, WY",WY,80526,true,metro
+16260,"Cedar City, UT",UT,67141,true,micro
+16300,"Cedar Rapids, IA",IA,279285,true,metro
+16340,"Cedartown, GA",GA,45514,true,micro
+16380,"Celina, OH",OH,42737,true,micro
+16460,"Centralia, IL",IL,36382,true,micro
+16500,"Centralia, WA",WA,88062,true,micro
+16540,"Chambersburg, PA",PA,160652,true,metro
+16580,"Champaign-Urbana, IL",IL,239979,true,metro
+16620,"Charleston, WV",WV,200170,true,metro
+16660,"Charleston-Mattoon, IL",IL,46607,true,micro
+16700,"Charleston-North Charleston, SC",SC,889263,true,metro
+16740,"Charlotte-Concord-Gastonia, NC-SC",NC,2938830,true,metro
+16820,"Charlottesville, VA",VA,228597,true,metro
+16860,"Chattanooga, TN-GA",TN,594530,true,metro
+16940,"Cheyenne, WY",WY,102938,true,metro
+16980,"Chicago-Naperville-Elgin, IL-IN",IL,9434123,true,metro
+17020,"Chico, CA",CA,209211,true,metro
+17060,"Chillicothe, OH",OH,76429,true,micro
+17140,"Cincinnati, OH-KY-IN",OH,2312858,true,metro
+17220,"Clarksburg, WV",WV,88142,true,micro
+17260,"Clarksdale, MS",MS,19849,true,micro
+17300,"Clarksville, TN-KY",TN,349001,true,metro
+17340,"Clearlake, CA",CA,67772,true,micro
+17380,"Cleveland, MS",MS,28262,true,micro
+17410,"Cleveland, OH",OH,2165775,true,metro
+17420,"Cleveland, TN",TN,134057,true,metro
+17500,"Clewiston, FL",FL,61546,true,micro
+17540,"Clinton, IA",IA,46002,true,micro
+17580,"Clovis, NM",NM,65270,true,micro
+17650,"Cody, WY",WY,31171,true,micro
+17660,"Coeur d'Alene, ID",ID,191864,true,metro
+17740,"Coldwater, MI",MI,45993,true,micro
+17780,"College Station-Bryan, TX",TX,287476,true,metro
+17820,"Colorado Springs, CO",CO,781796,true,metro
+17860,"Columbia, MO",MO,219062,true,metro
+17900,"Columbia, SC",SC,879918,true,metro
+17980,"Columbus, GA-AL",GA,324830,true,metro
+18020,"Columbus, IN",IN,85729,true,metro
+18060,"Columbus, MS",MS,67144,true,micro
+18100,"Columbus, NE",NE,46583,true,micro
+18140,"Columbus, OH",OH,2242028,true,metro
+18180,"Concord, NH",NH,158078,true,micro
+18220,"Connersville, IN",IN,23533,true,micro
+18260,"Cookeville, TN",TN,152477,true,micro
+18300,"Coos Bay-North Bend, OR",OR,63992,true,micro
+18340,"Corbin, KY",KY,150040,true,micro
+18380,"Cordele, GA",GA,19237,true,micro
+18420,"Corinth, MS",MS,34569,true,micro
+18460,"Cornelia, GA",GA,50416,true,micro
+18500,"Corning, NY",NY,91855,true,micro
+18580,"Corpus Christi, TX",TX,451191,true,metro
+18620,"Corsicana, TX",TX,57181,true,micro
+18660,"Cortland, NY",NY,45850,true,micro
+18700,"Corvallis, OR",OR,97728,true,metro
+18740,"Coshocton, OH",OH,37188,true,micro
+18820,"Crawfordsville, IN",IN,38954,true,micro
+18860,"Crescent City, CA",CA,26410,true,micro
+18880,"Crestview-Fort Walton Beach-Destin, FL",FL,315098,true,metro
+18900,"Crossville, TN",TN,66300,true,micro
+18980,"Cullman, AL",AL,94009,true,micro
+19060,"Cumberland, MD-WV",MD,93640,true,micro
+19100,"Dallas-Fort Worth-Arlington, TX",TX,8477157,true,metro
+19140,"Dalton, GA",GA,147819,true,metro
+19180,"Danville, IL",IL,71259,true,micro
+19220,"Danville, KY",KY,56985,true,micro
+19260,"Danville, VA",VA,101137,true,micro
+19300,"Daphne-Fairhope-Foley, AL",AL,267761,true,metro
+19340,"Davenport-Moline-Rock Island, IA-IL",IA,380452,true,metro
+19430,"Dayton-Kettering-Beavercreek, OH",OH,826554,true,metro
+19460,"Decatur, AL",AL,160326,true,metro
+19500,"Decatur, IL",IL,99300,true,metro
+19540,"Decatur, IN",IN,36650,true,micro
+19580,"Defiance, OH",OH,38292,true,micro
+19620,"Del Rio, TX",TX,47835,true,micro
+19660,"Deltona-Daytona Beach-Ormond Beach, FL",FL,746933,true,metro
+19700,"Deming, NM",NM,25407,true,micro
+19740,"Denver-Aurora-Centennial, CO",CO,3092037,true,metro
+19760,"DeRidder, LA",LA,36673,true,micro
+19780,"Des Moines-West Des Moines, IA",IA,758539,true,metro
+19810,"Detroit Lakes, MN",MN,35497,true,micro
+19820,"Detroit-Warren-Dearborn, MI",MI,4390913,true,metro
+19860,"Dickinson, ND",ND,39142,true,micro
+19940,"Dixon, IL",IL,32914,true,micro
+19980,"Dodge City, KS",KS,33993,true,micro
+20020,"Dothan, AL",AL,156266,true,metro
+20060,"Douglas, GA",GA,52861,true,micro
+20100,"Dover, DE",DE,194786,true,metro
+20140,"Dublin, GA",GA,60351,true,micro
+20180,"DuBois, PA",PA,78100,true,micro
+20220,"Dubuque, IA",IA,99381,true,metro
+20260,"Duluth, MN-WI",MN,281219,true,metro
+20300,"Dumas, TX",TX,21891,true,micro
+20340,"Duncan, OK",OK,44310,true,micro
+20420,"Durango, CO",CO,56898,true,micro
+20460,"Durant, OK",OK,51367,true,micro
+20500,"Durham-Chapel Hill, NC",NC,625485,true,metro
+20540,"Dyersburg, TN",TN,36320,true,micro
+20580,"Eagle Pass, TX",TX,58823,true,metro
+20660,"Easton, MD",MD,38238,true,micro
+20700,"East Stroudsburg, PA",PA,167179,true,micro
+20740,"Eau Claire, WI",WI,176647,true,metro
+20780,"Edwards, CO",CO,54291,true,micro
+20820,"Effingham, IL",IL,44727,true,micro
+20900,"El Campo, TX",TX,42060,true,micro
+20940,"El Centro, CA",CA,181411,true,metro
+20980,"El Dorado, AR",AR,36926,true,micro
+21020,"Elizabeth City, NC",NC,42201,true,micro
+21060,"Elizabethtown, KY",KY,128666,true,metro
+21120,"Elk City, OK",OK,22159,true,micro
+21140,"Elkhart-Goshen, IN",IN,208774,true,metro
+21180,"Elkins, WV",WV,26882,true,micro
+21220,"Elko, NV",NV,56682,true,micro
+21260,"Ellensburg, WA",WA,48803,true,micro
+21300,"Elmira, NY",NY,80415,true,metro
+21340,"El Paso, TX",TX,881291,true,metro
+21380,"Emporia, KS",KS,34838,true,micro
+21420,"Enid, OK",OK,61779,true,metro
+21460,"Enterprise, AL",AL,56953,true,micro
+21500,"Erie, PA",PA,265832,true,metro
+21540,"Escanaba, MI",MI,36582,true,micro
+21580,"Española, NM",NM,39832,true,micro
+21640,"Eufaula, AL-GA",AL,26861,true,micro
+21660,"Eugene-Springfield, OR",OR,381584,true,metro
+21700,"Eureka-Arcata, CA",CA,131647,true,micro
+21740,"Evanston, WY-UT",WY,23415,true,micro
+21780,"Evansville, IN",IN,273786,true,metro
+21820,"Fairbanks-College, AK",AK,93972,true,metro
+21860,"Fairmont, MN",MN,19440,true,micro
+21900,"Fairmont, WV",WV,55584,true,micro
+21980,"Fallon, NV",NV,25851,true,micro
+22020,"Fargo, ND-MN",ND,269528,true,metro
+22060,"Faribault-Northfield, MN",MN,69939,true,micro
+22100,"Farmington, MO",MO,67809,true,micro
+22140,"Farmington, NM",NM,120340,true,metro
+22180,"Fayetteville, NC",NC,395412,true,metro
+22190,"Fayetteville, TN",TN,36853,true,micro
+22220,"Fayetteville-Springdale-Rogers, AR",AR,622177,true,metro
+22260,"Fergus Falls, MN",MN,61041,true,micro
+22300,"Findlay, OH",OH,75034,true,micro
+22340,"Fitzgerald, GA",GA,17099,true,micro
+22380,"Flagstaff, AZ",AZ,144368,true,metro
+22420,"Flint, MI",MI,401093,true,metro
+22500,"Florence, SC",SC,201392,true,metro
+22520,"Florence-Muscle Shoals, AL",AL,156609,true,metro
+22540,"Fond du Lac, WI",WI,104669,true,metro
+22580,"Forest City, NC",NC,65745,true,micro
+22620,"Forrest City, AR",AR,21800,true,micro
+22660,"Fort Collins-Loveland, CO",CO,377292,true,metro
+22700,"Fort Dodge, IA",IA,36838,true,micro
+22780,"Fort Leonard Wood, MO",MO,54442,true,micro
+22800,"Fort Madison, IA",IA,32306,true,micro
+22820,"Fort Morgan, CO",CO,30306,true,micro
+22840,"Fort Payne, AL",AL,74085,true,micro
+22900,"Fort Smith, AR-OK",AR,234140,true,metro
+23060,"Fort Wayne, IN",IN,466258,true,metro
+23140,"Frankfort, IN",IN,33322,true,micro
+23180,"Frankfort, KY",KY,77874,true,micro
+23190,"Franklin, KY",KY,20788,true,micro
+23240,"Fredericksburg, TX",TX,28527,true,micro
+23300,"Freeport, IL",IL,43220,true,micro
+23340,"Fremont, NE",NE,38057,true,micro
+23380,"Fremont, OH",OH,58655,true,micro
+23420,"Fresno, CA",CA,1203383,true,metro
+23460,"Gadsden, AL",AL,103886,true,metro
+23500,"Gaffney, SC",SC,58275,true,micro
+23540,"Gainesville, FL",FL,359036,true,metro
+23580,"Gainesville, GA",GA,226568,true,metro
+23620,"Gainesville, TX",TX,44461,true,micro
+23660,"Galesburg, IL",IL,47767,true,micro
+23680,"Gallipolis, OH",OH,29072,true,micro
+23700,"Gallup, NM",NM,68119,true,micro
+23780,"Garden City, KS",KS,37505,true,micro
+23820,"Gardnerville Ranchos, NV-CA",NV,51154,true,micro
+23900,"Gettysburg, PA",PA,107594,true,metro
+23940,"Gillette, WY",WY,48145,true,micro
+23980,"Glasgow, KY",KY,56224,true,micro
+24020,"Glens Falls, NY",NY,124373,true,metro
+24100,"Gloversville, NY",NY,52216,true,micro
+24140,"Goldsboro, NC",NC,122278,true,metro
+24180,"Granbury, TX",TX,70501,true,micro
+24220,"Grand Forks, ND-MN",ND,105046,true,metro
+24260,"Grand Island, NE",NE,78076,true,metro
+24300,"Grand Junction, CO",CO,162845,true,metro
+24330,"Grand Rapids, MN",MN,45404,true,micro
+24340,"Grand Rapids-Wyoming-Kentwood, MI",MI,1183645,true,metro
+24420,"Grants Pass, OR",OR,87867,true,metro
+24460,"Great Bend, KS",KS,24790,true,micro
+24500,"Great Falls, MT",MT,85029,true,metro
+24540,"Greeley, CO",CO,378426,true,metro
+24580,"Green Bay, WI",WI,336756,true,metro
+24600,"Greencastle, IN",IN,37876,true,micro
+24620,"Greeneville, TN",TN,73831,true,micro
+24640,"Greenfield, MA",MA,70698,true,micro
+24660,"Greensboro-High Point, NC",NC,805945,true,metro
+24700,"Greensburg, IN",IN,26576,true,micro
+24740,"Greenville, MS",MS,40446,true,micro
+24780,"Greenville, NC",NC,182936,true,metro
+24820,"Greenville, OH",OH,51520,true,micro
+24860,"Greenville-Anderson-Greer, SC",SC,1014101,true,metro
+24900,"Greenwood, MS",MS,34912,true,micro
+24940,"Greenwood, SC",SC,95215,true,micro
+24980,"Grenada, MS",MS,30222,true,micro
+25060,"Gulfport-Biloxi, MS",MS,431329,true,metro
+25100,"Guymon, OK",OK,20322,true,micro
+25180,"Hagerstown-Martinsburg, MD-WV",MD,315280,true,metro
+25200,"Hailey, ID",ID,32436,true,micro
+25220,"Hammond, LA",LA,141346,true,metro
+25260,"Hanford-Corcoran, CA",CA,154327,true,metro
+25300,"Hannibal, MO",MO,38969,true,micro
+25420,"Harrisburg-Carlisle, PA",PA,617427,true,metro
+25460,"Harrison, AR",AR,45654,true,micro
+25500,"Harrisonburg, VA",VA,140155,true,metro
+25540,"Hartford-West Hartford-East Hartford, CT",CT,1171426,true,metro
+25580,"Hastings, NE",NE,40577,true,micro
+25620,"Hattiesburg, MS",MS,158014,true,metro
+25700,"Hays, KS",KS,29075,true,micro
+25720,"Heber, UT",UT,81655,true,micro
+25740,"Helena, MT",MT,97153,true,metro
+25770,"Hemlock Farms, PA",PA,62808,true,micro
+25775,"Henderson, KY",KY,57184,true,micro
+25780,"Henderson, NC",NC,42638,true,micro
+25820,"Hereford, TX",TX,18626,true,micro
+25840,"Hermiston-Pendleton, OR",OR,93721,true,micro
+25850,"Hermitage, PA",PA,107860,true,micro
+25860,"Hickory-Lenoir-Morganton, NC",NC,376890,true,metro
+25880,"Hillsdale, MI",MI,45738,true,micro
+25900,"Hilo-Kailua, HI",HI,210043,true,micro
+25940,"Hilton Head Island-Bluffton-Port Royal, SC",SC,242966,true,metro
+25980,"Hinesville, GA",GA,91870,true,metro
+26020,"Hobbs, NM",NM,74749,true,micro
+26090,"Holland, MI",MI,123188,true,micro
+26140,"Homosassa Springs, FL",FL,171666,true,metro
+26220,"Hood River, OR",OR,23720,true,micro
+26300,"Hot Springs, AR",AR,99695,true,metro
+26340,"Houghton, MI",MI,40028,true,micro
+26380,"Houma-Bayou Cane-Thibodaux, LA",LA,199668,true,metro
+26420,"Houston-Pasadena-The Woodlands, TX",TX,7904627,true,metro
+26460,"Hudson, NY",NY,60168,true,micro
+26500,"Huntingdon, PA",PA,43001,true,micro
+26540,"Huntington, IN",IN,37224,true,micro
+26580,"Huntington-Ashland, WV-KY-OH",WV,365965,true,metro
+26620,"Huntsville, AL",AL,556444,true,metro
+26660,"Huntsville, TX",TX,83842,true,micro
+26700,"Huron, SD",SD,19624,true,micro
+26740,"Hutchinson, KS",KS,61539,true,micro
+26780,"Hutchinson, MN",MN,36631,true,micro
+26820,"Idaho Falls, ID",ID,173851,true,metro
+26860,"Indiana, PA",PA,82878,true,micro
+26900,"Indianapolis-Carmel-Greenwood, IN",IN,2205695,true,metro
+26980,"Iowa City, IA",IA,182711,true,metro
+27020,"Iron Mountain, MI-WI",MI,30575,true,micro
+27060,"Ithaca, NY",NY,104047,true,metro
+27100,"Jackson, MI",MI,159552,true,metro
+27140,"Jackson, MS",MS,609847,true,metro
+27180,"Jackson, TN",TN,184569,true,metro
+27220,"Jackson, WY-ID",WY,36587,true,micro
+27260,"Jacksonville, FL",FL,1785500,true,metro
+27300,"Jacksonville, IL",IL,37381,true,micro
+27340,"Jacksonville, NC",NC,217175,true,metro
+27380,"Jacksonville, TX",TX,53337,true,micro
+27420,"Jamestown, ND",ND,21414,true,micro
+27460,"Jamestown-Dunkirk, NY",NY,124126,true,micro
+27500,"Janesville-Beloit, WI",WI,166472,true,metro
+27540,"Jasper, IN",IN,44016,true,micro
+27600,"Jefferson, GA",GA,99265,true,micro
+27620,"Jefferson City, MO",MO,152712,true,metro
+27700,"Jesup, GA",GA,32481,true,micro
+27740,"Johnson City, TN",TN,216416,true,metro
+27780,"Johnstown, PA",PA,128968,true,metro
+27860,"Jonesboro, AR",AR,139440,true,metro
+27900,"Joplin, MO-KS",MO,208796,true,metro
+27940,"Juneau, AK",AK,31609,true,micro
+27980,"Kahului-Wailuku, HI",HI,160674,true,metro
+28020,"Kalamazoo-Portage, MI",MI,263795,true,metro
+28060,"Kalispell, MT",MT,115429,true,micro
+28100,"Kankakee, IL",IL,105525,true,metro
+28140,"Kansas City, MO-KS",MO,2270682,true,metro
+28180,"Kapaa, HI",HI,73400,true,micro
+28260,"Kearney, NE",NE,57962,true,micro
+28300,"Keene, NH",NH,78269,true,micro
+28340,"Kendallville, IN",IN,47937,true,micro
+28380,"Kennett, MO",MO,26855,true,micro
+28420,"Kennewick-Richland, WA",WA,324334,true,metro
+28450,"Kenosha, WI",WI,168448,true,metro
+28500,"Kerrville, TX",TX,54037,true,micro
+28540,"Ketchikan, AK",AK,13549,true,micro
+28580,"Key West-Key Largo, FL",FL,80406,true,micro
+28620,"Kill Devil Hills, NC",NC,38245,true,micro
+28660,"Killeen-Temple, TX",TX,511497,true,metro
+28680,"Kingsland, GA",GA,60143,true,micro
+28700,"Kingsport-Bristol, TN-VA",TN,314834,true,metro
+28740,"Kingston, NY",NY,183330,true,metro
+28780,"Kingsville, TX",TX,30315,true,micro
+28820,"Kinston, NC",NC,55837,true,micro
+28860,"Kirksville, MO",MO,29824,true,micro
+28880,"Kiryas Joel-Poughkeepsie-Newburgh, NY",NY,718377,true,metro
+28900,"Klamath Falls, OR",OR,70274,true,micro
+28940,"Knoxville, TN",TN,968137,true,metro
+29020,"Kokomo, IN",IN,83904,true,metro
+29060,"Laconia, NH",NH,65147,true,micro
+29100,"La Crosse-Onalaska, WI-MN",WI,171182,true,metro
+29180,"Lafayette, LA",LA,423758,true,metro
+29200,"Lafayette-West Lafayette, IN",IN,228468,true,metro
+29260,"La Grande, OR",OR,25900,true,micro
+29300,"LaGrange, GA-AL",GA,107097,true,micro
+29340,"Lake Charles, LA",LA,244655,true,metro
+29380,"Lake City, FL",FL,74094,true,micro
+29420,"Lake Havasu City-Kingman, AZ",AZ,228102,true,metro
+29460,"Lakeland-Winter Haven, FL",FL,874790,true,metro
+29470,"Lake of the Woods, VA",VA,40083,true,micro
+29540,"Lancaster, PA",PA,563159,true,metro
+29620,"Lansing-East Lansing, MI",MI,479722,true,metro
+29660,"Laramie, WY",WY,38558,true,micro
+29700,"Laredo, TX",TX,281224,true,metro
+29740,"Las Cruces, NM",NM,229091,true,metro
+29780,"Las Vegas, NM",NM,30311,true,micro
+29820,"Las Vegas-Henderson-North Las Vegas, NV",NV,2407226,true,metro
+29860,"Laurel, MS",MS,82281,true,micro
+29900,"Laurinburg, NC",NC,33322,true,micro
+29940,"Lawrence, KS",KS,120920,true,metro
+29980,"Lawrenceburg, TN",TN,46914,true,micro
+30020,"Lawton, OK",OK,127590,true,metro
+30060,"Lebanon, MO",MO,36943,true,micro
+30140,"Lebanon, PA",PA,146380,true,metro
+30150,"Lebanon-Claremont, NH-VT",NH,224500,true,micro
+30180,"Le Mars, IA",IA,25697,true,micro
+30260,"Lewisburg, PA",PA,42313,true,micro
+30280,"Lewisburg, TN",TN,38071,true,micro
+30300,"Lewiston, ID-WA",ID,65450,true,metro
+30340,"Lewiston-Auburn, ME",ME,116487,true,metro
+30380,"Lewistown, PA",PA,46127,true,micro
+30420,"Lexington, NE",NE,26255,true,micro
+30460,"Lexington-Fayette, KY",KY,535174,true,metro
+30500,"Lexington Park, MD",MD,211176,true,metro
+30580,"Liberal, KS",KS,21073,true,micro
+30620,"Lima, OH",OH,100881,true,metro
+30660,"Lincoln, IL",IL,27182,true,micro
+30700,"Lincoln, NE",NE,352081,true,metro
+30780,"Little Rock-North Little Rock-Conway, AR",AR,777607,true,metro
+30820,"Lock Haven, PA",PA,37870,true,micro
+30860,"Logan, UT-ID",UT,160889,true,metro
+30900,"Logansport, IN",IN,37836,true,micro
+30980,"Longview, TX",TX,297315,true,metro
+31020,"Longview-Kelso, WA",WA,114885,true,metro
+31060,"Los Alamos, NM",NM,19407,true,micro
+31080,"Los Angeles-Long Beach-Anaheim, CA",CA,12844441,true,metro
+31140,"Louisville/Jefferson County, KY-IN",KY,1402509,true,metro
+31180,"Lubbock, TX",TX,368431,true,metro
+31220,"Ludington, MI",MI,29040,true,micro
+31260,"Lufkin, TX",TX,88154,true,micro
+31300,"Lumberton, NC",NC,119941,true,micro
+31340,"Lynchburg, VA",VA,269169,true,metro
+31380,"Macomb, IL",IL,25916,true,micro
+31420,"Macon-Bibb County, GA",GA,238553,true,metro
+31500,"Madison, IN",IN,33279,true,micro
+31540,"Madison, WI",WI,709685,true,metro
+31580,"Madisonville, KY",KY,45127,true,micro
+31620,"Magnolia, AR",AR,21894,true,micro
+31680,"Malvern, AR",AR,33451,true,micro
+31700,"Manchester-Nashua, NH",NH,433415,true,metro
+31740,"Manhattan, KS",KS,136122,true,metro
+31820,"Manitowoc, WI",WI,81710,true,micro
+31860,"Mankato, MN",MN,104907,true,metro
+31900,"Mansfield, OH",OH,124893,true,metro
+31930,"Marietta, OH",OH,58389,true,micro
+31940,"Marinette, WI-MI",WI,65515,true,micro
+31980,"Marion, IN",IN,66524,true,micro
+32000,"Marion, NC",NC,45198,true,micro
+32020,"Marion, OH",OH,65115,true,micro
+32060,"Marion-Herrin, IL",IL,67225,true,micro
+32100,"Marquette, MI",MI,68064,true,micro
+32140,"Marshall, MN",MN,25684,true,micro
+32180,"Marshall, MO",MO,23265,true,micro
+32260,"Marshalltown, IA",IA,39890,true,micro
+32280,"Martin, TN",TN,33261,true,micro
+32300,"Martinsville, VA",VA,63091,true,micro
+32340,"Maryville, MO",MO,20174,true,micro
+32380,"Mason City, IA",IA,49710,true,micro
+32390,"Massena-Ogdensburg, NY",NY,105488,true,micro
+32460,"Mayfield, KY",KY,37050,true,micro
+32540,"McAlester, OK",OK,43320,true,micro
+32580,"McAllen-Edinburg-Mission, TX",TX,921549,true,metro
+32620,"McComb, MS",MS,52640,true,micro
+32660,"McMinnville, TN",TN,43717,true,micro
+32700,"McPherson, KS",KS,30064,true,micro
+32740,"Meadville, PA",PA,81792,true,micro
+32780,"Medford, OR",OR,221795,true,metro
+32820,"Memphis, TN-MS-AR",TN,1341412,true,metro
+32860,"Menomonie, WI",WI,46223,true,micro
+32900,"Merced, CA",CA,297260,true,metro
+32940,"Meridian, MS",MS,85419,true,micro
+33020,"Mexico, MO",MO,24528,true,micro
+33060,"Miami, OK",OK,30438,true,micro
+33100,"Miami-Fort Lauderdale-West Palm Beach, FL",FL,6391072,true,metro
+33140,"Michigan City-La Porte, IN",IN,111294,true,metro
+33180,"Middlesborough, KY",KY,22829,true,micro
+33220,"Midland, MI",MI,83754,true,metro
+33260,"Midland, TX",TX,193139,true,metro
+33300,"Milledgeville, GA",GA,44029,true,micro
+33340,"Milwaukee-Waukesha, WI",WI,1575010,true,metro
+33380,"Minden, LA",LA,34948,true,micro
+33420,"Mineral Wells, TX",TX,30791,true,micro
+33460,"Minneapolis-St. Paul-Bloomington, MN-WI",MN,3790295,true,metro
+33500,"Minot, ND",ND,75694,true,metro
+33540,"Missoula, MT",MT,128698,true,metro
+33580,"Mitchell, SD",SD,25913,true,micro
+33620,"Moberly, MO",MO,24513,true,micro
+33660,"Mobile, AL",AL,411658,true,metro
+33700,"Modesto, CA",CA,557719,true,metro
+33740,"Monroe, LA",LA,222390,true,metro
+33780,"Monroe, MI",MI,156004,true,metro
+33860,"Montgomery, AL",AL,388747,true,metro
+33900,"Monticello, IN",IN,25164,true,micro
+33910,"Monticello, NY",NY,80586,true,micro
+33940,"Montrose, CO",CO,44591,true,micro
+33980,"Morehead City, NC",NC,70469,true,micro
+34020,"Morgan City, LA",LA,46552,true,micro
+34060,"Morgantown, WV",WV,141995,true,metro
+34100,"Morristown, TN",TN,128867,true,metro
+34140,"Moscow, ID",ID,41842,true,micro
+34180,"Moses Lake, WA",WA,105727,true,micro
+34220,"Moultrie, GA",GA,47438,true,micro
+34260,"Mountain Home, AR",AR,42982,true,micro
+34300,"Mountain Home, ID",ID,29465,true,micro
+34340,"Mount Airy, NC",NC,72287,true,micro
+34380,"Mount Pleasant, MI",MI,64691,true,micro
+34420,"Mount Pleasant, TX",TX,57076,true,micro
+34460,"Mount Sterling, KY",KY,48428,true,micro
+34500,"Mount Vernon, IL",IL,36147,true,micro
+34540,"Mount Vernon, OH",OH,64002,true,micro
+34580,"Mount Vernon-Anacortes, WA",WA,132975,true,metro
+34620,"Muncie, IN",IN,113106,true,metro
+34660,"Murray, KY",KY,39421,true,micro
+34680,"Murrells Inlet, SC",SC,65912,true,micro
+34700,"Muscatine, IA",IA,41853,true,micro
+34740,"Muskegon-Norton Shores, MI",MI,177901,true,metro
+34780,"Muskogee, OK",OK,66708,true,micro
+34820,"Myrtle Beach-Conway-North Myrtle Beach, SC",SC,427551,true,metro
+34860,"Nacogdoches, TX",TX,66035,true,micro
+34880,"Nantucket, MA",MA,14758,true,micro
+34900,"Napa, CA",CA,132949,true,metro
+34940,"Naples-Marco Island, FL",FL,417131,true,metro
+34980,"Nashville-Davidson--Murfreesboro--Franklin, TN",TN,2197416,true,metro
+35020,"Natchez, MS-LA",MS,54722,true,micro
+35060,"Natchitoches, LA",LA,36089,true,micro
+35100,"New Bern, NC",NC,127358,true,micro
+35140,"Newberry, SC",SC,39561,true,micro
+35220,"New Castle, IN",IN,49137,true,micro
+35300,"New Haven, CT",CT,578741,true,metro
+35340,"New Iberia, LA",LA,66846,true,micro
+35380,"New Orleans-Metairie, LA",LA,970849,true,metro
+35420,"New Philadelphia-Dover, OH",OH,92373,true,micro
+35440,"Newport, OR",OR,50636,true,micro
+35460,"Newport, TN",TN,37889,true,micro
+35580,"New Ulm, MN",MN,25517,true,micro
+35620,"New York-Newark-Jersey City, NY-NJ",NY,20112448,true,metro
+35660,"Niles, MI",MI,152444,true,metro
+35700,"Nogales, AZ",AZ,50020,true,micro
+35740,"Norfolk, NE",NE,49228,true,micro
+35820,"North Platte, NE",NE,33972,true,micro
+35840,"North Port-Bradenton-Sarasota, FL",FL,948158,true,metro
+35900,"North Wilkesboro, NC",NC,66233,true,micro
+35940,"Norwalk, OH",OH,58250,true,micro
+35980,"Norwich-New London-Willimantic, CT",CT,284015,true,metro
+36020,"Oak Harbor, WA",WA,85657,true,micro
+36100,"Ocala, FL",FL,442660,true,metro
+36180,"Ocean Pines, MD",MD,54459,true,micro
+36220,"Odessa, TX",TX,173801,true,metro
+36260,"Ogden, UT",UT,672784,true,metro
+36340,"Oil City, PA",PA,49346,true,micro
+36380,"Okeechobee, FL",FL,42608,true,micro
+36420,"Oklahoma City, OK",OK,1512813,true,metro
+36460,"Olean, NY",NY,75390,true,micro
+36500,"Olympia-Lacey-Tumwater, WA",WA,304261,true,metro
+36540,"Omaha, NE-IA",NE,1009836,true,metro
+36580,"Oneonta, NY",NY,60589,true,micro
+36620,"Ontario, OR-ID",OR,60085,true,micro
+36660,"Opelousas, LA",LA,80765,true,micro
+36700,"Orangeburg, SC",SC,83177,true,micro
+36740,"Orlando-Kissimmee-Sanford, FL",FL,2957672,true,metro
+36780,"Oshkosh-Neenah, WI",WI,174218,true,metro
+36820,"Oskaloosa, IA",IA,21880,true,micro
+36830,"Othello, WA",WA,21488,true,micro
+36837,"Ottawa, IL",IL,145902,true,micro
+36840,"Ottawa, KS",KS,26299,true,micro
+36900,"Ottumwa, IA",IA,35210,true,micro
+36940,"Owatonna, MN",MN,37464,true,micro
+36980,"Owensboro, KY",KY,113962,true,metro
+37020,"Owosso, MI",MI,67681,true,micro
+37060,"Oxford, MS",MS,71972,true,micro
+37100,"Oxnard-Thousand Oaks-Ventura, CA",CA,830851,true,metro
+37120,"Ozark, AL",AL,49912,true,micro
+37140,"Paducah, KY-IL",KY,102259,true,metro
+37220,"Pahrump, NV",NV,57336,true,micro
+37260,"Palatka, FL",FL,77734,true,micro
+37300,"Palestine, TX",TX,59805,true,micro
+37340,"Palm Bay-Melbourne-Titusville, FL",FL,663982,true,metro
+37420,"Pampa, TX",TX,21786,true,micro
+37460,"Panama City-Panama City Beach, FL",FL,231174,true,metro
+37500,"Paragould, AR",AR,47411,true,micro
+37540,"Paris, TN",TN,32896,true,micro
+37580,"Paris, TX",TX,63319,true,micro
+37620,"Parkersburg-Vienna, WV",WV,87264,true,metro
+37740,"Payson, AZ",AZ,53801,true,micro
+37800,"Pella, IA",IA,34192,true,micro
+37860,"Pensacola-Ferry Pass-Brent, FL",FL,544949,true,metro
+37900,"Peoria, IL",IL,363505,true,metro
+37940,"Peru, IN",IN,34487,true,micro
+37950,"Petoskey, MI",MI,33775,true,micro
+37980,"Philadelphia-Camden-Wilmington, PA-NJ-DE-MD",PA,6329118,true,metro
+38060,"Phoenix-Mesa-Chandler, AZ",AZ,5228938,true,metro
+38100,"Picayune, MS",MS,59363,true,micro
+38180,"Pierre, SD",SD,20588,true,micro
+38210,"Pikeville, KY",KY,89122,true,micro
+38220,"Pine Bluff, AR",AR,70211,true,micro
+38240,"Pinehurst-Southern Pines, NC",NC,110619,true,metro
+38260,"Pittsburg, KS",KS,39008,true,micro
+38300,"Pittsburgh, PA",PA,2421992,true,metro
+38340,"Pittsfield, MA",MA,128224,true,metro
+38380,"Plainview, TX",TX,36700,true,micro
+38420,"Platteville, WI",WI,52446,true,micro
+38460,"Plattsburgh, NY",NY,78138,true,micro
+38500,"Plymouth, IN",IN,46599,true,micro
+38540,"Pocatello, ID",ID,91591,true,metro
+38620,"Ponca City, OK",OK,43490,true,micro
+38700,"Pontiac, IL",IL,35057,true,micro
+38740,"Poplar Bluff, MO",MO,41904,true,micro
+38820,"Port Angeles, WA",WA,78202,true,micro
+38860,"Portland-South Portland, ME",ME,577635,true,metro
+38900,"Portland-Vancouver-Hillsboro, OR-WA",OR,2542282,true,metro
+38920,"Port Lavaca, TX",TX,19599,true,micro
+38940,"Port St. Lucie, FL",FL,568721,true,metro
+39020,"Portsmouth, OH",OH,71365,true,micro
+39040,"Port Townsend, WA",WA,33970,true,micro
+39060,"Pottsville, PA",PA,145085,true,micro
+39150,"Prescott Valley-Prescott, AZ",AZ,252552,true,metro
+39220,"Price, UT",UT,20680,true,micro
+39300,"Providence-Warwick, RI-MA",RI,1708161,true,metro
+39340,"Provo-Orem-Lehi, UT",UT,773426,true,metro
+39380,"Pueblo, CO",CO,169277,true,metro
+39420,"Pullman, WA",WA,48512,true,micro
+39460,"Punta Gorda, FL",FL,217212,true,metro
+39480,"Putnam, CT",CT,98096,true,micro
+39500,"Quincy, IL-MO",IL,74146,true,micro
+39540,"Racine-Mount Pleasant, WI",WI,198919,true,metro
+39580,"Raleigh-Cary, NC",NC,1595720,true,metro
+39660,"Rapid City, SD",SD,156934,true,metro
+39700,"Raymondville, TX",TX,19971,true,micro
+39740,"Reading, PA",PA,440072,true,metro
+39780,"Red Bluff, CA",CA,64665,true,micro
+39820,"Redding, CA",CA,181648,true,metro
+39860,"Red Wing, MN",MN,48195,true,micro
+39900,"Reno, NV",NV,578734,true,metro
+39940,"Rexburg, ID",ID,69380,true,micro
+39960,"Rice Lake, WI",WI,46484,true,micro
+39980,"Richmond, IN",IN,66169,true,micro
+40060,"Richmond, VA",VA,1389338,true,metro
+40080,"Richmond-Berea, KY",KY,131806,true,micro
+40090,"Rifle, CO",CO,80099,true,micro
+40100,"Rio Grande City-Roma, TX",TX,66319,true,micro
+40140,"Riverside-San Bernardino-Ontario, CA",CA,4769007,true,metro
+40180,"Riverton, WY",WY,39464,true,micro
+40220,"Roanoke, VA",VA,316547,true,metro
+40260,"Roanoke Rapids, NC",NC,63025,true,micro
+40300,"Rochelle, IL",IL,51399,true,micro
+40340,"Rochester, MN",MN,231184,true,metro
+40380,"Rochester, NY",NY,1056149,true,metro
+40420,"Rockford, IL",IL,337242,true,metro
+40460,"Rockingham, NC",NC,42041,true,micro
+40540,"Rock Springs, WY",WY,41267,true,micro
+40580,"Rocky Mount, NC",NC,148486,true,metro
+40620,"Rolla, MO",MO,45247,true,micro
+40660,"Rome, GA",GA,101378,true,metro
+40700,"Roseburg, OR",OR,111951,true,micro
+40740,"Roswell, NM",NM,63364,true,micro
+40760,"Ruidoso, NM",NM,19844,true,micro
+40770,"Russellville, AL",AL,32449,true,micro
+40780,"Russellville, AR",AR,84932,true,micro
+40820,"Ruston, LA",LA,48360,true,micro
+40860,"Rutland, VT",VT,59653,true,micro
+40900,"Sacramento-Roseville-Folsom, CA",CA,2477274,true,metro
+40940,"Safford, AZ",AZ,40157,true,micro
+40980,"Saginaw, MI",MI,187688,true,metro
+41060,"St. Cloud, MN",MN,205854,true,metro
+41100,"St. George, UT",UT,213670,true,metro
+41140,"St. Joseph, MO-KS",MO,119170,true,metro
+41180,"St. Louis, MO-IL",MO,2814421,true,metro
+41260,"St. Marys, PA",PA,29926,true,micro
+41400,"Salem, OH",OH,99377,true,micro
+41420,"Salem, OR",OR,445814,true,metro
+41460,"Salina, KS",KS,59121,true,micro
+41500,"Salinas, CA",CA,433729,true,metro
+41540,"Salisbury, MD",MD,131872,true,metro
+41620,"Salt Lake City-Murray, UT",UT,1308377,true,metro
+41660,"San Angelo, TX",TX,122065,true,metro
+41700,"San Antonio-New Braunfels, TX",TX,2813140,true,metro
+41740,"San Diego-Chula Vista-Carlsbad, CA",CA,3282248,true,metro
+41760,"Sandpoint, ID",ID,54420,true,micro
+41780,"Sandusky, OH",OH,112777,true,metro
+41820,"Sanford, NC",NC,70258,true,micro
+41860,"San Francisco-Oakland-Fremont, CA",CA,4630041,true,metro
+41940,"San Jose-Sunnyvale-Santa Clara, CA",CA,1984473,true,metro
+42020,"San Luis Obispo-Paso Robles, CA",CA,282367,true,metro
+42100,"Santa Cruz-Watsonville, CA",CA,258852,true,metro
+42140,"Santa Fe, NM",NM,156907,true,metro
+42200,"Santa Maria-Santa Barbara, CA",CA,442065,true,metro
+42220,"Santa Rosa-Petaluma, CA",CA,486444,true,metro
+42300,"Sault Ste. Marie, MI",MI,36081,true,micro
+42340,"Savannah, GA",GA,438314,true,metro
+42380,"Sayre, PA",PA,59600,true,micro
+42420,"Scottsbluff, NE",NE,36272,true,micro
+42460,"Scottsboro, AL",AL,54281,true,micro
+42540,"Scranton--Wilkes-Barre, PA",PA,574418,true,metro
+42580,"Seaford, DE",DE,277140,true,micro
+42620,"Searcy, AR",AR,80085,true,micro
+42660,"Seattle-Tacoma-Bellevue, WA",WA,4161883,true,metro
+42680,"Sebastian-Vero Beach-West Vero Corridor, FL",FL,172799,true,metro
+42700,"Sebring, FL",FL,111122,true,metro
+42740,"Sedalia, MO",MO,44254,true,micro
+42780,"Selinsgrove, PA",PA,39655,true,micro
+42820,"Selma, AL",AL,35140,true,micro
+42860,"Seneca, SC",SC,83775,true,micro
+42900,"Seneca Falls, NY",NY,32883,true,micro
+42940,"Sevierville, TN",TN,101342,true,micro
+42980,"Seymour, IN",IN,47370,true,micro
+43020,"Shawano, WI",WI,45759,true,micro
+43060,"Shawnee, OK",OK,75102,true,micro
+43100,"Sheboygan, WI",WI,118047,true,metro
+43140,"Shelby-Kings Mountain, NC",NC,103325,true,micro
+43180,"Shelbyville, TN",TN,55273,true,micro
+43220,"Shelton, WA",WA,71165,true,micro
+43260,"Sheridan, WY",WY,33241,true,micro
+43300,"Sherman-Denison, TX",TX,153613,true,metro
+43320,"Show Low, AZ",AZ,109946,true,micro
+43340,"Shreveport-Bossier City, LA",LA,383474,true,metro
+43380,"Sidney, OH",OH,48065,true,micro
+43420,"Sierra Vista-Douglas, AZ",AZ,126332,true,metro
+43460,"Sikeston, MO",MO,49978,true,micro
+43500,"Silver City, NM",NM,27252,true,micro
+43580,"Sioux City, IA-NE-SD",IA,145738,true,metro
+43620,"Sioux Falls, SD-MN",SD,314638,true,metro
+43640,"Slidell-Mandeville-Covington, LA",LA,279108,true,metro
+43660,"Snyder, TX",TX,16162,true,micro
+43700,"Somerset, KY",KY,67384,true,micro
+43740,"Somerset, PA",PA,72004,true,micro
+43760,"Sonora, CA",CA,53160,true,micro
+43780,"South Bend-Mishawaka, IN-MI",IN,324538,true,metro
+43890,"Sparta, WI",WI,46572,true,micro
+43900,"Spartanburg, SC",SC,407656,true,metro
+43940,"Spearfish, SD",SD,29459,true,micro
+43980,"Spencer, IA",IA,16202,true,micro
+44020,"Spirit Lake, IA",IA,18077,true,micro
+44060,"Spokane-Spokane Valley, WA",WA,608012,true,metro
+44100,"Springfield, IL",IL,206033,true,metro
+44140,"Springfield, MA",MA,464338,true,metro
+44180,"Springfield, MO",MO,500694,true,metro
+44220,"Springfield, OH",OH,135340,true,metro
+44260,"Starkville, MS",MS,62063,true,micro
+44300,"State College, PA",PA,157393,true,metro
+44340,"Statesboro, GA",GA,97977,true,micro
+44420,"Staunton-Stuarts Draft, VA",VA,129692,true,metro
+44460,"Steamboat Springs, CO",CO,38451,true,micro
+44500,"Stephenville, TX",TX,43911,true,micro
+44540,"Sterling, CO",CO,20654,true,micro
+44580,"Sterling, IL",IL,54121,true,micro
+44620,"Stevens Point-Plover, WI",WI,71943,true,micro
+44660,"Stillwater, OK",OK,83889,true,micro
+44700,"Stockton-Lodi, CA",CA,823815,true,metro
+44740,"Storm Lake, IA",IA,20449,true,micro
+44780,"Sturgis, MI",MI,60968,true,micro
+44860,"Sulphur Springs, TX",TX,39063,true,micro
+44900,"Summerville, GA",GA,25300,true,micro
+44940,"Sumter, SC",SC,105067,true,metro
+44980,"Sunbury, PA",PA,107788,true,micro
+45000,"Susanville, CA",CA,28117,true,micro
+45020,"Sweetwater, TX",TX,14117,true,micro
+45060,"Syracuse, NY",NY,652273,true,metro
+45140,"Tahlequah, OK",OK,49196,true,micro
+45180,"Talladega-Sylacauga, AL",AL,91764,true,micro
+45220,"Tallahassee, FL",FL,397442,true,metro
+45300,"Tampa-St. Petersburg-Clearwater, FL",FL,3418895,true,metro
+45340,"Taos, NM",NM,34564,true,micro
+45380,"Taylorville, IL",IL,33443,true,micro
+45460,"Terre Haute, IN",IN,169241,true,metro
+45500,"Texarkana, TX-AR",TX,146816,true,metro
+45520,"The Dalles, OR",OR,26310,true,micro
+45580,"Thomaston, GA",GA,28500,true,micro
+45620,"Thomasville, GA",GA,72958,true,micro
+45660,"Tiffin, OH",OH,54522,true,micro
+45700,"Tifton, GA",GA,51237,true,micro
+45740,"Toccoa, GA",GA,27854,true,micro
+45780,"Toledo, OH",OH,599376,true,metro
+45820,"Topeka, KS",KS,233052,true,metro
+45860,"Torrington, CT",CT,114690,true,micro
+45880,"Town of Pecos, TX",TX,12138,true,micro
+45900,"Traverse City, MI",MI,156972,true,metro
+45940,"Trenton-Princeton, NJ",NJ,399289,true,metro
+45980,"Troy, AL",AL,33688,true,micro
+46020,"Truckee-Grass Valley, CA",CA,101911,true,micro
+46060,"Tucson, AZ",AZ,1074685,true,metro
+46100,"Tullahoma-Manchester, TN",TN,69339,true,micro
+46140,"Tulsa, OK",OK,1069273,true,metro
+46180,"Tupelo, MS",MS,133167,true,micro
+46220,"Tuscaloosa, AL",AL,281850,true,metro
+46300,"Twin Falls, ID",ID,123901,true,metro
+46340,"Tyler, TX",TX,252549,true,metro
+46380,"Ukiah, CA",CA,88122,true,micro
+46460,"Union City, TN",TN,30067,true,micro
+46500,"Urbana, OH",OH,38820,true,micro
+46520,"Urban Honolulu, HI",HI,988703,true,metro
+46540,"Utica-Rome, NY",NY,285611,true,metro
+46620,"Uvalde, TX",TX,24963,true,micro
+46660,"Valdosta, GA",GA,153276,true,metro
+46700,"Vallejo, CA",CA,455376,true,metro
+46780,"Van Wert, OH",OH,29013,true,micro
+46820,"Vermillion, SD",SD,15031,true,micro
+46860,"Vernal, UT",UT,38278,true,micro
+46900,"Vernon, TX",TX,12481,true,micro
+46980,"Vicksburg, MS",MS,41759,true,micro
+47020,"Victoria, TX",TX,99864,true,metro
+47080,"Vidalia, GA",GA,36180,true,micro
+47180,"Vincennes, IN",IN,35652,true,micro
+47220,"Vineland, NJ",NJ,157148,true,metro
+47240,"Vineyard Haven, MA",MA,21219,true,micro
+47260,"Virginia Beach-Chesapeake-Norfolk, VA-NC",VA,1797213,true,metro
+47300,"Visalia, CA",CA,485146,true,metro
+47340,"Wabash, IN",IN,30713,true,micro
+47380,"Waco, TX",TX,308807,true,metro
+47420,"Wahpeton, ND-MN",ND,23019,true,micro
+47460,"Walla Walla, WA",WA,62361,true,metro
+47540,"Wapakoneta, OH",OH,45909,true,micro
+47580,"Warner Robins, GA",GA,208091,true,metro
+47620,"Warren, PA",PA,37038,true,micro
+47660,"Warrensburg, MO",MO,56670,true,micro
+47700,"Warsaw, IN",IN,80892,true,micro
+47780,"Washington, IN",IN,34209,true,micro
+47820,"Washington, NC",NC,44670,true,micro
+47900,"Washington-Arlington-Alexandria, DC-VA-MD-WV",DC,6465724,true,metro
+47920,"Washington Court House, OH",OH,28552,true,micro
+47930,"Waterbury-Shelton, CT",CT,463349,true,metro
+47940,"Waterloo-Cedar Falls, IA",IA,169189,true,metro
+47980,"Watertown, SD",SD,29562,true,micro
+48020,"Watertown-Fort Atkinson, WI",WI,86505,true,micro
+48060,"Watertown-Fort Drum, NY",NY,111540,true,metro
+48140,"Wausau, WI",WI,139432,true,metro
+48180,"Waycross, GA",GA,57670,true,micro
+48200,"Waynesville, NC",NC,63369,true,micro
+48220,"Weatherford, OK",OK,39059,true,micro
+48260,"Weirton-Steubenville, WV-OH",WV,112468,true,metro
+48300,"Wenatchee-East Wenatchee, WA",WA,128414,true,metro
+48460,"West Plains, MO",MO,40798,true,micro
+48540,"Wheeling, WV-OH",WV,134089,true,metro
+48580,"Whitewater-Elkhorn, WI",WI,106127,true,micro
+48620,"Wichita, KS",KS,663809,true,metro
+48660,"Wichita Falls, TX",TX,149448,true,metro
+48680,"Wildwood-The Villages, FL",FL,157772,true,metro
+48700,"Williamsport, PA",PA,112587,true,metro
+48780,"Williston, ND",ND,41767,true,micro
+48820,"Willmar, MN",MN,44720,true,micro
+48900,"Wilmington, NC",NC,492772,true,metro
+48940,"Wilmington, OH",OH,42301,true,micro
+48980,"Wilson, NC",NC,81150,true,micro
+49010,"Winchester, TN",TN,45579,true,micro
+49020,"Winchester, VA-WV",VA,152332,true,metro
+49080,"Winnemucca, NV",NV,17267,true,micro
+49100,"Winona, MN",MN,50523,true,micro
+49180,"Winston-Salem, NC",NC,712206,true,metro
+49220,"Wisconsin Rapids-Marshfield, WI",WI,74060,true,micro
+49260,"Woodward, OK",OK,19827,true,micro
+49300,"Wooster, OH",OH,116758,true,micro
+49340,"Worcester, MA",MA,888502,true,metro
+49380,"Worthington, MN",MN,22338,true,micro
+49420,"Yakima, WA",WA,259185,true,metro
+49460,"Yankton, SD",SD,23635,true,micro
+49620,"York-Hanover, PA",PA,473197,true,metro
+49660,"Youngstown-Warren, OH",OH,423678,true,metro
+49700,"Yuba City, CA",CA,187478,true,metro
+49740,"Yuma, AZ",AZ,224449,true,metro
+49780,"Zanesville, OH",OH,87014,true,micro
+49820,"Zapata, TX",TX,13753,true,micro
+AK-NONCBSA,Rest of Alaska (outside metro/micro areas),AK,192319,false,noncbsa
+AL-NONCBSA,Rest of Alabama (outside metro/micro areas),AL,403399,false,noncbsa
+AR-NONCBSA,Rest of Arkansas (outside metro/micro areas),AR,572984,false,noncbsa
+AZ-NONCBSA,Rest of Arizona (outside metro/micro areas),AZ,90468,false,noncbsa
+CA-NONCBSA,Rest of California (outside metro/micro areas),CA,255721,false,noncbsa
+CO-NONCBSA,Rest of Colorado (outside metro/micro areas),CO,280034,false,noncbsa
+FL-NONCBSA,Rest of Florida (outside metro/micro areas),FL,319661,false,noncbsa
+GA-NONCBSA,Rest of Georgia (outside metro/micro areas),GA,748508,false,noncbsa
+IA-NONCBSA,Rest of Iowa (outside metro/micro areas),IA,740186,false,noncbsa
+ID-NONCBSA,Rest of Idaho (outside metro/micro areas),ID,151322,false,noncbsa
+IL-NONCBSA,Rest of Illinois (outside metro/micro areas),IL,603238,false,noncbsa
+IN-NONCBSA,Rest of Indiana (outside metro/micro areas),IN,458909,false,noncbsa
+KS-NONCBSA,Rest of Kansas (outside metro/micro areas),KS,410476,false,noncbsa
+KY-NONCBSA,Rest of Kentucky (outside metro/micro areas),KY,798998,false,noncbsa
+LA-NONCBSA,Rest of Louisiana (outside metro/micro areas),LA,303284,false,noncbsa
+MD-NONCBSA,Rest of Maryland (outside metro/micro areas),MD,82051,false,noncbsa
+ME-NONCBSA,Rest of Maine (outside metro/micro areas),ME,433718,false,noncbsa
+MI-NONCBSA,Rest of Michigan (outside metro/micro areas),MI,716521,false,noncbsa
+MN-NONCBSA,Rest of Minnesota (outside metro/micro areas),MN,488699,false,noncbsa
+MO-NONCBSA,Rest of Missouri (outside metro/micro areas),MO,834241,false,noncbsa
+MS-NONCBSA,Rest of Mississippi (outside metro/micro areas),MS,561386,false,noncbsa
+MT-NONCBSA,Rest of Montana (outside metro/micro areas),MT,359924,false,noncbsa
+NC-NONCBSA,Rest of North Carolina (outside metro/micro areas),NC,708893,false,noncbsa
+ND-NONCBSA,Rest of North Dakota (outside metro/micro areas),ND,188565,false,noncbsa
+NE-NONCBSA,Rest of Nebraska (outside metro/micro areas),NE,328121,false,noncbsa
+NH-NONCBSA,Rest of New Hampshire (outside metro/micro areas),NH,84127,false,noncbsa
+NM-NONCBSA,Rest of New Mexico (outside metro/micro areas),NM,92885,false,noncbsa
+NV-NONCBSA,Rest of Nevada (outside metro/micro areas),NV,30410,false,noncbsa
+NY-NONCBSA,Rest of New York (outside metro/micro areas),NY,379693,false,noncbsa
+OH-NONCBSA,Rest of Ohio (outside metro/micro areas),OH,475291,false,noncbsa
+OK-NONCBSA,Rest of Oklahoma (outside metro/micro areas),OK,555565,false,noncbsa
+OR-NONCBSA,Rest of Oregon (outside metro/micro areas),OR,63115,false,noncbsa
+PA-NONCBSA,Rest of Pennsylvania (outside metro/micro areas),PA,362206,false,noncbsa
+SC-NONCBSA,Rest of South Carolina (outside metro/micro areas),SC,310938,false,noncbsa
+SD-NONCBSA,Rest of South Dakota (outside metro/micro areas),SD,212614,false,noncbsa
+TN-NONCBSA,Rest of Tennessee (outside metro/micro areas),TN,570121,false,noncbsa
+TX-NONCBSA,Rest of Texas (outside metro/micro areas),TX,1347226,false,noncbsa
+UT-NONCBSA,Rest of Utah (outside metro/micro areas),UT,149886,false,noncbsa
+VA-NONCBSA,Rest of Virginia (outside metro/micro areas),VA,835253,false,noncbsa
+VT-NONCBSA,Rest of Vermont (outside metro/micro areas),VT,128407,false,noncbsa
+WA-NONCBSA,Rest of Washington (outside metro/micro areas),WA,157881,false,noncbsa
+WI-NONCBSA,Rest of Wisconsin (outside metro/micro areas),WI,655141,false,noncbsa
+WV-NONCBSA,Rest of West Virginia (outside metro/micro areas),WV,423216,false,noncbsa
+WY-NONCBSA,Rest of Wyoming (outside metro/micro areas),WY,129382,false,noncbsa

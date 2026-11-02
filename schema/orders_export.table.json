@@ -1,0 +1,15 @@
+{
+  "$comment": "Frictionless Table Schema v1. Helper input: aggregated in the browser to kpi_history.",
+  "name": "orders_export",
+  "title": "Order-level export",
+  "description": "One row per order. FOSIT maps shipping_zip to geo_id and aggregates to date x geo. Nothing leaves the browser.",
+  "fields": [
+    {"name": "order_date", "type": "string", "constraints": {"required": true},
+     "description": "YYYY-MM-DD or ISO 8601 timestamp; only the date part (as written) is used."},
+    {"name": "shipping_zip", "type": "string", "constraints": {"required": true, "pattern": "^\\s*\\d{3,5}(-\\d{4})?\\s*$"},
+     "description": "US ZIP or ZIP+4. 3-4 digit values are left-padded with zeros (spreadsheets often strip them) and reported."},
+    {"name": "revenue", "type": "number", "description": "Optional order revenue."},
+    {"name": "order_id", "type": "string", "description": "Optional; if present, duplicate order_ids are dropped and reported."}
+  ],
+  "missingValues": [""]
+}

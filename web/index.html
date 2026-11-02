@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Privacy by construction: the page may only talk to its own origin. No CDNs, no analytics,
+      no fonts from elsewhere. 'wasm-unsafe-eval' lets the browser compile Pyodide's WebAssembly.
+      The e2e privacy test (e2e/privacy.spec.ts) checks this from the outside too.
+    -->
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="description" content="FOSIT: a free, open-source tool to plan and read geo-lift experiments for CTV. Runs entirely in your browser." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232348c9'/%3E%3Cpath d='M8 22l5-7 4 4 7-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <title>FOSIT: Free Open-Source Incrementality Tool</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
