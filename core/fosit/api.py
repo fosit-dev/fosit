@@ -13,7 +13,7 @@ from importlib import resources
 
 import numpy as np
 
-from . import __version__, ascm, conformal, orders, power, selection, synthetic
+from . import __version__, ascm, conformal, holdout, orders, power, selection, synthetic
 from .panel import Panel, load_kpi_history
 
 _state: dict = {}
@@ -91,15 +91,24 @@ def aggregate_orders(csv_text: str, geo_unit: str, mapping_text: str | None = No
                    "issues": [i.to_dict() for i in issues]})
 
 
-def design_chart(cells: list, control: list, kpi: str = "orders", pre_days: int = 84, holdout_days: int = 28) -> dict:
-    """Each cell's average daily KPI vs its twin over the planning window (§9.3 holdout fit), for charts."""
+def design_chart(cells: list, control: list, kpi: str = "orders", pre_days: int = 84, holdout_days: int = 28,
+                 design: str = "geo_cells") -> dict:
+    """Each cell's average daily KPI vs its twin over the planning window (§9.3 holdout fit), for charts.
+
+    For a national holdout (§13) the one series is the holdout's sales index (1 = its average) vs its twin."""
     panel = _panel()
     n = min(pre_days, panel.n_days)
     cols = np.arange(panel.n_days - n, panel.n_days)
     mat = panel.kpis[kpi][:, cols]
     rows_ok = (mat != 0).mean(axis=1) >= 0.5
-    donors = [g for g in control if rows_ok[panel.rows([g])[0]]]
     n_fit = n - holdout_days
+    if design == "national_holdout":
+        campaign = [r for r in panel.rows(cells[0]) if rows_ok[r]]
+        y1, Y0 = holdout.index_rows(mat, panel.rows(control), campaign, n_fit)
+        fit = ascm.fit(y1, Y0, n_fit)
+        return _clean({"dates": [d.strftime("%Y-%m-%d") for d in panel.dates[cols]], "fit_end": int(n_fit),
+                       "cells": [{"observed": y1.round(4).tolist(), "twin": fit.counterfactual.round(4).tolist()}]})
+    donors = [g for g in control if rows_ok[panel.rows([g])[0]]]
     out = []
     for cell in cells:
         y1 = mat[panel.rows(cell)].mean(axis=0)
@@ -121,19 +130,23 @@ def find_designs(config: dict, progress=None) -> dict:
     cooldown_days, share_min, share_max, min_control_share, balance_max, fit_max,
     n_candidates, seed, excluded, alpha, statistic, permutations ("moving_block"|"iid"),
     power_target, power_designs (how many designs get a power simulation),
-    budgets (list, one per cell).
+    budgets (list, one per cell), design ("geo_cells" | "national_holdout": then
+    share_min/share_max bound the holdout's share and n_cells is 1, §13).
     """
     panel = _panel()
     attrs = _state.get("attributes", {})
     durations = tuple(int(d) for d in config.get("durations", (21, 28, 42, 56)))
     pop = {g: a["population"] for g, a in attrs.items() if a.get("population")} or config.get("population")
+    holdout = config.get("design", "geo_cells") == "national_holdout"
     sel_cfg = selection.SelectionConfig(
-        n_cells=int(config.get("n_cells", 2)), kpi=config.get("kpi", "orders"),
+        n_cells=1 if holdout else int(config.get("n_cells", 2)), kpi=config.get("kpi", "orders"), holdout=holdout,
         pre_days=min(int(config.get("pre_days", 84)), panel.n_days), test_days=min(durations),
-        share_min=float(config.get("share_min", 0.03)), share_max=float(config.get("share_max", 0.15)),
+        share_min=float(config.get("share_min", 0.10 if holdout else 0.03)),
+        share_max=float(config.get("share_max", 0.20 if holdout else 0.15)),
         min_control_share=float(config.get("min_control_share", 0.5)),
         balance_max=float(config.get("balance_max", 0.10)), fit_max=float(config.get("fit_max", 0.10)),
         n_candidates=int(config.get("n_candidates", 2000)), seed=int(config.get("seed", 0)),
+        min_holdout_geos=int(config.get("min_holdout_geos", 10)),
         excluded=set(config.get("excluded", [])),
         not_eligible={g for g, a in attrs.items() if not a.get("treatment_eligible", True)},
         population=pop,
@@ -143,7 +156,7 @@ def find_designs(config: dict, progress=None) -> dict:
     perms = conformal.Permutations(config.get("permutations", "moving_block"), seed=int(config.get("seed", 0)))
     cooldown = int(config.get("cooldown_days", 7))
     pow_cfg = power.PowerConfig(
-        kpi=sel_cfg.kpi, pre_days=sel_cfg.pre_days, durations=durations, adaptive_pre=True,
+        kpi=sel_cfg.kpi, pre_days=sel_cfg.pre_days, durations=durations, adaptive_pre=True, holdout=holdout,
         cooldown_days=cooldown, alpha=float(config.get("alpha", 0.10)),
         statistic=config.get("statistic", "abs_sum"), permutations=perms,
         power_target=float(config.get("power_target", 0.80)),

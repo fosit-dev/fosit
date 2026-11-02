@@ -63,7 +63,10 @@ Cards, first one preselected:
 
 1. **Two-vendor test** *(Recommended)*: "Split one CTV budget between two platforms and find out which one really drives sales."
 2. **Single-channel test:** "Is this channel driving incremental sales at all?"
-3. **Custom:** "Up to 6 cells, your own settings."
+3. **National campaign with a holdout:** "Keep the campaign running almost everywhere, leave about a tenth of the country without it, and measure what it really drives." *(Built. [METHODOLOGY §13](METHODOLOGY.md#13-national-holdout).)* Asks right away: "In the weeks before the test, is this campaign running?" **No, it's off** · **Yes, everywhere** (note: the result will be a little cautious; keep the holdout dark through the cooldown) · **Yes, but only in some markets** (blocked: "FOSIT can't measure this cleanly…", with what to do instead).
+4. **Custom:** "Up to 6 cells, your own settings."
+
+**National holdout differences in the later steps:** P2 has one "Campaign name" and a "Campaign budget during the test". P4 asks vendors to keep the held-out markets completely dark, and "Advanced" bounds the holdout's share of sales (10–20%). P6 is "Find a fair holdout": cards say "Can detect a lift of X or more in the campaign's markets", with chips for the share of sales held out and the number of markets held out vs. with ads; details compare the holdout with the markets with ads, and the chart shows the holdout's sales index vs. its twin. P7 asks the vendor(s) to confirm every held-out market stays free of ads until the cooldown ends; the email and plan PDF list the holdout first.
 
 ### P2. Your test
 
@@ -125,7 +128,7 @@ A row of six check tiles: Plan match · Pre-period fit · Geo leakage · Spend b
 ### R3. Results per cell
 - **Verdict badge** (same size for all outcomes): ✅ Positive lift · ➖ No detectable lift · ❔ Inconclusive · ⚠️ Negative lift: investigate.
 - One-sentence summary: "Cell 1 drove **1,840 incremental orders** (90% range: 950 to 2,700) at an **iCPA of $27** (range $19 to $53)."
-- Chart: daily observed vs. twin, test window shaded, cooldown hatched, a band for the twin's uncertainty.
+- Chart: daily observed vs. twin, test window shaded, cooldown hatched, a band for the twin's uncertainty. *(National holdout: the chart shows the held-out markets (no ads) vs. their twin (with the ads), with a sentence explaining that the gap is applied to the markets with ads.)*
 - Stats grid: Lift % · Incremental orders · Incremental revenue · iCPA · iROAS · p-value. Each shows estimate, 90% and 95% ranges, ⓘ, and Read more.
 
 ### R4. Head-to-head

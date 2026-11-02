@@ -20,10 +20,11 @@ export type LoadedData = {
   mappingSha256?: string;
 };
 
-export type Template = "two_vendor" | "single" | "custom";
+export type Template = "two_vendor" | "single" | "custom" | "national_holdout";
 
 export type PlanState = {
   template: Template;
+  adsBeforeTest: "off" | "always_on" | "some" | null;   // national holdout only (METHODOLOGY.md §13.1)
   nCells: number;
   labels: string[];
   totalBudget: number;
@@ -64,6 +65,7 @@ const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0] % 2_000_0
 export function initialState(): PlanState {
   return {
     template: "two_vendor",
+    adsBeforeTest: null,
     nCells: 2,
     labels: ["Cell 1", "Cell 2"],
     totalBudget: 100000,
@@ -105,6 +107,20 @@ export function withCells(s: PlanState, n: number): Partial<PlanState> {
   return { nCells: n, labels, split, confirmed: Array(n).fill(false), coinFlip: null };
 }
 
+export const isHoldout = (s: Pick<PlanState, "template">) => s.template === "national_holdout";
+
+/** Switching between a national holdout and geo cells changes what the share sliders bound (holdout vs. each cell). */
+export function withTemplate(s: PlanState, template: Template, cells: number): Partial<PlanState> {
+  const holdout = template === "national_holdout";
+  const changed = holdout !== isHoldout(s);
+  return {
+    template,
+    ...withCells(s, cells),
+    ...(holdout ? { labels: changed ? ["Campaign"] : s.labels.slice(0, 1) } : changed ? { labels: Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`) } : {}),
+    ...(changed ? (holdout ? { shareMin: 0.10, shareMax: 0.20 } : { shareMin: 0.03, shareMax: 0.15, adsBeforeTest: null }) : {}),
+  };
+}
+
 export const budgets = (s: PlanState) => s.split.map((p) => Math.round((s.totalBudget * p) / 100 * 100) / 100);
 
 /** Planned pre-period in days: as requested, capped by the history available. */
@@ -112,7 +128,7 @@ export const preDays = (s: PlanState) => Math.min(s.preWeeks * 7, s.data?.summar
 
 /** Anything that changes the market search makes old results stale. */
 export const searchKey = (s: PlanState) =>
-  JSON.stringify([s.data?.sha256, s.geoUnit, s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
+  JSON.stringify([s.data?.sha256, s.geoUnit, s.template === "national_holdout", s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
     s.durations, s.cooldown, preDays(s), s.permutations, s.seed]);
 
 export const STEPS = ["Template", "Your test", "Sales data", "Markets", "Timing", "Find markets", "Lock & share"] as const;

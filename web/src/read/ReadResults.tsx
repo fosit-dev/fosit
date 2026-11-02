@@ -46,6 +46,7 @@ function StatsTable({ cell, r, currency }: { cell: CellResult; r: ReadResult; cu
 export function ReadResults({ r, plan, names }: Props) {
   const c = plan.commitment;
   const currency = c.currency;
+  const holdout = r.design === "national_holdout";
   return (
     <>
       <section className="card" aria-labelledby="bottom-line">
@@ -65,10 +66,12 @@ export function ReadResults({ r, plan, names }: Props) {
         return (
           <section className="card" key={cell.id} aria-labelledby={`cell-${cell.id}`}>
             <div className="row"><h2 id={`cell-${cell.id}`} style={{ margin: 0 }}>{cell.label}</h2><VerdictBadge v={cell.verdict} /></div>
-            <p className="small muted">{cell.n_geos} markets · spend {money(cell.spend, currency)} of {money(cell.budget, currency)} planned · {cell.verdict_reason}</p>
+            <p className="small muted">{cell.n_geos} markets{holdout ? ` with ads, ${c.control.geo_ids.length} held out` : ""} · spend {money(cell.spend, currency)} of {money(cell.budget, currency)} planned · {cell.verdict_reason}</p>
             {cell.meaningful_effect != null && <p className="small muted">Worthwhile effect: {num(cell.meaningful_effect)} ({cell.meaningful_basis}).</p>}
-            <ImpactChart title={cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
-              counterfactual={m.series.counterfactual} nPre={m.series.n_pre} testDays={m.series.test_days} />
+            {holdout && <p className="small">The chart shows the held-out markets: what they sold without the ads, and what their twin (built from the markets
+              with ads) says they'd have sold with them. The gap is the share of sales the ads drove, applied to the {num(cell.n_geos)} markets with ads.<InfoTip term="holdout" /></p>}
+            <ImpactChart title={holdout ? "Held-out markets" : cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
+              counterfactual={m.series.counterfactual} nPre={m.series.n_pre} testDays={m.series.test_days} holdout={m.series.role === "holdout"} />
             <StatsTable cell={cell} r={r} currency={currency} />
           </section>
         );
@@ -105,8 +108,8 @@ export function ReadResults({ r, plan, names }: Props) {
             const u = cell.kpis[r.primary_kpi].under_the_hood;
             return (
               <div key={cell.id}>
-                <h4>{cell.label}'s twin</h4>
-                <p className="small">Built from {u.donors} control markets{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}.</p>
+                <h4>{holdout ? "The holdout's twin" : `${cell.label}'s twin`}</h4>
+                <p className="small">Built from {u.donors} {holdout ? "markets with ads, each indexed to its own history (METHODOLOGY §13.3)" : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}.</p>
                 <div className="chips">{u.top_weights.map((w) => <span key={w.geo_id} className="chip">{names[w.geo_id] ?? w.geo_id}: {w.weight.toFixed(3)}</span>)}</div>
               </div>
             );

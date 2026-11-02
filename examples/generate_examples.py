@@ -1,13 +1,15 @@
 """Generate FOSIT's example datasets with a known truth.
 
-    python examples/generate_examples.py
+    python examples/generate_examples.py [two_vendor | national_holdout]   (default: both)
 
-Writes two scenarios, each a complete, realistic test you can load into the app:
+Writes three scenarios, each a complete, realistic test you can load into the app:
 
-  examples/two_vendor/   Vendor A gets 1.5x its cell's planned minimum detectable lift (the test should find it);
-                         Vendor B gets 0.5x its cell's (the test has low power for it: it may or may not be
-                         confirmed, but either way its interval must contain the truth)
-  examples/null_effect/  same markets, no effect at all
+  examples/two_vendor/        Vendor A gets 1.5x its cell's planned minimum detectable lift (the test should find it);
+                              Vendor B gets 0.5x its cell's (the test has low power for it: it may or may not be
+                              confirmed, but either way its interval must contain the truth)
+  examples/null_effect/       same markets, no effect at all
+  examples/national_holdout/  one campaign on US states, running everywhere except a planned holdout
+                              (METHODOLOGY.md §13); the campaign markets get 1.5x the planned MDE
 
 The lift rules are fixed in advance relative to the plan's own sensitivity (not tuned to the result).
 
@@ -201,5 +203,115 @@ def main() -> None:
         print(name, json.dumps({k: (v["true_incremental_orders"], v["true_icpa"]) for k, v in truth.items()}))
 
 
+HOLDOUT_BUDGET = 400_000
+HOLDOUT_LABEL = "CTV campaign"
+HOLDOUT_MULTIPLE = 1.5     # x the planned MDE, fixed before looking at any result
+
+
+def national_holdout() -> None:
+    """A national campaign on US states with a holdout chosen by the planner (§13). Same recipe as above."""
+    attrs = api.geo_attributes("state")
+    pop = {a["geo_id"]: a["population"] for a in attrs}
+    pre_start = (pd.Timestamp(TEST_START) - pd.Timedelta(days=PRE_DAYS)).strftime("%Y-%m-%d")
+    total_days = PRE_DAYS + TEST_DAYS + COOLDOWN
+    end = (pd.Timestamp(pre_start) + pd.Timedelta(days=total_days - 1)).strftime("%Y-%m-%d")
+    base = synthetic.sample_state_history(attrs, end, n_days=total_days, seed=SEED)
+    history = base[base["date"] < TEST_START].reset_index(drop=True)
+    history_csv = history.to_csv(index=False)
+
+    assert api.load_history(history_csv, "state")["ok"]
+    found = api.find_designs({"design": "national_holdout", "kpi": "orders", "pre_days": PRE_DAYS, "durations": [TEST_DAYS],
+                              "cooldown_days": COOLDOWN, "seed": SEED, "budgets": [HOLDOUT_BUDGET]})
+    best = found["designs"][0]
+    campaign, holdout = best["cells"][0], best["control"]
+    mde = best["power"]["cells"][0]["curves"][0]["mde"]
+    print("national_holdout design:", len(holdout), "held out", round(best["control_share"], 3), "of sales; fit",
+          [round(f, 3) for f in best["fit"]], "MDE", mde)
+
+    folder = os.path.join(HERE, "national_holdout")
+    os.makedirs(folder, exist_ok=True)
+    with open(os.path.join(folder, "history_for_planning.csv"), "w") as f:
+        f.write(history_csv)
+    test_end = (pd.Timestamp(TEST_START) + pd.Timedelta(days=TEST_DAYS - 1)).strftime("%Y-%m-%d")
+
+    rng = np.random.default_rng(SEED + 1)
+    full = base.copy()
+    aov = (full["revenue"] / full["orders"].where(full["orders"] > 0)).fillna(full["revenue"].sum() / full["orders"].sum())
+    lift = round(HOLDOUT_MULTIPLE * mde, 4)
+    mask = full["geo_id"].isin(campaign) & full["date"].between(TEST_START, test_end)
+    extra = rng.poisson(lift * full.loc[mask, "orders"].to_numpy())
+    full.loc[mask, "orders"] += extra
+    extra_rev = np.round(extra * aov[mask].to_numpy(), 2)
+    full.loc[mask, "revenue"] = np.round(full.loc[mask, "revenue"] + extra_rev, 2)
+    full.to_csv(os.path.join(folder, "kpi_history.csv"), index=False)
+    truth = {"cell_1": {"label": HOLDOUT_LABEL, "injected_lift": lift, "planned_mde": mde, "multiple_of_mde": HOLDOUT_MULTIPLE,
+                        "true_incremental_orders": int(extra.sum()), "true_incremental_revenue": float(np.round(extra_rev.sum(), 2)),
+                        "spend": HOLDOUT_BUDGET, "true_icpa": HOLDOUT_BUDGET / extra.sum(),
+                        "true_iroas": float(extra_rev.sum() / HOLDOUT_BUDGET)}}
+
+    # spend & delivery: even daily spend by population across the campaign states, 0.5% not attributable to a state
+    rows = []
+    weights = np.array([pop[g] for g in campaign], float)
+    weights /= weights.sum()
+    daily = HOLDOUT_BUDGET / TEST_DAYS
+    for day in pd.date_range(TEST_START, test_end).strftime("%Y-%m-%d"):
+        imps = daily / CPM * 1000
+        for g, w in zip(campaign, weights):
+            rows.append((day, HOLDOUT_LABEL, g, int(round(imps * 0.995 * w)), round(daily * 0.995 * w, 2)))
+        rows.append((day, HOLDOUT_LABEL, "*", int(round(imps * 0.005)), round(daily * 0.005, 2)))
+    pd.DataFrame(rows, columns=["date", "cell", "geo_id", "impressions", "spend"]).to_csv(
+        os.path.join(folder, "spend_delivery.csv"), index=False)
+
+    with open(os.path.join(ROOT, "core", "fosit", "geo_data", "SOURCES.json")) as f:
+        mapping_sha = json.load(f)["outputs"]["zcta_to_geo.csv"]["sha256"]
+    cells = [{"id": "cell_1", "label": HOLDOUT_LABEL, "geo_ids": sorted(campaign), "budget": HOLDOUT_BUDGET}]
+    commitment = {
+        "tool": {"name": "FOSIT", "version": "0.1.0", "core_sha256": core_sha256()},
+        "created_at": "2026-09-01T09:00:00Z",
+        "test_name": "Example: national CTV campaign with a state holdout",
+        "advertiser_label": "Synthetic example (not real data)",
+        "currency": "USD",
+        "geo": {"unit": "state", "mapping_name": "Census 2020 ZCTA-county relationship, by state (FOSIT geo_data)",
+                "mapping_sha256": mapping_sha},
+        "kpi": {"primary": "orders", "secondary": ["revenue"], "aggregation": "daily"},
+        "dates": {"pre_start": pre_start, "pre_end": (pd.Timestamp(TEST_START) - pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
+                  "test_start": TEST_START, "test_end": test_end,
+                  "cooldown_end": (pd.Timestamp(test_end) + pd.Timedelta(days=COOLDOWN)).strftime("%Y-%m-%d")},
+        "design": {"type": "national_holdout", "ads_before_test": "off"},
+        "cells": cells,
+        "control": {"geo_ids": sorted(holdout)},
+        "excluded": {"geo_ids": []},
+        "method": {"estimator": "ridge_ascm", "fixed_effects": True, "lambda_selection": "cv_1se", "inference": "conformal",
+                   "permutations": {"kind": "moving_block"}, "test_statistic": "abs_sum", "alpha": 0.1,
+                   "report_levels": [0.9, 0.95], "head_to_head": "joint_conformal_projection",
+                   "donor_min_nonzero_share": 0.5, "seed": SEED},
+        "thresholds": {"pre_fit_nrmse_max": {"cell_1": {kpi: round(min(1.5 * best["fit"][0], 0.15), 4) for kpi in ("orders", "revenue")}},
+                       "leakage_warn_share": 0.05, "spend_share_tolerance_pp": 5, "min_budget_delivery": 0.9, "power_target": 0.8},
+        "decision": {"primary_metric": "cell_lift", "meaningful_effect_basis": "planned_mde", "planned_mde_lift": {"cell_1": round(mde, 4)}},
+        "assignment": {"method": "stratified_random_search", "candidates_searched": found["funnel"]["generated"],
+                       "design_rank": 1, "label_assignment": "user"},
+        "vendor_targeting_confirmed": [{"cell_id": "cell_1", "confirmed": True}],
+        "data_fingerprint": {"kpi_history_sha256": sha256(history_csv.encode()), "rows": len(history),
+                             "geos": int(history["geo_id"].nunique()), "first_date": history["date"].min(),
+                             "last_date": history["date"].max()},
+    }
+    plan = {"fosit_plan_version": "1.0", "commitment": commitment,
+            "hash": {"algorithm": "SHA-256", "canonicalization": "RFC8785", "value": plan_hash(commitment)},
+            "appendix": {"note": "Design diagnostics. Not part of the fingerprint.",
+                         "design": {"fit": best["fit"], "balance": best["balance"], "holdout_share": best["control_share"]},
+                         "mde": [{"label": HOLDOUT_LABEL, "test_days": TEST_DAYS, "mde": mde}]}}
+    with open(os.path.join(folder, "plan.fosit-plan.json"), "w") as f:
+        json.dump(plan, f, indent=2)
+    with open(os.path.join(folder, "truth.json"), "w") as f:
+        json.dump({"scenario": "national_holdout", "seed": SEED, "cells": truth,
+                   "note": "Exact orders and revenue added in the campaign states on ads-on days. FOSIT should recover these within its intervals."},
+                  f, indent=2)
+    print("national_holdout", json.dumps({"orders": truth["cell_1"]["true_incremental_orders"], "icpa": truth["cell_1"]["true_icpa"]}))
+
+
 if __name__ == "__main__":
-    main()
+    which = sys.argv[1:] or ["two_vendor", "national_holdout"]
+    if "two_vendor" in which:
+        main()
+    if "national_holdout" in which:
+        national_holdout()

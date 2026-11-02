@@ -4,6 +4,15 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 
 ## [Unreleased]
 
+### Added: national holdout (METHODOLOGY §13)
+- A new design for one campaign that runs nationally: it runs everywhere except a planner-chosen holdout (default 10%–20% of sales, at least 10 markets). Plan: new template, a required question about whether the campaign ran before the test (only "off everywhere" or "on everywhere" can be measured), holdout-share settings, design cards, lock step, email and plan PDF. Read: holdout wording, chart and report. A second in-app example, `examples/national_holdout` (US states).
+- Method: the twin is built **for the holdout, from the markets with ads**, on series indexed to their own history. The gap is the share of sales the ads drove, applied to the markets with ads; iCPA uses actual spend. Building the twin the other way round (campaign markets from ~10 holdout markets) was tried and rejected: on 64 synthetic state panels it called a false positive 16% of the time, vs 5% for the method shipped.
+- Plan schema: optional `commitment.design` (`type`: `geo_cells` | `national_holdout`, plus `ads_before_test`). Plans without it read as geo cells, so existing plans and their fingerprints are unchanged.
+- Validation: `validation/holdout_study.py` (200 synthetic state panels) and `tests/test_holdout.py`. Results: close to unbiased (−0.6%), the planned MDE is detected 86% of the time (80% planned), but with no effect the 90% intervals hold zero only 83% of the time.
+
+### Found: state-level designs are over-confident
+- On synthetic state-level data, nominal 90% intervals cover the truth about 82–85% of the time, for the existing two-cell design as well as the national holdout (CBSA data: 92%). Documented in METHODOLOGY §13.6 and §14 (known limitations); not yet fixed.
+
 ### Added: Read module
 - Core: `spend.py` (spend & delivery validation, leakage by destination) and `read.py`: per-cell estimates for every KPI with 90/95% intervals; incremental orders and revenue, lift, iCPA, iROAS and orders per 1,000 with intervals; verdicts (§8); joint-region head-to-head (§7.2); data-based honesty checks (§11); results CSV.
 - Web: Read screens (load plan + fingerprint anchor + diff against the original; data files; six honesty checks; "other changes" question before results; per-cell results with charts; head-to-head; under the hood), CFO-ready PDF report with INTERIM label and "NOT THE PRE-REGISTERED ANALYSIS" watermark, results CSV, analysis config for re-running.

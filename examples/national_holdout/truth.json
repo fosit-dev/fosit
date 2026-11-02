@@ -1,0 +1,18 @@
+{
+  "scenario": "national_holdout",
+  "seed": 2026,
+  "cells": {
+    "cell_1": {
+      "label": "CTV campaign",
+      "injected_lift": 0.1032,
+      "planned_mde": 0.0688,
+      "multiple_of_mde": 1.5,
+      "true_incremental_orders": 15253,
+      "true_incremental_revenue": 1269895.12,
+      "spend": 400000,
+      "true_icpa": 26.224349308332787,
+      "true_iroas": 3.1747378000000004
+    }
+  },
+  "note": "Exact orders and revenue added in the campaign states on ads-on days. FOSIT should recover these within its intervals."
+}

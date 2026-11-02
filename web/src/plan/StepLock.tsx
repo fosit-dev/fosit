@@ -6,7 +6,7 @@ import { downloadBlob, downloadText, slug } from "../lib/download";
 import { money, pct, weeks } from "../lib/format";
 import { groupHash, sha256Hex, shortCode } from "../lib/hash";
 import { buildCommitment, lockPlan, type LockedPlan } from "../lib/plan";
-import { budgets, preDays, type PlanState } from "./state";
+import { budgets, isHoldout, preDays, type PlanState } from "./state";
 import { curveFor, detectableIcpa } from "./StepFind";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
@@ -39,6 +39,7 @@ export function StepLock({ s, set }: Props) {
   const names = Object.fromEntries(s.data.geos.map((g) => [g.geo_id, g.name]));
   const ready = s.confirmed.every(Boolean) && s.datesFinal;
   const testEnd = addDays(s.testStart, s.duration - 1);
+  const holdout = isHoldout(s);
 
   const lock = async () => {
     setError(null);
@@ -56,6 +57,7 @@ export function StepLock({ s, set }: Props) {
         labels: s.labels.map((l) => l.trim()), budgets: b,
         testStart: s.testStart, testDays: s.duration, cooldownDays: s.cooldown, preDays: preDays(s),
         design: d, designRank: s.chosen! + 1, candidatesSearched: s.result!.funnel.generated,
+        designType: holdout ? { type: "national_holdout", ads_before_test: s.adsBeforeTest === "always_on" ? "always_on" : "off" } : { type: "geo_cells" },
         excluded: s.excluded, permutations: s.permutations, alpha: 0.1, seed: s.seed,
         decisionBasis: s.decisionBasis, targetIcpa: s.targetIcpa ?? undefined, breakevenIroas: s.breakevenIroas ?? undefined,
         coinFlip: s.coinFlip,
@@ -65,7 +67,8 @@ export function StepLock({ s, set }: Props) {
       });
       const appendix = {
         note: "Design diagnostics. Not part of the fingerprint; safe to delete before sharing.",
-        design: { fit: d.fit, shares: d.shares, balance: d.balance, balance_score: d.balance_score, share_in_test: d.share_in_test },
+        design: { fit: d.fit, shares: d.shares, balance: d.balance, balance_score: d.balance_score, share_in_test: d.share_in_test,
+          ...(holdout ? { holdout_share: d.control_share } : {}) },
         mde: commitment.cells.map((cell, k) => {
           const cv = curveFor(d, setFor(k), s.duration);
           return { label: cell.label, test_days: s.duration, mde: cv?.mde ?? null, detectable_icpa: detectableIcpa(cv, cell.budget), windows: cv?.windows ?? 0, false_positive_rate: cv?.false_positive_rate ?? null };
@@ -82,8 +85,11 @@ export function StepLock({ s, set }: Props) {
   const planForDownload = (p: LockedPlan): LockedPlan => (s.includeDiagnostics ? p : { ...p, appendix: undefined });
   const email = s.locked
     ? `Subject: Locked test plan: ${s.testName} (fingerprint ${shortCode(s.locked.hash.value)})\n\n` +
-      `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)} in the markets listed for each cell; control markets get no test ads.\n\n` +
-      `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n`
+      (holdout
+        ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). From ${pretty(s.testStart)} to ${pretty(addDays(testEnd, s.cooldown))} the campaign runs everywhere except the ${d.control.length} held-out markets listed in the plan, which must get no ads at all.\n\n` +
+          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can keep every held-out market dark for those dates. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n`
+        : `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)} in the markets listed for each cell; control markets get no test ads.\n\n` +
+          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n`)
     : "";
 
   if (s.locked) {
@@ -130,7 +136,9 @@ export function StepLock({ s, set }: Props) {
           </tbody>
         </table>
       </div>
-      <p className="small muted">Ads {pretty(s.testStart)} – {pretty(testEnd)} ({weeks(s.duration)}), cooldown to {pretty(addDays(testEnd, s.cooldown))}. {d.control.length} control markets. {Object.keys(s.excluded).length} excluded.</p>
+      <p className="small muted">Ads {pretty(s.testStart)} – {pretty(testEnd)} ({weeks(s.duration)}), cooldown to {pretty(addDays(testEnd, s.cooldown))}.{" "}
+        {holdout ? `${d.control.length} markets held out (${pct(d.control_share)} of sales), dark until ${pretty(addDays(testEnd, s.cooldown))}.` : `${d.control.length} control markets.`}{" "}
+        {Object.keys(s.excluded).length} excluded.</p>
 
       {d.cells.length > 1 && (
         <div className="callout">
@@ -148,7 +156,9 @@ export function StepLock({ s, set }: Props) {
       {s.labels.map((l, k) => (
         <label key={k} className="check">
           <input type="checkbox" checked={s.confirmed[k] ?? false} onChange={(e) => set({ confirmed: s.confirmed.map((c, j) => (j === k ? e.target.checked : c)) })} />
-          <span><strong>{l}</strong>'s vendor confirmed they can target exactly these {d.cells[setFor(k)].length} markets, and nothing in control.</span>
+          {holdout
+            ? <span><strong>{l}</strong>'s vendor(s) confirmed they can keep all {d.control.length} held-out markets free of ads from {pretty(s.testStart)} to {pretty(addDays(testEnd, s.cooldown))}.</span>
+            : <span><strong>{l}</strong>'s vendor confirmed they can target exactly these {d.cells[setFor(k)].length} markets, and nothing in control.</span>}
         </label>
       ))}
       <label className="check">

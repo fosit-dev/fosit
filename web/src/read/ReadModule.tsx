@@ -7,7 +7,7 @@ import { diffPlans, type Change } from "../lib/diff";
 import { downloadBlob, downloadText, slug } from "../lib/download";
 import { money, num } from "../lib/format";
 import { groupHash, sha256Hex, shortCode } from "../lib/hash";
-import { verifyPlan, type LockedPlan } from "../lib/plan";
+import { isHoldout, verifyPlan, type LockedPlan } from "../lib/plan";
 import { callPython } from "../worker/client";
 import type { Progress } from "../worker/protocol";
 import { ReadResults } from "./ReadResults";
@@ -96,13 +96,17 @@ export function ReadModule() {
     } finally { setBusy(null); }
   };
 
-  const loadExample = async () => {
+  const EXAMPLES = {
+    two_vendor: "Example: two-vendor test (synthetic)",
+    national_holdout: "Example: national campaign with a state holdout (synthetic)",
+  };
+  const loadExample = async (name: keyof typeof EXAMPLES) => {
     setBusy("Loading the example…");
     try {
-      const base = new URL("./examples/two_vendor/", document.baseURI);
+      const base = new URL(`./examples/${name}/`, document.baseURI);
       const get = (f: string) => fetch(new URL(f, base)).then((r) => { if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`); return r.text(); });
       const p = JSON.parse(await get("plan.fosit-plan.json")) as LockedPlan;
-      acceptPlan(p, "Example: two-vendor test (synthetic)");
+      acceptPlan(p, EXAMPLES[name]);
       setIsExample(true);
       setAnchor(p.hash.value);
       const kText = await get("kpi_history.csv");
@@ -128,12 +132,12 @@ export function ReadModule() {
   const checks: Check[] = useMemo(() => {
     if (!result) return [];
     const shockCheck: Check = shocks.answer === "none"
-      ? { id: "shocks", title: "Other changes", status: "pass", detail: "You confirmed no other channel, promotion, pricing or stock change differed across cells or vs. control." }
+      ? { id: "shocks", title: "Other changes", status: "pass", detail: `You confirmed no other channel, promotion, pricing or stock change differed ${plan && isHoldout(plan.commitment) ? "between the held-out markets and the rest" : "across cells or vs. control"}.` }
       : shocks.answer === "changed"
         ? { id: "shocks", title: "Other changes", status: "warn", detail: `You reported a change: ${shocks.note || "(no description)"}` }
         : { id: "shocks", title: "Other changes", status: "warn", detail: "Waiting for your answer below." };
     return [planCheck(v, changes), ...result.checks, shockCheck];
-  }, [result, v, changes, shocks]);
+  }, [result, v, changes, shocks, plan]);
 
   const mismatch = v ? !v.selfConsistent || v.matchesAnchor === false : false;
   const c = plan?.commitment;
@@ -165,13 +169,16 @@ export function ReadModule() {
           <label className="btn btn-primary">Choose plan file (.fosit-plan.json)
             <input type="file" accept=".json,application/json" className="sr-only" data-testid="plan-file" onChange={(e) => { const f = e.target.files?.[0]; if (f) loadPlanFile(f); e.target.value = ""; }} />
           </label>
-          <button type="button" className="btn-ghost" onClick={loadExample} disabled={!!busy}>Try it with the example (two vendors, synthetic)</button>
+          <button type="button" className="btn-ghost" onClick={() => loadExample("two_vendor")} disabled={!!busy}>Try it with the example (two vendors, synthetic)</button>
+          <button type="button" className="btn-ghost" onClick={() => loadExample("national_holdout")} disabled={!!busy}>Try the national-holdout example (synthetic)</button>
         </div>
         {planError && <div className="callout err">{planError}</div>}
         {plan && c && (
           <div style={{ marginTop: 14 }}>
             <p><strong>{c.test_name}</strong>{c.advertiser_label ? ` · ${c.advertiser_label}` : ""} <span className="muted small">({planName})</span></p>
-            <p className="small">{c.cells.map((x) => `${x.label}: ${x.geo_ids.length} markets, ${money(x.budget, c.currency)}`).join(" · ")} · {c.control.geo_ids.length} control markets</p>
+            <p className="small">{isHoldout(c)
+              ? `National holdout · ${c.cells[0].label}: ${c.cells[0].geo_ids.length} markets with ads, ${money(c.cells[0].budget, c.currency)} · ${c.control.geo_ids.length} markets held out`
+              : `${c.cells.map((x) => `${x.label}: ${x.geo_ids.length} markets, ${money(x.budget, c.currency)}`).join(" · ")} · ${c.control.geo_ids.length} control markets`}</p>
             <p className="small">Ads {pretty(c.dates.test_start)} – {pretty(c.dates.test_end)}, cooldown to {pretty(c.dates.cooldown_end)}. Primary goal: {c.kpi.primary}.</p>
             <div className="field" style={{ marginTop: 10 }}>
               <label htmlFor="anchor">Paste the fingerprint from your pre-launch email<InfoTip term="planMatch" /></label>
@@ -243,7 +250,7 @@ export function ReadModule() {
               ))}
             </div>
             <fieldset style={{ border: 0, padding: 0, marginTop: 16 }}>
-              <legend style={{ fontWeight: 600 }}>During the test, did anything else change differently across cells or vs. control? (another channel, a promotion, prices, stock-outs)<InfoTip term="shocks" /></legend>
+              <legend style={{ fontWeight: 600 }}>During the test, did anything else change differently {c && isHoldout(c) ? "between the held-out markets and the rest" : "across cells or vs. control"}? (another channel, a promotion, prices, stock-outs)<InfoTip term="shocks" /></legend>
               <label className="check"><input type="radio" name="shocks" checked={shocks.answer === "none"} onChange={() => setShocks({ answer: "none", note: "" })} /><span>No, nothing else changed differently</span></label>
               <label className="check"><input type="radio" name="shocks" checked={shocks.answer === "changed"} onChange={() => setShocks({ ...shocks, answer: "changed" })} /><span>Yes, something changed</span></label>
               {shocks.answer === "changed" && <input type="text" aria-label="What changed" placeholder="What changed, where and when? (goes into the report)" value={shocks.note} onChange={(e) => setShocks({ ...shocks, note: e.target.value })} />}

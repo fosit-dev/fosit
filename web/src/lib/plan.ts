@@ -54,6 +54,7 @@ export type Commitment = {
   geo: { unit: "cbsa" | "state" | "custom"; mapping_name: string; mapping_sha256: string };
   kpi: { primary: Kpi; secondary: Kpi[]; aggregation: "daily" | "weekly" };
   dates: { pre_start: string; pre_end: string; test_start: string; test_end: string; cooldown_end: string };
+  design?: Design;                  // absent in plans from FOSIT 0.1 (= geo_cells)
   cells: { id: string; label: string; geo_ids: string[]; budget: number }[];
   control: { geo_ids: string[] };
   excluded: { geo_ids: string[]; reasons?: Record<string, string> };
@@ -95,6 +96,13 @@ export type Commitment = {
   data_fingerprint: { kpi_history_sha256: string; rows: number; geos: number; first_date: string; last_date: string };
 };
 
+/** METHODOLOGY.md §13: a national holdout has one cell (the campaign markets); its control is the holdout. */
+export type Design =
+  | { type: "geo_cells" }
+  | { type: "national_holdout"; ads_before_test: "off" | "always_on" };
+
+export const isHoldout = (c: Pick<Commitment, "design">) => c.design?.type === "national_holdout";
+
 export type LockedPlan = {
   fosit_plan_version: "1.0";
   commitment: Commitment;
@@ -124,6 +132,7 @@ export type PlanInputs = {
   cooldownDays: number;
   preDays: number;
   design: DesignResult;
+  designType?: Design;              // default geo_cells
   designRank: number;
   candidatesSearched: number;
   excluded: Record<string, string>;
@@ -175,6 +184,7 @@ export function buildCommitment(p: PlanInputs): Commitment {
       test_end: testEnd,
       cooldown_end: addDays(testEnd, p.cooldownDays),
     },
+    design: p.designType ?? { type: "geo_cells" },
     cells,
     control: { geo_ids: sorted(p.design.control) },
     excluded: { geo_ids: sorted(Object.keys(p.excluded)), reasons: { ...p.excluded } },
@@ -247,6 +257,7 @@ export function validateCommitment(c: Commitment): string[] {
   const labels = c.cells.map((x) => x.label.trim());
   if (new Set(labels).size !== labels.length || labels.some((l) => !l)) problems.push("Cell labels must be unique and non-empty.");
   if (c.vendor_targeting_confirmed.length !== c.cells.length) problems.push("Every cell's targeting must be confirmed.");
+  if (isHoldout(c) && c.cells.length !== 1) problems.push("A national holdout has exactly one campaign cell.");
   const walk = (v: unknown, path: string) => {
     if (typeof v === "number" && v !== 0 && !Number.isInteger(v) && (Math.abs(v) < 1e-4 || Math.abs(v) >= 1e15))
       problems.push(`${path}: number out of the hash-safe range.`);

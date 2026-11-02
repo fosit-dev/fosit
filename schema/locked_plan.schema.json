@@ -162,6 +162,29 @@
             }
           }
         },
+        "design": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "description": "Absent = geo_cells (plans from FOSIT 0.1). national_holdout: one cell (the campaign markets) and the control is the holdout; ads_before_test is required. METHODOLOGY.md \u00a713.",
+          "properties": {
+            "type": {
+              "enum": [
+                "geo_cells",
+                "national_holdout"
+              ]
+            },
+            "ads_before_test": {
+              "enum": [
+                "off",
+                "always_on"
+              ],
+              "description": "Campaign status in every market during the history period (\u00a713.1)."
+            }
+          }
+        },
         "cells": {
           "type": "array",
           "minItems": 1,

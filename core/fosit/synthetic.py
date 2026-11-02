@@ -32,7 +32,7 @@ def make_panel(n_geos: int = 120, n_days: int = 168, start: str = "2026-01-05", 
                n_factors: int = 3, factor_sd: float = 0.03, dispersion: float = 30.0,
                median_daily_orders: float = 25.0, size_sigma: float = 1.2,
                lifts: dict | None = None, geo_prefix: str = "G", geo_ids: list | None = None,
-               sizes: np.ndarray | None = None) -> tuple[pd.DataFrame, SyntheticTruth]:
+               sizes: np.ndarray | None = None, trend_sd: float = 0.0008) -> tuple[pd.DataFrame, SyntheticTruth]:
     """Generate a long-format KPI history (date, geo_id, orders, revenue).
 
     lifts: {cell_name: (geo_ids, first_day_index, last_day_index, lift)} injects a
@@ -47,7 +47,7 @@ def make_panel(n_geos: int = 120, n_days: int = 168, start: str = "2026-01-05", 
         size = np.asarray(sizes, dtype=float)
     dow_dev = np.exp(rng.normal(0, 0.03, (n_geos, 7)))
     loadings = rng.normal(1.0, 0.5, (n_geos, n_factors))
-    trend = rng.normal(0, 0.0008, n_geos)
+    trend = rng.normal(0, trend_sd, n_geos)
     f = np.zeros((n_factors, n_days))
     for t in range(1, n_days):
         f[:, t] = 0.95 * f[:, t - 1] + rng.normal(0, factor_sd, n_factors)
@@ -85,6 +85,21 @@ def population_for(df: pd.DataFrame, seed: int = 0, per_daily_order: float = 900
     rng = np.random.default_rng(seed + 1)
     mean = df.groupby("geo_id")["orders"].mean()
     return {g: int(m * per_daily_order * np.exp(rng.normal(0, 0.25)) + 5000) for g, m in mean.items()}
+
+
+def sample_state_history(attributes: list[dict], end: str, n_days: int = 182, seed: int = 2026,
+                         orders_per_100k: float = 2.0) -> pd.DataFrame:
+    """Synthetic daily sales for the 50 states + DC, roughly proportional to population, ending on `end`.
+
+    Used by the national-holdout example and tests (METHODOLOGY.md §13.6). Clearly synthetic.
+    """
+    rng = np.random.default_rng(seed)
+    ids = [a["geo_id"] for a in attributes]
+    pop = np.array([a["population"] for a in attributes], dtype=float)
+    sizes = pop / 1e5 * orders_per_100k * np.exp(rng.normal(0, 0.25, len(ids)))
+    start = (pd.Timestamp(end) - pd.Timedelta(days=n_days - 1)).strftime("%Y-%m-%d")
+    df, _ = make_panel(n_days=n_days, start=start, seed=seed + 100, geo_ids=ids, sizes=sizes)
+    return df
 
 
 def sample_cbsa_history(attributes: list[dict], end: str, n_days: int = 182, seed: int = 2026,

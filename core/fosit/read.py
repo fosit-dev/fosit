@@ -1,6 +1,7 @@
 """Read module: results per cell, head-to-head, verdicts and honesty checks.
 
-METHODOLOGY.md §6 (business metrics), §7 (head-to-head), §8 (verdicts), §11 (honesty checks).
+METHODOLOGY.md §6 (business metrics), §7 (head-to-head), §8 (verdicts), §11 (honesty checks),
+§13 (national holdout: the one cell is the campaign's markets, the control is the holdout).
 Every analysis choice comes from the locked plan's commitment, never from UI settings.
 """
 
@@ -15,6 +16,7 @@ import pandas as pd
 
 from . import conformal
 from .estimate import CellEstimate, CellSeries, cell_series, estimate
+from .holdout import estimate_holdout
 from .panel import Panel
 from .spend import SpendData, leakage
 
@@ -159,11 +161,17 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
                       f"it runs {first:%Y-%m-%d} to {last:%Y-%m-%d}.")
     if pd.Timestamp(d["test_start"]) > last:
         errors.append(f"The sales file ends {last:%Y-%m-%d}, before the test started on {d['test_start']}.")
+    holdout = c.get("design", {}).get("type") == "national_holdout"
     plan_geos = {cell["id"]: set(cell["geo_ids"]) for cell in c["cells"]}
     present = set(panel.geos)
     missing_cells = sorted(set().union(*plan_geos.values()) - present)
-    if missing_cells:
+    if holdout:
+        # The campaign runs nearly everywhere; a market with no sales rows simply drops out of its total (§13.4)
+        plan_geos = {k: g & present for k, g in plan_geos.items()}
+    elif missing_cells:
         errors.append(f"{len(missing_cells)} test markets have no sales rows: {', '.join(missing_cells[:8])}.")
+    if holdout and (len(c["cells"]) != 1 or not set(c["control"]["geo_ids"]) & present):
+        errors.append("A national holdout plan needs exactly one campaign cell and holdout markets with sales rows.")
     if errors:
         return {"ok": False, "errors": errors}
 
@@ -186,8 +194,13 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
     step = 0
     for kpi in kpis:
         for cell in c["cells"]:
-            series = cell_series(panel, kpi, sorted(plan_geos[cell["id"]]), control, pre_cols, post_cols, min_nonzero)
-            est = estimate(series, method.get("test_statistic", "abs_sum"), levels, fixed_effects, kpi=kpi, perms=perms)
+            if holdout:
+                series = None
+                est = estimate_holdout(panel, kpi, control, sorted(plan_geos[cell["id"]]), pre_cols, post_cols,
+                                       method.get("test_statistic", "abs_sum"), levels, fixed_effects, perms, min_nonzero)
+            else:
+                series = cell_series(panel, kpi, sorted(plan_geos[cell["id"]]), control, pre_cols, post_cols, min_nonzero)
+                est = estimate(series, method.get("test_statistic", "abs_sum"), levels, fixed_effects, kpi=kpi, perms=perms)
             work[(kpi, cell["id"])] = {"id": cell["id"], "series": series, "est": est, "spend": spend_by.get(cell["id"])}
             step += 1
             if progress:
@@ -201,16 +214,13 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
         fit_checks = []
         for kpi in kpis:
             w = work[(kpi, cid)]
-            est: CellEstimate = w["est"]
+            est = w["est"]
             m = business_metrics(est, kpi, w["spend"], levels)
             limit = thresholds["pre_fit_nrmse_max"].get(cid, {}).get(kpi)
             m["pre_fit_limit"] = limit
             m["pre_fit_ok"] = True if limit is None else est.pre_fit_nrmse <= limit
             fit_checks.append({"kpi": kpi, "nrmse": est.pre_fit_nrmse, "limit": limit, "ok": m["pre_fit_ok"]})
-            n = est.n_geos
-            m["series"] = {"dates": [x.strftime("%Y-%m-%d") for x in est.dates],
-                           "observed": (est.observed * n).round(2).tolist(),
-                           "counterfactual": (est.counterfactual * n).round(2).tolist(),
+            m["series"] = {"dates": [x.strftime("%Y-%m-%d") for x in est.dates], **est.chart(),
                            "n_pre": est.n_pre, "test_days": test_days}
             top = sorted(est.weights.items(), key=lambda kv: -abs(kv[1]))[:12]
             m["under_the_hood"] = {"lambda": est.lam, "top_weights": [{"geo_id": g, "weight": wt} for g, wt in top],
@@ -219,11 +229,11 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
                                    "tests_evaluated": len(est.evaluated)}
             kpi_out[kpi] = m
         primary = c["kpi"]["primary"]
-        pest: CellEstimate = work[(primary, cid)]["est"]
+        pest = work[(primary, cid)]["est"]
         spend_k = work[(primary, cid)]["spend"]
         dec = c["decision"]
         meaningful, basis_note = None, ""
-        test_cf = float(pest.counterfactual[pest.n_pre: pest.n_pre + test_days].sum() * pest.n_geos)
+        test_cf = pest.test_counterfactual(test_days)
         if dec["meaningful_effect_basis"] == "target_icpa" and primary == "orders" and dec.get("target_icpa") and spend_k:
             meaningful = spend_k / float(dec["target_icpa"])
             basis_note = f"orders needed to reach the target iCPA of {dec['target_icpa']}"
@@ -256,9 +266,10 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
                 h["a_label"], h["b_label"] = a["label"], b["label"]
                 h2h.append(h)
 
-    checks = _checks(c, cells_out, spend, budgets, interim, end, today, missing_control)
+    checks = _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, holdout,
+                     missing_cells if holdout else [])
     result = {
-        "ok": True, "interim": interim,
+        "ok": True, "interim": interim, "design": "national_holdout" if holdout else "geo_cells",
         "window": {"pre_start": d["pre_start"], "pre_end": d["pre_end"], "start": d["test_start"],
                    "end": end.strftime("%Y-%m-%d"), "planned_end": d["cooldown_end"], "days": len(post_cols), "test_days": test_days},
         "alpha": alpha, "decision_level": decision_level, "levels": list(levels),
@@ -270,15 +281,17 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
     return _clean(result)
 
 
-def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control) -> list[dict]:
+def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, holdout=False, missing_campaign=()) -> list[dict]:
     """§11 data-based checks. Plan match and external shocks are added by the UI (they need the user)."""
     th = c["thresholds"]
     out = []
     fit_bad = [f"{cell['label']} ({f['kpi']}: {f['nrmse']:.1%} > {f['limit']:.1%})"
                for cell in cells_out for f in cell["fit_checks"] if not f["ok"]]
+    ok_text = ("The holdout's twin tracked the holdout markets within the plan's limit before the test." if holdout
+               else "Every cell's twin tracked its markets within the plan's limits before the test.")
     out.append({"id": "pre_fit", "title": "Pre-period fit", "status": "warn" if fit_bad else "pass", "blocking": True,
                 "detail": ("Twin fit is above the plan's limit for " + "; ".join(fit_bad) + ". Affected cells are reported as inconclusive.")
-                if fit_bad else "Every cell's twin tracked its markets within the plan's limits before the test."})
+                if fit_bad else ok_text})
     if spend is None:
         out.append({"id": "leakage", "title": "Geo leakage", "status": "warn", "blocking": False,
                     "detail": "No spend & delivery file loaded, so leakage can't be checked."})
@@ -291,9 +304,13 @@ def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control) 
             l = cell["leakage"]
             if l and (l["leak_share"] > warn_share or l["unverifiable_share"] > warn_share):
                 lk.append(f"{cell['label']}: {l['leak_share']:.1%} outside its markets, {l['unverifiable_share']:.1%} unverifiable")
-        out.append({"id": "leakage", "title": "Geo leakage", "status": "warn" if lk else "pass", "blocking": False,
-                    "detail": ("; ".join(lk) + ". Ads in control markets push lift toward zero; ads in another cell's markets blur the comparison.")
-                    if lk else f"Every cell delivered at most {warn_share:.0%} of impressions outside its own markets."})
+        if holdout:
+            detail = (("; ".join(lk) + ". Ads in the holdout markets push the measured effect toward zero.") if lk
+                      else f"At most {warn_share:.0%} of impressions landed in the holdout markets or couldn't be placed.")
+        else:
+            detail = (("; ".join(lk) + ". Ads in control markets push lift toward zero; ads in another cell's markets blur the comparison.")
+                      if lk else f"Every cell delivered at most {warn_share:.0%} of impressions outside its own markets.")
+        out.append({"id": "leakage", "title": "Geo leakage", "status": "warn" if lk else "pass", "blocking": False, "detail": detail})
         total_budget = sum(budgets.values())
         total_spend = sum((cell["spend"] or 0) for cell in cells_out)
         tol = float(th["spend_share_tolerance_pp"]) / 100
@@ -313,8 +330,13 @@ def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control) 
                 "detail": (f"Read before the planned end ({c['dates']['cooldown_end']}): data runs to {end:%Y-%m-%d}. This is an INTERIM result."
                            if interim else "Read after the test and cooldown ended, with data through the planned end.")})
     if missing_control:
-        out.append({"id": "control_coverage", "title": "Control markets", "status": "warn", "blocking": False,
-                    "detail": f"{len(missing_control)} control markets have no sales rows and were left out of the twins."})
+        out.append({"id": "control_coverage", "title": "Holdout markets" if holdout else "Control markets", "status": "warn",
+                    "blocking": False,
+                    "detail": (f"{len(missing_control)} holdout markets have no sales rows and were left out of the holdout."
+                               if holdout else f"{len(missing_control)} control markets have no sales rows and were left out of the twins.")})
+    if missing_campaign:
+        out.append({"id": "campaign_coverage", "title": "Campaign markets", "status": "warn", "blocking": False,
+                    "detail": f"{len(missing_campaign)} campaign markets have no sales rows, so their sales (and any lift there) aren't counted."})
     return out
 
 

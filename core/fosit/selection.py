@@ -3,6 +3,8 @@
 METHODOLOGY.md §9. Candidates come from a seeded, stratified random search:
 similar-sized geos are grouped into strata of K+1, and within each chosen
 stratum one geo is randomly assigned to each cell (the rest stay in control).
+In a national holdout (§13) the same search picks the holdout markets instead,
+and the cell is every other market.
 Candidates are then filtered by share bounds and balance (cheap), screened by
 plain synthetic-control holdout fit (fast), and the best are re-scored with the
 full ASCM holdout fit. Power (power.py) ranks the final shortlist.
@@ -16,6 +18,7 @@ import numpy as np
 
 from . import ascm
 from .estimate import DONOR_MIN_NONZERO_SHARE
+from .holdout import index_rows
 from .panel import Panel
 
 TREND_DAYS = 28
@@ -40,6 +43,10 @@ class SelectionConfig:
     not_eligible: set = field(default_factory=set)   # e.g. {ST}-NONCBSA units
     population: dict | None = None
     donor_min_nonzero_share: float = DONOR_MIN_NONZERO_SHARE
+    # National holdout (§13): share_min/share_max bound the holdout's share, n_cells is 1,
+    # and the one cell is every market that isn't held out or excluded.
+    holdout: bool = False
+    min_holdout_geos: int = 10          # a twin built from a handful of markets leans on one or two of them (§13.2)
 
 
 @dataclass
@@ -161,15 +168,27 @@ class MarketSelector:
             f["aov"] = float(self.revenue[rows].sum() / o) if o > 0 else np.nan
         return f
 
+    def rest_of(self, rows: np.ndarray) -> np.ndarray:
+        """Every usable market not in `rows`: the campaign's markets in a national holdout (§13.2)."""
+        return np.setdiff1d(np.nonzero(np.array([g not in self.cfg.excluded for g in self.geos]))[0], rows)
+
     def describe(self, cell_rows: list[np.ndarray], target: float) -> Design:
-        feats = [self.features(r) for r in cell_rows]
-        balance = {k: relative_gap([f[k] for f in feats]) for k in feats[0] if all(k in f for f in feats)}
         in_cells = np.concatenate(cell_rows)
-        control = np.setdiff1d(np.nonzero(np.array([g not in self.cfg.excluded for g in self.geos]))[0], in_cells)
+        control = self.rest_of(in_cells)
+        feats = [self.features(r) for r in cell_rows]
+        if self.cfg.holdout:
+            # Holdout vs everyone else: compare the shape of sales, not size. Correlation with the national series
+            # is left out: the cell nearly *is* the nation, so the gap measures the holdout's noise, which the fit gate covers (§13.2).
+            feats = [{k: v for k, v in f.items() if k not in ("share", "population", "seasonality")}
+                     for f in (feats[0], self.features(control))]
+            if self.pop is not None and not np.isnan(self.pop).any():
+                for f, r in zip(feats, (cell_rows[0], control)):
+                    f["per_capita"] = float(self.Y[r].sum() / self.pop[r].sum())
+        balance = {k: relative_gap([f[k] for f in feats]) for k in feats[0] if all(k in f for f in feats)}
         return Design(
             cells=[sorted(self.geos[r].tolist()) for r in cell_rows],
             control=sorted(self.geos[control].tolist()),
-            shares=[f["share"] for f in feats],
+            shares=[float(self.share[r].sum()) for r in cell_rows],
             control_share=float(self.share[control].sum()),
             balance=balance, balance_score=max(balance.values()) if balance else 0.0, target_share=target,
         )
@@ -181,6 +200,12 @@ class MarketSelector:
         in_cells = np.zeros(len(self.geos), bool)
         in_cells[np.concatenate(cell_rows)] = True
         donors = np.nonzero(self.donor_ok & ~in_cells)[0]
+        if self.cfg.holdout:
+            # The twin is built for the holdout from the campaign markets, on indexed series (§13.3)
+            y1, Y0 = index_rows(self.Y, self.rest_of(np.concatenate(cell_rows)), np.nonzero(self.donor_ok & in_cells)[0], n_fit)
+            fit = ascm.fit(y1, Y0, n_fit, augment=augment)
+            r = y1[n_fit:] - fit.counterfactual[n_fit:]
+            return [float(np.sqrt(np.mean(r**2)) / y1[:n_fit].mean())]
         out = []
         for rows in cell_rows:
             y1 = self.Y[rows].mean(axis=0)
@@ -198,9 +223,14 @@ class MarketSelector:
         funnel = {"strata": len(self.strata), "eligible_geos": int(len(self.eligible)), "generated": len(cands)}
         gated = []
         for rows, target in cands:
-            d = self.describe(rows, target)
-            if (all(cfg.share_min <= s <= cfg.share_max for s in d.shares)
-                    and d.control_share >= cfg.min_control_share and d.balance_score <= cfg.balance_max):
+            if cfg.holdout:
+                rows = [self.rest_of(rows[0])]
+                d = self.describe(rows, target)
+                ok = cfg.share_min <= d.control_share <= cfg.share_max and len(d.control) >= cfg.min_holdout_geos
+            else:
+                d = self.describe(rows, target)
+                ok = all(cfg.share_min <= s <= cfg.share_max for s in d.shares) and d.control_share >= cfg.min_control_share
+            if ok and d.balance_score <= cfg.balance_max:
                 gated.append((rows, d))
         funnel["passed_share_and_balance"] = len(gated)
 

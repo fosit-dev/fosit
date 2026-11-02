@@ -10,8 +10,8 @@ import { StepData, dataStepProblems, type DataLoader } from "./StepData";
 import { StepFind } from "./StepFind";
 import { StepLock } from "./StepLock";
 import { StepMarkets, StepTiming } from "./StepsMarketsTiming";
-import { StepTemplate, StepTest, testStepProblems } from "./StepsSetup";
-import { STEPS, budgets, initialState, preDays, searchKey, type GeoRow, type LoadedData, type PlanState, type Summary } from "./state";
+import { StepTemplate, StepTest, templateStepProblems, testStepProblems } from "./StepsSetup";
+import { STEPS, budgets, initialState, isHoldout, preDays, searchKey, type GeoRow, type LoadedData, type PlanState, type Summary } from "./state";
 
 type LoadResult = { ok: boolean; summary: Summary | null; geos: GeoRow[]; issues: Issue[] };
 /** The raw text behind the loaded data, kept in memory only, so we can re-validate (e.g. after a unit change or cancel). */
@@ -113,6 +113,7 @@ export function PlanWizard({ startWithSample }: { startWithSample: boolean }) {
           n_cells: s.nCells, kpi: s.primaryKpi, pre_days: preDays(s), durations: s.durations, cooldown_days: s.cooldown,
           share_min: s.shareMin, share_max: s.shareMax, excluded: Object.keys(s.excluded), seed: s.seed,
           permutations: s.permutations, budgets: budgets(s), alpha: 0.1,
+          design: isHoldout(s) ? "national_holdout" : "geo_cells",
         },
       }, setProgress);
       const firstGood = result.designs.length ? 0 : null;
@@ -131,7 +132,8 @@ export function PlanWizard({ startWithSample }: { startWithSample: boolean }) {
   };
 
   const problems: string[] =
-    step === 1 ? testStepProblems(s)
+    step === 0 ? templateStepProblems(s)
+    : step === 1 ? testStepProblems(s)
     : step === 2 ? dataStepProblems(s)
     : step === 3 && s.primaryKpi === "revenue" && !s.data?.summary.kpis.includes("revenue") ? ["Your file has no revenue column. Go back and choose Orders as the goal."]
     : step === 5 ? (s.chosen == null || !s.result || s.resultKey !== searchKey(s) ? ["Run the search and choose a design."] : [])

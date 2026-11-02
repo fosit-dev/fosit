@@ -14,6 +14,7 @@ from scipy.stats import binom
 
 from . import ascm, conformal
 from .estimate import cell_series
+from .holdout import holdout_series
 from .panel import Panel
 
 COARSE_EFFECTS = (0.025, 0.05, 0.10, 0.15, 0.20, 0.30, 0.50)
@@ -39,6 +40,9 @@ class PowerConfig:
     # If True, each test length uses the longest pre-period (up to pre_days) that still leaves
     # SPARE_DAYS of history for placebo windows, never below 8 weeks (METHODOLOGY.md §10.1).
     adaptive_pre: bool = False
+    # National holdout (§13): the cell is the campaign's markets, the control is the holdout, and
+    # the lift is injected into the campaign markets, which are the holdout twin's donors.
+    holdout: bool = False
 
 
 def simulation_pre_days(cfg: PowerConfig, n_days: int, n_post: int) -> int:
@@ -59,9 +63,10 @@ class _Window:
     y1: np.ndarray
     Y0: np.ndarray
     lam: float
-    pre_cf: np.ndarray          # counterfactual from the pre-period fit (doesn't depend on injected lift)
+    pre_cf: np.ndarray          # counterfactual from the pre-period fit, before any injected lift
     n_post: int
     test_days: int
+    weights: np.ndarray | None = None   # holdout only: the twin moves with lift injected into its donors
 
 
 def placebo_starts(n_days: int, pre_days: int, window_len: int, n_windows: int, step: int) -> list[int]:
@@ -83,22 +88,35 @@ class PowerSimulator:
         pre_days = simulation_pre_days(cfg, self.panel.n_days, n_post)
         out = []
         for s in placebo_starts(self.panel.n_days, pre_days, n_post, cfg.n_windows, cfg.window_step):
-            series = cell_series(self.panel, cfg.kpi, cell, self.control, np.arange(s - pre_days, s),
-                                 np.arange(s, s + n_post), cfg.donor_min_nonzero_share)
+            pre_cols, post_cols = np.arange(s - pre_days, s), np.arange(s, s + n_post)
+            if cfg.holdout:
+                series = holdout_series(self.panel, cfg.kpi, self.control, cell, pre_cols, post_cols, cfg.donor_min_nonzero_share)[0]
+            else:
+                series = cell_series(self.panel, cfg.kpi, cell, self.control, pre_cols, post_cols, cfg.donor_min_nonzero_share)
             lam, _ = ascm.select_lambda(series.y1, series.Y0, pre_days, cfg.fixed_effects)
             pre = ascm.fit(series.y1, series.Y0, pre_days, lam=lam, fixed_effects=cfg.fixed_effects)
-            out.append(_Window(series.y1, series.Y0, lam, pre.counterfactual, n_post, test_days))
+            out.append(_Window(series.y1, series.Y0, lam, pre.counterfactual, n_post, test_days,
+                               pre.weights if cfg.holdout else None))
         return out
 
     def _detected(self, w: _Window, effect: float) -> bool:
         cfg = self.cfg
-        y = w.y1.copy()
+        y, Y0 = w.y1.copy(), w.Y0
         first = len(y) - w.n_post
-        y[first:first + w.test_days] *= 1 + effect
-        att = float(np.mean(y[first:] - w.pre_cf[first:]))
-        if effect > 0 and att <= 0:
+        days = slice(first, first + w.test_days)
+        if w.weights is None:
+            y[days] *= 1 + effect
+            cf = w.pre_cf
+        else:
+            # Holdout: the campaign markets (the twin's donors) get the lift, so the twin rises above the holdout
+            Y0 = Y0.copy()
+            Y0[:, days] *= 1 + effect
+            cf = w.pre_cf + w.weights @ (Y0 - w.Y0)
+        att = float(np.mean(y[first:] - cf[first:]))
+        sign = -1 if w.weights is not None else 1
+        if effect > 0 and sign * att <= 0:
             return False
-        p = conformal.p_value(y, w.Y0, w.n_post, 0.0, w.lam, cfg.statistic, cfg.fixed_effects, cfg.permutations)
+        p = conformal.p_value(y, Y0, w.n_post, 0.0, w.lam, cfg.statistic, cfg.fixed_effects, cfg.permutations)
         return p <= cfg.alpha
 
     def _power(self, windows: list[_Window], effect: float) -> float:

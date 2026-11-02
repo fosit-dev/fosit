@@ -20,9 +20,10 @@
 10. [Power simulation (Plan)](#10-power-simulation-plan)
 11. [Honesty checks (Read)](#11-honesty-checks-read)
 12. [Validation against GeoLift](#12-validation-against-geolift)
-13. [Known limitations](#13-known-limitations)
-14. [Defaults reference](#14-defaults-reference)
-15. [References](#15-references)
+13. [National holdout: the campaign runs everywhere except a few markets](#13-national-holdout)
+14. [Known limitations](#14-known-limitations)
+15. [Defaults reference](#15-defaults-reference)
+16. [References](#16-references)
 
 ---
 
@@ -59,7 +60,7 @@ where $Y_{it}(1)$ is the KPI in geo $i$ on day $t$ with the cell's ads running a
   - Cooldown `(test_end, cooldown_end]`: ads are off and we keep measuring to capture delayed purchases. Default: 7 days.
   - Measurement window $\mathcal{W}$ = test period + cooldown.
 
-**Extension point:** `core/design.py` represents a design as `cells: list[Cell]`, `control: set[GeoId]`, `dates: Dates`. Household holdouts and other designs plug in here in later versions (see the roadmap in README).
+**Other designs.** A **national holdout** turns this around: the campaign runs in almost every market and a few markets go without ([§13](#13-national-holdout)). Household holdouts are on the roadmap (see README).
 
 ---
 
@@ -355,7 +356,7 @@ Unknown-geo impressions (`geo_id = *`) count as **unverifiable**, not as leakage
 
 > **In plain English:** We didn't just write our own math and hope. We run the same datasets through Meta's open-source GeoLift (in R) and check that our answers match within stated tolerances. The check runs automatically on every code change.
 
-- **Independence:** FOSIT's core is written from the papers in [§15](#15-references). No GeoLift or `augsynth` source is copied, and none ever will be. GeoLift's licensing is ambiguous: GitHub's license detection lists MIT, but the package's DESCRIPTION file says GPL (≥ 2), and GPL code can't be folded into an Apache-2.0 project. `augsynth` is MIT. Both are used only as external black boxes in CI.
+- **Independence:** FOSIT's core is written from the papers in [§16](#16-references). No GeoLift or `augsynth` source is copied, and none ever will be. GeoLift's licensing is ambiguous: GitHub's license detection lists MIT, but the package's DESCRIPTION file says GPL (≥ 2), and GPL code can't be folded into an Apache-2.0 project. `augsynth` is MIT. Both are used only as external black boxes in CI.
 - **Harness:** `/validation` generates deterministic synthetic cases (null effects, 10% and 20% lifts, a single-geo test). It runs `GeoLift::GeoLift()` on each with `model = "Ridge"`, `fixed_effects = TRUE`, `stat_test = "Total"`, `conformal_type = "block"` (GeoLift's own default is `"iid"`, see §5.5), `grid_size = 250`, α = 0.10 and `ConfidenceIntervals = TRUE`. A GitHub Actions job (`.github/workflows/validation.yml`) compares the outputs to FOSIT's. GeoLift and augsynth are pinned to exact commits, and the job runs on R 4.5. augsynth is pinned to the version current when GeoLift was last updated (March 2026). Later augsynth releases changed internals GeoLift calls, and GeoLift crashes with them. Bumping either pin is a deliberate change logged in the CHANGELOG.
 - **Two comparisons per case** (`validation/compare.py`):
   1. **Matched (gating).** FOSIT runs with GeoLift's selected λ *and* GeoLift's test statistic (`sum_abs`). Same model, same test, so every number must agree. This validates the estimator and the conformal engine.
@@ -395,7 +396,84 @@ These tolerances are **provisional**. They'll be tightened or justified after th
 
 ---
 
-## 13. Known limitations
+## 13. National holdout
+
+> **In plain English:** Most advertisers don't want to switch CTV off in most of the country. A national holdout keeps the campaign running nearly everywhere and leaves about a tenth of the country without it. FOSIT builds a twin of those dark markets from the markets that kept the ads, which shows what the dark markets would have sold *with* the ads. The gap is what the ads were worth, and it's applied to the markets that ran them.
+
+### 13.1 When to use it, and the one rule
+
+Use it to measure **one campaign** (one or several vendors together) that runs nationally. Use geo cells (§2) to compare vendors.
+
+The plan has one cell, the **campaign markets** (every market not held out or excluded), and the control pool is the **holdout**: markets the campaign must not reach during the test and cooldown.
+
+**The rule:** during the history period the holdout and the campaign markets must have had the *same* exposure to this campaign: either it was off everywhere, or it ran everywhere the same way. A twin learns how the holdout moves with the rest of the country; if the campaign ran in only some of them during the history, that relationship is already bent. The plan records which case applies (`design.ads_before_test`), and it changes what the result means:
+
+- **`off` (launch):** the holdout is the campaign's "without" world from day one. The result is what the campaign added.
+- **`always_on`:** the holdout markets go dark at `test_start`. The result is what the campaign was adding while it ran. Past advertising keeps working for a while after it stops, so the holdout's sales fall gradually and the measured effect is **conservative** (it understates the campaign). Keep the holdout dark through the cooldown.
+
+### 13.2 Choosing the holdout
+
+The search of §9.2 picks the holdout instead of cells (one market per chosen stratum), so the holdout spans small and large markets. Gates:
+
+- **Holdout share** of national KPI: 10%–20% (default, see §13.6). Markets above half the maximum share can't be held out alone (as in §9.2).
+- **At least 10 holdout markets.** A holdout of a handful of markets is noisy, and the twin of a small holdout can lean on one or two markets. In one synthetic state panel, a 6-state holdout drifted 10–15% from its twin within weeks with no effect at all.
+- **Balance** (§9.3), holdout vs. campaign markets, on trend, revenue per order, and sales per capita (when population is known). Share and population are left out because the two sides are meant to differ in size. Correlation with the national series is also left out: the campaign markets nearly *are* the nation, so the gap would measure the holdout's noise, which the fit gate already covers.
+- **Fit** (§9.3): the holdout twin's forecast error over the last `test_days` of history.
+
+Ranking and power work as in §9.4 and §10, with the lift injected into the campaign markets (§13.5).
+
+### 13.3 The estimator
+
+The obvious design is the wrong one. Building a twin of the *campaign markets* (90% of the country) from the *holdout* (about 10 markets) leaves very few donors, and the twin ends up leaning on one or two of them. We tried it: on 64 synthetic state panels with no effect (holdouts chosen by the planner), its 90% intervals covered zero **80%** of the time and it called a **positive** effect in **16%** of them.
+
+FOSIT instead builds the twin **for the holdout, from the campaign markets**. This has many donors and is the standard setting of §4. To make the campaign markets' movement transfer to the holdout, every series is **indexed** to its own pre-period average:
+
+$$\tilde y_t = \frac{\sum_{i \in H} Y_{it}}{\overline{\sum_{i \in H} Y_{i\cdot}}^{\,\text{pre}}}, \qquad \tilde Y_{jt} = \frac{Y_{jt}}{\overline{Y_{j\cdot}}^{\,\text{pre}}} \quad (j \in \text{campaign markets, screened as in §3})$$
+
+The holdout's index $\tilde y$ is the treated series and the campaign markets' indexes $\tilde Y$ are the donors. Everything in §4–§5 then applies unchanged: ridge ASCM with fixed effects, λ by cross-validation, moving-block conformal inference, intervals by test inversion. On the same 64 panels this covered zero **84%** of the time and called a positive effect in **5%** (the rate a 90% two-sided interval should give).
+
+During the test the campaign markets get the ads and the holdout doesn't, so the twin (built from campaign markets) shows what the holdout would have sold **with** the ads, and the estimated effect $\hat\tau$ (§4.4) is **negative** when the ads work.
+
+### 13.4 From the holdout's gap to business metrics
+
+The **ads share** is the part of with-ads sales the ads were responsible for, over the measurement window $\mathcal W$:
+
+$$d = \frac{\sum_{t \in \mathcal W} (\hat{\tilde y}^{\,N}_t - \tilde y_t)}{\sum_{t \in \mathcal W} \hat{\tilde y}^{\,N}_t} = \frac{-\hat\tau \, |\mathcal W|}{\sum_{t \in \mathcal W} \hat{\tilde y}^{\,N}_t}$$
+
+and the incremental total in the campaign markets is
+
+$$\hat\Delta = d \cdot \sum_{t \in \mathcal W} \sum_{i \in \text{campaign}} Y_{it}.$$
+
+Intervals map through the same formula (it is decreasing in $\tau$, so the upper $\tau$ bound gives the lower $\Delta$ bound). The counterfactual total is observed minus $\hat\Delta$, and lift, iCPA, iROAS and orders per 1,000 follow §6 using the campaign's **actual** spend, so iCPA needs no assumption about money that wasn't spent. Verdicts follow §8.
+
+**Assumptions, stated:**
+1. The holdout markets would have responded to the ads like the campaign markets the twin leans on (proportional lift). The twin's weights are listed under "Under the hood".
+2. That lift is representative of every campaign market, so it can be applied to all of them. Balance on trend, revenue per order and sales per capita supports this but can't prove it.
+3. The holdout received no campaign impressions. The leakage check (§11) counts impressions delivered into holdout markets.
+
+Campaign markets missing from the sales file at read time are dropped from the total and listed (a check warning), rather than stopping the read.
+
+The **chart** shows the holdout: its actual sales and its twin (in the holdout's own sales units). The gap between them is the ads' effect in the holdout's terms.
+
+### 13.5 Power
+
+As in §10, with one change: the lift is injected into the **campaign markets** (the twin's donors) on ads-on days, so the twin rises above the holdout. The twin's weights don't depend on the post-period, so the lifted twin is the pre-period twin plus the weights times the added sales. A design is "detected" when the estimated effect is negative and $p \le \alpha$. MDE and money (§10.2) refer to the campaign markets' sales and the full campaign budget.
+
+### 13.6 Evidence
+
+`tests/test_holdout.py` checks the gates, the translation and the shipped example (`examples/national_holdout`) on every change. A larger study, `validation/holdout_study.py` (200 synthetic state-level panels: 51 states, about 6,500 orders a day nationally, with per-state trends; 18 weeks of history, a 4-week test and 1-week cooldown; holdout chosen by the planner; each panel read once with no effect and once with lift = the planned MDE; under a minute on a laptop):
+
+| Holdout share | Covers zero, no effect (90% nominal) | "Positive", no effect (5% nominal) | Covers truth, lift = MDE | "Positive", lift = MDE (80% planned) | Mean bias | Median MDE (4 weeks) |
+|---|---|---|---|---|---|---|
+| 5%–15% | 80% | 10.0% | 91% | 84% | +3.9% | 20.0% |
+| **10%–20% (default)** | **83%** | **7.5%** | **94.5%** | **86%** | **−0.6%** | **19.4%** |
+| 10%–25% | 85% | 5.5% | 95.5% | 84% | −0.9% | 19.4% |
+
+**What this says.** The holdout read is close to unbiased, and the planner's sensitivity estimates hold (the planned MDE is detected about 85% of the time against an 80% target). Larger holdouts are better calibrated at about the same sensitivity, so the default is 10%–20%. But with no effect, the 90% intervals contain zero only about 83% of the time, not 90%. **This is a property of state-level data, not of the holdout**: on the same kind of synthetic state panels, the standard two-cell design covered zero about 82% of the time (60 cells). With only 51 states and state-specific trends, the moving-block permutations understate how far a twin can drift in a few weeks. On metro-level (CBSA) data, coverage is 92% (§5.5). Until this is fixed, read a state-level "positive" at 90% as roughly 85% confidence (§14).
+
+---
+
+## 14. Known limitations
 
 - **Markets aren't vendors:** head-to-head differences include market differences (§7.3).
 - **Spillover:** people who live in one CBSA and shop or watch TV in another blur the line between treatment and control. This usually biases lift toward zero. Not modelled in v1.
@@ -404,11 +482,13 @@ These tolerances are **provisional**. They'll be tightened or justified after th
 - **Lift % uncertainty:** treats the counterfactual total as fixed (§6).
 - **Short histories:** under 8 weeks of pre-period, fit and power estimates are unreliable. FOSIT warns but doesn't block.
 - **Holidays and promotions inside the test window:** fine if they hit treatment and control alike, which the external-shocks check asks about.
-- **Out of scope for v1:** household-level holdouts, time-series-only reads without controls, MMM (see README roadmap).
+- **Out of scope for v1:** household-level holdouts, time-series-only reads without controls (for example, a past campaign that ran nationwide with no market held out), MMM (see README roadmap).
+- **National holdout:** the effect is measured in the holdout and applied to the campaign markets, which assumes the ads would have worked the same way there (§13.4).
+- **State-level designs are over-confident.** On synthetic state data, nominal 90% intervals cover the truth about 82–85% of the time, for both geo cells and national holdouts (§13.6). Prefer metro areas (CBSAs) when vendors can target them.
 
 ---
 
-## 14. Defaults reference
+## 15. Defaults reference
 
 | Parameter | Default | Locked in plan |
 |---|---|---|
@@ -431,10 +511,12 @@ These tolerances are **provisional**. They'll be tightened or justified after th
 | Leakage warn | > 5% of impressions | ✓ |
 | Spend balance warn | ±5 pp share, < 90% of budget | ✓ |
 | Candidates searched | 2,000 (seeded) | ✓ (seed) |
+| National holdout: holdout share | 10%–20% of national KPI (§13.2) | ✓ (holdout markets) |
+| National holdout: min holdout markets | 10 | ✓ (holdout markets) |
 
 ---
 
-## 15. References
+## 16. References
 
 - Abadie, A., Diamond, A., & Hainmueller, J. (2010). Synthetic control methods for comparative case studies. *JASA* 105(490).
 - Ben-Michael, E., Feller, A., & Rothstein, J. (2021). The augmented synthetic control method. *JASA* 116(536).

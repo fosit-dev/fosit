@@ -5,7 +5,7 @@ import type { DesignResult, FindResult, PowerCurve } from "../lib/plan";
 import { money, num, pct, weeks } from "../lib/format";
 import { callPython } from "../worker/client";
 import type { Progress } from "../worker/protocol";
-import { budgets, preDays, searchKey, type PlanState } from "./state";
+import { budgets, isHoldout, preDays, searchKey, type PlanState } from "./state";
 
 type Props = {
   s: PlanState;
@@ -46,18 +46,18 @@ const flagged = (d: DesignResult) => d.power?.cells.some((c) => c.curves.some((c
 
 function stageText(p: Progress | null) {
   if (!p) return "Starting…";
-  if (p.stage === "screen") return `Checking fit of fair splits: ${p.done} of ${p.total}`;
-  if (p.stage === "fit") return `Scoring the best splits in detail: ${p.done} of ${p.total}`;
+  if (p.stage === "screen") return `Checking fit of fair candidates: ${p.done} of ${p.total}`;
+  if (p.stage === "fit") return `Scoring the best candidates in detail: ${p.done} of ${p.total}`;
   if (p.stage === "power") return `Replaying your history to measure sensitivity: design ${p.design} of ${p.designs} (${p.done}/${p.total})`;
   return p.stage;
 }
 
-function Funnel({ r, days, plannedPre }: { r: FindResult; days: number; plannedPre: number }) {
+function Funnel({ r, days, plannedPre, holdout }: { r: FindResult; days: number; plannedPre: number; holdout: boolean }) {
   const f = r.funnel;
   const simPre = r.designs[0]?.power?.cells[0]?.curves.find((c) => c.test_days === days)?.pre_days;
   return (
     <p className="small muted">
-      Searched {num(f.generated)} random splits → {num(f.passed_share_and_balance)} were fair (size and balance) →
+      Searched {num(f.generated)} random {holdout ? "holdouts" : "splits"} → {num(f.passed_share_and_balance)} were fair (size and balance) →
       {" "}{num(f.scored_full_fit)} scored in detail → {num(f.passed_fit)} fit well.
       {simPre != null && <> For a {weeks(days)} test, sensitivity was simulated with {Math.round(simPre / 7)} weeks of history
         {simPre < plannedPre ? ` (your plan uses ${Math.round(plannedPre / 7)}; the simulation needs spare history to replay past windows, so the real test should be at least this sensitive)` : ""}.</>}
@@ -75,12 +75,15 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
   const det = d.cells.map((_, i) => detectableIcpa(curveFor(d, i, s.duration), b[i]));
   const known = det.filter((x): x is number => x != null);
   const defaultIcpa = icpa || (known.length ? Math.max(1, Math.round(Math.min(...known))) : 50);
+  const holdout = isHoldout(s);
+  const who = holdout ? "the campaign" : "a vendor";
 
   const expand = async () => {
     setOpen((o) => !o);
     if (!chart && d.power) {
       const c = await callPython<typeof chart>("design_chart", {
         cells: d.cells, control: d.control, kpi: s.primaryKpi, pre_days: preDays(s), holdout_days: Math.min(...s.durations),
+        design: holdout ? "national_holdout" : "geo_cells",
       }).catch(() => null);
       setChart(c);
     }
@@ -98,20 +101,20 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
       {d.power ? (
         <>
           <p className="big" style={{ margin: "6px 0" }}>
-            {mde != null ? <>Can detect a lift of <span style={{ color: "var(--accent)" }}>{pct(mde)}</span> or more in each cell</> : "Can't reliably detect lifts under 50% with this design"}
+            {mde != null ? <>Can detect a lift of <span style={{ color: "var(--accent)" }}>{pct(mde)}</span> or more {holdout ? "in the campaign's markets" : "in each cell"}</> : "Can't reliably detect lifts under 50% with this design"}
             {" "}({weeks(s.duration)} test)<InfoTip term="mde" />
           </p>
           {mde != null && (
             <p style={{ margin: 0 }}>
-              If a vendor's true iCPA is worse than{" "}
+              If {who}'s true iCPA is worse than{" "}
               <strong>{det.map((x, i) => `${money(x, s.currency)}${d.cells.length > 1 ? ` (${s.labels[i]})` : ""}`).join(" / ")}</strong>,
               this test probably won't see it.<InfoTip term="detectableIcpa" />
             </p>
           )}
           {mde != null && s.decisionBasis === "target_icpa" && s.targetIcpa && det.some((x) => x != null && x < s.targetIcpa!) && (
             <p className="callout warn small">
-              Even a vendor that hits your target iCPA of {money(s.targetIcpa, s.currency)} would probably go undetected here. The test budget is
-              small relative to your sales. A bigger budget, a longer test or bigger cells would help; otherwise expect an "inconclusive" answer.
+              Even {holdout ? "a campaign" : "a vendor"} that hits your target iCPA of {money(s.targetIcpa, s.currency)} would probably go undetected here. The test budget is
+              small relative to your sales. A bigger budget or a longer test would help{holdout ? "" : ", as would bigger cells"}; otherwise expect an "inconclusive" answer.
             </p>
           )}
         </>
@@ -121,8 +124,17 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
       <div className="chips">
         <span className={`chip ${Math.max(...d.fit) <= 0.1 ? "ok" : "warn"}`}>Fit error {d.fit.map((f) => pct(f)).join(" / ")}<InfoTip term="fit" /></span>
         <span className={`chip ${d.balance_score <= 0.1 ? "ok" : "warn"}`}>Balance gap {pct(d.balance_score)}<InfoTip term="balance" /></span>
-        <span className="chip">{pct(d.share_in_test)} of sales in test<InfoTip term="shareInTest" /></span>
-        <span className="chip">{d.cells.map((c) => c.length).join(" + ")} test markets · {d.control.length} control<InfoTip term="control" /></span>
+        {holdout ? (
+          <>
+            <span className="chip">{pct(d.control_share)} of sales held out<InfoTip term="holdout" /></span>
+            <span className="chip">{d.control.length} markets held out · {d.cells[0].length} with ads</span>
+          </>
+        ) : (
+          <>
+            <span className="chip">{pct(d.share_in_test)} of sales in test<InfoTip term="shareInTest" /></span>
+            <span className="chip">{d.cells.map((c) => c.length).join(" + ")} test markets · {d.control.length} control<InfoTip term="control" /></span>
+          </>
+        )}
         {flagged(d) && <span className="chip warn">⚠ Found fake lifts in past data<InfoTip term="falsePositive" /></span>}
       </div>
       <button type="button" className="link-btn small" aria-expanded={open} onClick={expand}>{open ? "Hide details" : "Show markets, fit and sensitivity"}</button>
@@ -130,7 +142,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
         <div style={{ marginTop: 12 }}>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Cell</th><th>Markets</th><th>Share of sales</th><th>Fit error</th><th>Detectable lift</th><th>Detectable iCPA</th><th>Fake-lift rate<InfoTip term="falsePositive" /></th></tr></thead>
+              <thead><tr><th>{holdout ? "Campaign" : "Cell"}</th><th>Markets</th><th>Share of sales</th><th>Fit error</th><th>Detectable lift</th><th>Detectable iCPA</th><th>Fake-lift rate<InfoTip term="falsePositive" /></th></tr></thead>
               <tbody>
                 {d.cells.map((c, i) => {
                   const cv = curveFor(d, i, s.duration);
@@ -145,12 +157,12 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
               </tbody>
             </table>
           </div>
-          <h4>Balance between cells<InfoTip term="balance" /></h4>
+          <h4>{holdout ? "Balance: holdout vs. markets with ads" : "Balance between cells"}<InfoTip term="balance" /></h4>
           <div className="chips">{Object.entries(d.balance).map(([k, v]) => <span key={k} className={`chip ${v <= 0.1 ? "ok" : "warn"}`}>{k}: {pct(v)} gap</span>)}</div>
           {d.power && (
             <>
               <div className="field" style={{ maxWidth: 420 }}>
-                <label htmlFor={`icpa-${rank}`}>If a vendor's true iCPA were {money(defaultIcpa, s.currency)}…</label>
+                <label htmlFor={`icpa-${rank}`}>If {who}'s true iCPA were {money(defaultIcpa, s.currency)}…</label>
                 <input id={`icpa-${rank}`} type="range" min={1} max={Math.max(500, defaultIcpa * 3)} step={1} value={defaultIcpa} onChange={(e) => setIcpa(Number(e.target.value))} />
                 <p className="small" style={{ margin: 0 }}>
                   Chance this test detects it: {d.cells.map((_, i) => `${s.labels[i]} ${pct(powerAtIcpa(curveFor(d, i, s.duration), b[i], defaultIcpa), 0)}`).join(" · ")}
@@ -171,14 +183,15 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
             <div className="grid-2">
               {chart.cells.map((c, i) => (
                 <div key={i}>
-                  <h4 style={{ margin: "8px 0 0" }}>{s.labels[i]} vs its twin<InfoTip term="twin" /></h4>
-                  <FitChart title={s.labels[i]} dates={chart.dates} observed={c.observed} twin={c.twin} fitEnd={chart.fit_end} />
+                  <h4 style={{ margin: "8px 0 0" }}>{holdout ? "Holdout markets vs their twin (sales index, 1 = average)" : `${s.labels[i]} vs its twin`}<InfoTip term="twin" /></h4>
+                  <FitChart title={holdout ? "Holdout" : s.labels[i]} dates={chart.dates} observed={c.observed} twin={c.twin} fitEnd={chart.fit_end} index={holdout} />
                 </div>
               ))}
             </div>
           )}
+          {holdout && <details><summary>Held-out markets, no ads ({d.control.length})</summary><p className="small">{d.control.map((g) => names[g] ?? g).join(" · ")}</p></details>}
           {d.cells.map((c, i) => (
-            <details key={i}><summary>{s.labels[i]} markets ({c.length})</summary><p className="small">{c.map((g) => names[g] ?? g).join(" · ")}</p></details>
+            <details key={i}><summary>{holdout ? "Markets with ads" : `${s.labels[i]} markets`} ({c.length})</summary><p className="small">{c.map((g) => names[g] ?? g).join(" · ")}</p></details>
           ))}
         </div>
       )}
@@ -191,12 +204,18 @@ export function StepFind({ s, set, run, cancel, running, progress, error }: Prop
   const stale = r && s.resultKey !== searchKey(s);
   const share = progress ? Math.min(1, progress.done / Math.max(progress.total, 1)) : 0;
   const [showAll, setShowAll] = useState(false);
+  const holdout = isHoldout(s);
   return (
     <section className="card">
-      <h2>Find fair market splits</h2>
-      <p className="muted">We search thousands of random ways to split your markets, keep the fair ones, then replay your history to see how small a lift each could detect. This runs on your computer and can take a few minutes.</p>
+      <h2>{holdout ? "Find a fair holdout" : "Find fair market splits"}</h2>
+      <p className="muted">
+        {holdout
+          ? "We search thousands of random sets of markets to hold out, keep the ones that move like the rest of the country, then replay your history to see how small a lift each could detect."
+          : "We search thousands of random ways to split your markets, keep the fair ones, then replay your history to see how small a lift each could detect."}
+        {" "}This runs on your computer and can take a few minutes.
+      </p>
       <div className="row">
-        <button className="btn-primary" onClick={run} disabled={running}>{r && !stale ? "Search again" : "Find fair market splits"}</button>
+        <button className="btn-primary" onClick={run} disabled={running}>{r && !stale ? "Search again" : holdout ? "Find a fair holdout" : "Find fair market splits"}</button>
         {running && <button onClick={cancel}>Cancel</button>}
       </div>
       {running && (
@@ -209,10 +228,10 @@ export function StepFind({ s, set, run, cancel, running, progress, error }: Prop
       {stale && !running && <div className="callout warn">You changed a setting since this search. Run it again to update the designs.</div>}
       {r && !running && (
         <div style={{ marginTop: 16 }}>
-          <Funnel r={r} days={s.duration} plannedPre={preDays(s)} />
+          <Funnel r={r} days={s.duration} plannedPre={preDays(s)} holdout={holdout} />
           {r.designs.length === 0 ? (
             <div className="callout err">
-              <strong>No design passed all the checks.</strong> Try allowing bigger cells (Markets → Advanced), using more history, or excluding fewer markets.
+              <strong>No design passed all the checks.</strong> Try allowing {holdout ? "a bigger holdout" : "bigger cells"} (Markets → Advanced), using more history, or excluding fewer markets.
               {r.best_failing.length > 0 && <> The closest had a fit error of {pct(Math.max(...r.best_failing[0].fit))} (limit 10%).</>}
             </div>
           ) : (

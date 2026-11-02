@@ -6,7 +6,7 @@ import { pretty } from "./dates";
 import { money, num, pct } from "./format";
 import { groupHash, shortCode } from "./hash";
 import type { Check, ReadResult } from "../read/types";
-import { VERDICT, h2hLabel, cellSentence, h2hSentence, h2hValue, icpaText, levelKey, primaryH2H, rangeText } from "../read/text";
+import { VERDICT, impactLabels, h2hLabel, cellSentence, h2hSentence, h2hValue, icpaText, levelKey, primaryH2H, rangeText } from "../read/text";
 
 type Args = {
   plan: LockedPlan; result: ReadResult; checks: Check[]; mismatch: boolean; recomputed: string;
@@ -16,7 +16,7 @@ type Args = {
 // jsPDF's built-in fonts only cover Latin-1: replace the few symbols our copy uses.
 const latin = (s: string) => s.replace(/[≤]/g, "<=").replace(/[≥]/g, ">=").replace(/[−]/g, "-").replace(/[→]/g, "->").replace(/[✓]/g, "OK").replace(/[…]/g, "...");
 
-function chart(w: Writer, dates: string[], observed: number[], cf: number[], nPre: number, testDays: number) {
+function chart(w: Writer, dates: string[], observed: number[], cf: number[], nPre: number, testDays: number, holdout: boolean) {
   const from = Math.max(0, nPre - 56);
   const o = observed.slice(from), c = cf.slice(from), pre = nPre - from;
   const h = 130, top = w.y, left = MARGIN + 34, width = WIDTH - 34;
@@ -42,8 +42,9 @@ function chart(w: Writer, dates: string[], observed: number[], cf: number[], nPr
   };
   line(c, [194, 65, 12], true);
   line(o, [35, 72, 201], false);
-  doc.setFontSize(8).setTextColor(35, 72, 201).text("What happened", left, y0 + h + 22);
-  doc.setTextColor(194, 65, 12).text("- - Twin: what would have happened without ads", left + 80, y0 + h + 22);
+  const lab = impactLabels(holdout);
+  doc.setFontSize(8).setTextColor(35, 72, 201).text(lab.real, left, y0 + h + 22);
+  doc.setTextColor(194, 65, 12).text(`- - ${lab.twin}`, left + (holdout ? 110 : 80), y0 + h + 22);
   w.y = Math.max(top, y0) + h + 44;
 }
 
@@ -75,7 +76,7 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
     w.heading(latin(`${cell.label}: ${VERDICT[cell.verdict].label}`));
     w.para(latin(`${cell.n_geos} markets. Spend ${money(cell.spend, cur)} of ${money(cell.budget, cur)} planned. ${cell.verdict_reason}`), { size: 9.5 });
     const m = cell.kpis[r.primary_kpi];
-    chart(w, m.series.dates, m.series.observed, m.series.counterfactual, m.series.n_pre, m.series.test_days);
+    chart(w, m.series.dates, m.series.observed, m.series.counterfactual, m.series.n_pre, m.series.test_days, m.series.role === "holdout");
     for (const [kpi, km] of Object.entries(cell.kpis)) {
       const unit = (x: number | null) => (kpi === "revenue" ? money(x, cur) : num(x));
       const ranges = (key: "incremental" | "lift" | "icpa" | "iroas", f: (x: number | null) => string) =>
@@ -104,7 +105,9 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
   }
 
   w.heading("How this was computed");
-  w.para(latin(`Each cell is compared with a statistical twin built from ${c.control.geo_ids.length} control markets (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`), { size: 9.5 });
+  w.para(latin(r.design === "national_holdout"
+    ? `National holdout: the ${c.control.geo_ids.length} held-out markets are compared with a statistical twin built from the markets with ads, each indexed to its own history (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). The gap is the share of sales the ads drove, applied to the markets with ads (METHODOLOGY §13). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`
+    : `Each cell is compared with a statistical twin built from ${c.control.geo_ids.length} control markets (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`), { size: 9.5 });
   w.row("Plan fingerprint", groupHash(recomputed));
   w.row("Locked fingerprint", plan.hash.value === recomputed ? "matches" : `does NOT match (${shortCode(plan.hash.value)})`);
   w.row("History used", `${pretty(c.dates.pre_start)} - ${pretty(c.dates.pre_end)}`);

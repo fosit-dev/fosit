@@ -123,7 +123,7 @@ Structure:
   "fosit_plan_version": "1.0",
   "commitment": {             // ← hashed. Everything that decides the answer.
     "tool": {...}, "created_at": "...", "test_name": "...", "currency": "USD",
-    "geo": {...}, "kpi": {...}, "dates": {...},
+    "geo": {...}, "kpi": {...}, "dates": {...}, "design": {...},
     "cells": [{ "id": "cell_1", "label": "...", "geo_ids": [...], "budget": 50000 }, ...],
     "control": {...}, "excluded": {...},
     "method": {...}, "thresholds": {...}, "decision": {...},
@@ -137,6 +137,7 @@ Structure:
 **Cross-field rules** (❌ unless noted):
 
 - `pre_start < pre_end < test_start ≤ test_end ≤ cooldown_end`. Pre-period < 56 days ⚠️.
+- `design.type` is `geo_cells` (default when absent) or `national_holdout` ([METHODOLOGY §13](METHODOLOGY.md#13-national-holdout)). A national holdout has exactly one cell (the campaign markets), its `control.geo_ids` are the holdout markets, and `design.ads_before_test` (`off` or `always_on`) is required.
 - Cell `geo_ids`, `control.geo_ids`, and `excluded.geo_ids` are pairwise **disjoint**.
 - All geo lists sorted ascending (code-point order), so the canonical form is unique.
 - Every number in `commitment` is an integer or a decimal with absolute value in [0.0001, 1e15), so standard JSON libraries reproduce the RFC 8785 hash ([PREREGISTRATION.md](PREREGISTRATION.md)).

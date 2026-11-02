@@ -155,6 +155,17 @@ export const GLOSSARY = {
     text: "The same information as iCPA, flipped. It stays meaningful even when a cell's lift is near zero, so it's the safest way to compare vendors.",
     doc: ["METHODOLOGY.md", "71-what-is-compared"],
   },
+  holdout: {
+    title: "National holdout",
+    text: "The campaign runs everywhere except a few markets that get no ads. A twin of those markets, built from the markets with ads, shows what they'd have sold with the ads; the gap is what the ads drive.",
+    doc: ["METHODOLOGY.md", "13-national-holdout"],
+    code: "core/fosit/holdout.py",
+  },
+  adsBeforeTest: {
+    title: "Why the history period matters",
+    text: "The twin learns how the holdout moves with the rest of the country. That only works if the campaign was off everywhere, or on everywhere, during the history it learns from.",
+    doc: ["METHODOLOGY.md", "131-when-to-use-it-and-the-one-rule"],
+  },
 } satisfies Record<string, Term>;
 
 export type TermKey = keyof typeof GLOSSARY;

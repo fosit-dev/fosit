@@ -18,7 +18,8 @@ export type KpiResult = {
   icpa?: number | null;
   iroas?: number;
   intervals: Record<string, { incremental: Interval; lift: Interval; per_1000?: Interval; icpa?: Interval; iroas?: Interval }>;
-  series: { dates: string[]; observed: number[]; counterfactual: number[]; n_pre: number; test_days: number };
+  // role "holdout" (METHODOLOGY.md §13): observed = the held-out markets (no ads), counterfactual = their twin (with ads)
+  series: { dates: string[]; observed: number[]; counterfactual: number[]; n_pre: number; test_days: number; role?: "cell" | "holdout" };
   under_the_hood: {
     lambda: number;
     top_weights: { geo_id: string; weight: number }[];
@@ -53,6 +54,7 @@ export type Check = { id: string; title: string; status: "pass" | "warn" | "fail
 export type ReadResult = {
   ok: boolean;
   errors?: string[];
+  design?: "geo_cells" | "national_holdout";
   interim: boolean;
   window: { pre_start: string; pre_end: string; start: string; end: string; planned_end: string; days: number; test_days: number };
   alpha: number;

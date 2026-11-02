@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { InfoTip } from "../components/InfoTip";
 import { addDays, pretty, todayUtc, daysBetween } from "../lib/dates";
 import { pct, weeks } from "../lib/format";
-import { DURATION_OPTIONS, preDays, type PlanState } from "./state";
+import { DURATION_OPTIONS, isHoldout, preDays, type PlanState } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
 
@@ -25,13 +25,20 @@ export function StepMarkets({ s, set }: Props) {
   return (
     <section className="card">
       <h2>Markets</h2>
-      <div className="callout warn">
-        <strong>Before you lock the plan:</strong> every vendor must be able to target exactly the markets they're given
-        {s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""}. Confirm this with each vendor. You'll be asked to tick it off at the end.
-      </div>
+      {isHoldout(s) ? (
+        <div className="callout warn">
+          <strong>Before you lock the plan:</strong> the campaign's vendor(s) must be able to keep every held-out market completely dark
+          {s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""} while running everywhere else. Confirm this with each vendor. You'll be asked to tick it off at the end.
+        </div>
+      ) : (
+        <div className="callout warn">
+          <strong>Before you lock the plan:</strong> every vendor must be able to target exactly the markets they're given
+          {s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""}. Confirm this with each vendor. You'll be asked to tick it off at the end.
+        </div>
+      )}
 
       <h3>Leave any markets out?</h3>
-      <p className="small muted">Exclude markets with something unusual going on during the test: a local promotion, a store opening, a market a vendor can't reach. Excluded markets are dropped from the analysis entirely.</p>
+      <p className="small muted">Exclude markets with something unusual going on during the test: a local promotion, a store opening, a market a vendor can't reach. Excluded markets are dropped from the analysis entirely{isHoldout(s) ? " (the campaign can still run there; they just aren't measured)" : ""}.</p>
       <div className="field">
         <label htmlFor="geo-search" className="sr-only">Search markets</label>
         <input id="geo-search" type="search" placeholder={`Search ${geos.length} markets by name or code`} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -56,15 +63,20 @@ export function StepMarkets({ s, set }: Props) {
       <p className="small muted">{excludedIds.length ? `${excludedIds.length} excluded.` : "None excluded."} {geos.length > 200 && !query ? "Showing the 200 largest; search to find others." : ""}</p>
 
       <details>
-        <summary>Advanced: how big can each cell be?</summary>
-        <p className="small muted">Each cell's share of your national sales. Bigger cells detect smaller lifts but expose more of your business to the test.<InfoTip term="shareInTest" /></p>
+        <summary>{isHoldout(s) ? "Advanced: how big can the holdout be?" : "Advanced: how big can each cell be?"}</summary>
+        <p className="small muted">
+          {isHoldout(s)
+            ? "The held-out markets' share of your national sales. A bigger holdout costs more reach but makes the twin's ranges more trustworthy; 10–20% is the default."
+            : "Each cell's share of your national sales. Bigger cells detect smaller lifts but expose more of your business to the test."}
+          <InfoTip term={isHoldout(s) ? "holdout" : "shareInTest"} />
+        </p>
         <div className="grid-2">
           <div className="field">
-            <label htmlFor="smin">Minimum per cell: {pct(s.shareMin, 0)}</label>
-            <input id="smin" type="range" min={0.01} max={0.1} step={0.01} value={s.shareMin} onChange={(e) => set({ shareMin: Math.min(Number(e.target.value), s.shareMax - 0.01) })} />
+            <label htmlFor="smin">Minimum {isHoldout(s) ? "held out" : "per cell"}: {pct(s.shareMin, 0)}</label>
+            <input id="smin" type="range" min={0.01} max={isHoldout(s) ? 0.2 : 0.1} step={0.01} value={s.shareMin} onChange={(e) => set({ shareMin: Math.min(Number(e.target.value), s.shareMax - 0.01) })} />
           </div>
           <div className="field">
-            <label htmlFor="smax">Maximum per cell: {pct(s.shareMax, 0)}</label>
+            <label htmlFor="smax">Maximum {isHoldout(s) ? "held out" : "per cell"}: {pct(s.shareMax, 0)}</label>
             <input id="smax" type="range" min={0.05} max={0.3} step={0.01} value={s.shareMax} onChange={(e) => set({ shareMax: Math.max(Number(e.target.value), s.shareMin + 0.01) })} />
           </div>
         </div>
@@ -110,10 +122,13 @@ export function StepTiming({ s, set }: Props) {
           <select id="cooldown" value={s.cooldown} onChange={(e) => set({ cooldown: Number(e.target.value) })}>
             {[0, 7, 14].map((c) => <option key={c} value={c}>{c} days</option>)}
           </select>
+          {isHoldout(s) && <span className="hint">The held-out markets stay dark until the cooldown ends.</span>}
         </div>
       </div>
       <div className="field">
         <label htmlFor="pre">History to build the twins from: {s.preWeeks} weeks<InfoTip term="preperiod" /></label>
+        {isHoldout(s) && s.adsBeforeTest === "off" && <p className="small muted" style={{ margin: "0 0 6px" }}>This history should be a time the campaign was off everywhere.</p>}
+        {isHoldout(s) && s.adsBeforeTest === "always_on" && <p className="small muted" style={{ margin: "0 0 6px" }}>This history should be a time the campaign ran everywhere the same way.</p>}
         <input id="pre" type="range" min={4} max={maxPre} step={1} value={Math.min(s.preWeeks, maxPre)} onChange={(e) => set({ preWeeks: Number(e.target.value) })} />
         <div className={`callout ${gauge}`} style={{ marginTop: 6 }}>
           {gauge === "ok" && "✓ Enough history. More (up to 26 weeks) still sharpens the test."}

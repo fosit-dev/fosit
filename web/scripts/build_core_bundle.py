@@ -51,13 +51,14 @@ def main():
         json.dump(manifest, f, indent=2)
     print(f"fosit-core.zip {digest} ({len(listed)} files)")
 
-    # The Read module's "Try it with the example" loads these from the app's own origin.
-    src = os.path.normpath(os.path.join(HERE, "..", "..", "examples", "two_vendor"))
-    dst = os.path.join(OUT, "examples", "two_vendor")
-    os.makedirs(dst, exist_ok=True)
-    for name in ("plan.fosit-plan.json", "kpi_history.csv", "spend_delivery.csv"):
-        shutil.copyfile(os.path.join(src, name), os.path.join(dst, name))
-    print("copied examples/two_vendor into public/examples")
+    # The Read module's "Try it with the example" buttons load these from the app's own origin.
+    for example in ("two_vendor", "national_holdout"):
+        src = os.path.normpath(os.path.join(HERE, "..", "..", "examples", example))
+        dst = os.path.join(OUT, "examples", example)
+        os.makedirs(dst, exist_ok=True)
+        for name in ("plan.fosit-plan.json", "kpi_history.csv", "spend_delivery.csv"):
+            shutil.copyfile(os.path.join(src, name), os.path.join(dst, name))
+        print(f"copied examples/{example} into public/examples")
 
 
 if __name__ == "__main__":

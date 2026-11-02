@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PowerCurve } from "../lib/plan";
 import { pct, weeks } from "../lib/format";
+import { impactLabels } from "../read/text";
 
 const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)"];
 
@@ -81,7 +82,8 @@ export function PowerChart({ curves, target = 0.8, title }: { curves: PowerCurve
 }
 
 /** A cell's average daily KPI vs its twin; the shaded part is the holdout the twin never saw. */
-export function FitChart({ dates, observed, twin, fitEnd, title }: { dates: string[]; observed: number[]; twin: number[]; fitEnd: number; title: string }) {
+/** Pre-period fit. `index`: a national holdout's sales index (1 = its average), where "holdout" would be an ambiguous label. */
+export function FitChart({ dates, observed, twin, fitEnd, title, index = false }: { dates: string[]; observed: number[]; twin: number[]; fitEnd: number; title: string; index?: boolean }) {
   const W = 420, H = 170, L = 40, R = 8, T = 10, B = 24;
   const all = [...observed, ...twin];
   const max = Math.max(...all), min = Math.min(...all);
@@ -92,20 +94,20 @@ export function FitChart({ dates, observed, twin, fitEnd, title }: { dates: stri
     <figure className="chart">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: real markets vs their twin before the test`}>
         <rect x={x(fitEnd)} y={T} width={x(dates.length - 1) - x(fitEnd)} height={H - T - B} fill="var(--shade)" />
-        <text x={x(fitEnd) + 4} y={T + 12} className="tick">holdout</text>
+        <text x={x(fitEnd) + 4} y={T + 12} className="tick">{index ? "unseen days" : "holdout"}</text>
         <path d={path(twin)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 3" />
         <path d={path(observed)} fill="none" stroke="var(--series-1)" strokeWidth="1.75" />
         <text x={L} y={H - 6} className="tick">{dates[0]}</text>
         <text x={W - R} y={H - 6} textAnchor="end" className="tick">{dates[dates.length - 1]}</text>
       </svg>
       <figcaption className="legend">
-        <span><i style={{ background: "var(--series-1)" }} aria-hidden />Real markets (avg per market)</span>
+        <span><i style={{ background: "var(--series-1)" }} aria-hidden />{index ? "Held-out markets (sales index)" : "Real markets (avg per market)"}</span>
         <span><i className="dashed" style={{ borderColor: "var(--series-2)" }} aria-hidden />Twin</span>
       </figcaption>
       <TableToggle label="fit">
         <table className="data-table">
           <thead><tr><th>Date</th><th>Real</th><th>Twin</th></tr></thead>
-          <tbody>{dates.map((d, i) => <tr key={d}><td>{d}</td><td>{observed[i].toFixed(1)}</td><td>{twin[i].toFixed(1)}</td></tr>)}</tbody>
+          <tbody>{dates.map((d, i) => <tr key={d}><td>{d}</td><td>{observed[i].toFixed(index ? 3 : 1)}</td><td>{twin[i].toFixed(index ? 3 : 1)}</td></tr>)}</tbody>
         </table>
       </TableToggle>
     </figure>
@@ -113,9 +115,10 @@ export function FitChart({ dates, observed, twin, fitEnd, title }: { dates: stri
 }
 
 /** Daily totals: what happened vs the twin's "no ads" estimate. Test days shaded, cooldown lighter. */
-export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, title, unit }: {
-  dates: string[]; observed: number[]; counterfactual: number[]; nPre: number; testDays: number; title: string; unit: string;
+export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, title, unit, holdout = false }: {
+  dates: string[]; observed: number[]; counterfactual: number[]; nPre: number; testDays: number; title: string; unit: string; holdout?: boolean;
 }) {
+  const lab = impactLabels(holdout);
   const from = Math.max(0, nPre - 56);
   const d = dates.slice(from), o = observed.slice(from), c = counterfactual.slice(from);
   const pre = nPre - from;
@@ -138,7 +141,7 @@ export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, t
   const testEnd = Math.min(pre + testDays - 1, d.length - 1);
   return (
     <figure className="chart" ref={box}>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: daily ${unit}, real vs the twin's estimate without ads`}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: ${lab.aria} ${unit}, real vs ${lab.twinAria}`}>
         <rect x={x(pre)} y={T} width={x(testEnd) - x(pre)} height={H - T - B} fill="var(--shade)" />
         {testEnd < d.length - 1 && <rect x={x(testEnd)} y={T} width={x(d.length - 1) - x(testEnd)} height={H - T - B} fill="var(--shade)" opacity="0.45" />}
         <text x={x(pre) + 4} y={T + 12} className="tick">ads on</text>
@@ -151,8 +154,8 @@ export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, t
         <text x={W - R} y={H - 6} textAnchor="end" className="tick">{d[d.length - 1]}</text>
       </svg>
       <figcaption className="legend">
-        <span><i style={{ background: "var(--series-1)" }} aria-hidden />What happened</span>
-        <span><i className="dashed" style={{ borderColor: "var(--series-2)" }} aria-hidden />Twin: what would have happened without ads</span>
+        <span><i style={{ background: "var(--series-1)" }} aria-hidden />{lab.real}</span>
+        <span><i className="dashed" style={{ borderColor: "var(--series-2)" }} aria-hidden />{lab.twin}</span>
       </figcaption>
       <TableToggle label="daily results">
         <table className="data-table">

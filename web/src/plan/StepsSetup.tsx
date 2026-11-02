@@ -1,12 +1,13 @@
 import { InfoTip } from "../components/InfoTip";
 import { money } from "../lib/format";
-import { budgets, withCells, type PlanState, type Template } from "./state";
+import { budgets, isHoldout, withCells, withTemplate, type PlanState, type Template } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
 
 const TEMPLATES: { id: Template; title: string; text: string; cells: number }[] = [
   { id: "two_vendor", title: "Two-vendor test", text: "Split one CTV budget between two platforms and find out which one really drives sales.", cells: 2 },
   { id: "single", title: "Single-channel test", text: "Is this channel driving incremental sales at all?", cells: 1 },
+  { id: "national_holdout", title: "National campaign with a holdout", text: "Keep the campaign running almost everywhere, leave about a tenth of the country without it, and measure what it really drives.", cells: 1 },
   { id: "custom", title: "Custom", text: "Up to 6 cells, your own settings.", cells: 3 },
 ];
 
@@ -17,12 +18,35 @@ export function StepTemplate({ s, set }: Props) {
       <div className="choice-grid" role="group" aria-label="Test template">
         {TEMPLATES.map((t) => (
           <button key={t.id} type="button" className="choice" aria-pressed={s.template === t.id}
-            onClick={() => set({ template: t.id, ...withCells(s, t.cells) })}>
+            onClick={() => set(withTemplate(s, t.id, t.cells))}>
             <strong>{t.title}{t.id === "two_vendor" && <span className="tag">Recommended</span>}</strong>
             <span className="muted small">{t.text}</span>
           </button>
         ))}
       </div>
+      {isHoldout(s) && (
+        <fieldset className="field" style={{ marginTop: 16 }}>
+          <legend style={{ fontWeight: 600 }}>In the weeks before the test, is this campaign running?<InfoTip term="adsBeforeTest" /></legend>
+          {([
+            ["off", "No, it's off (a new campaign or a new flight)"],
+            ["always_on", "Yes, everywhere (always on)"],
+            ["some", "Yes, but only in some markets"],
+          ] as const).map(([v, text]) => (
+            <label key={v} className="check">
+              <input type="radio" name="ads-before" checked={s.adsBeforeTest === v} onChange={() => set({ adsBeforeTest: v })} />
+              <span>{text}</span>
+            </label>
+          ))}
+          {s.adsBeforeTest === "always_on" && (
+            <p className="callout small">Fine. The held-out markets go dark when the test starts. Past ads keep working for a while, so the result will
+              understate the campaign a little: a cautious number. Keep the holdout dark through the cooldown too.</p>
+          )}
+          {s.adsBeforeTest === "some" && (
+            <p className="callout err small">FOSIT can't measure this cleanly: the twin would learn from a history where only some markets had the
+              campaign. Pause it for a few weeks (so the history is clean), or run it everywhere for a few weeks first, then plan the holdout.</p>
+          )}
+        </fieldset>
+      )}
       {s.template === "custom" && (
         <div className="field" style={{ marginTop: 16, maxWidth: 260 }}>
           <label htmlFor="ncells">Number of cells<InfoTip term="cell" /></label>
@@ -52,12 +76,21 @@ export function StepTest({ s, set }: Props) {
         </div>
       </div>
 
-      <h3>Cells<InfoTip term="cell" /></h3>
-      <p className="small muted">Name them however you like, for example after each vendor. FOSIT never knows who's behind a cell.</p>
+      {isHoldout(s) ? (
+        <>
+          <h3>Campaign<InfoTip term="holdout" /></h3>
+          <p className="small muted">One campaign: one vendor, or several running together. To compare vendors, choose a two-vendor test instead.</p>
+        </>
+      ) : (
+        <>
+          <h3>Cells<InfoTip term="cell" /></h3>
+          <p className="small muted">Name them however you like, for example after each vendor. FOSIT never knows who's behind a cell.</p>
+        </>
+      )}
       <div className="grid-2">
         {s.labels.map((l, i) => (
           <div className="field" key={i}>
-            <label htmlFor={`label-${i}`}>Cell {i + 1} name</label>
+            <label htmlFor={`label-${i}`}>{isHoldout(s) ? "Campaign name" : `Cell ${i + 1} name`}</label>
             <input id={`label-${i}`} type="text" value={l}
               onChange={(e) => set({ labels: s.labels.map((x, j) => (j === i ? e.target.value : x)) })} />
           </div>
@@ -66,7 +99,7 @@ export function StepTest({ s, set }: Props) {
 
       <div className="grid-2">
         <div className="field">
-          <label htmlFor="budget">Total test budget</label>
+          <label htmlFor="budget">{isHoldout(s) ? "Campaign budget during the test" : "Total test budget"}</label>
           <input id="budget" type="number" min={0} step={1000} value={s.totalBudget}
             onChange={(e) => set({ totalBudget: Math.max(0, Number(e.target.value)) })} />
         </div>
@@ -134,6 +167,13 @@ export function StepTest({ s, set }: Props) {
       )}
     </section>
   );
+}
+
+export function templateStepProblems(s: PlanState): string[] {
+  if (!isHoldout(s)) return [];
+  if (s.adsBeforeTest == null) return ["Tell us whether the campaign is running before the test."];
+  if (s.adsBeforeTest === "some") return ["A national holdout needs a history where the campaign was off everywhere or on everywhere."];
+  return [];
 }
 
 export function testStepProblems(s: PlanState): string[] {

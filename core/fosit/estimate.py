@@ -102,6 +102,14 @@ class CellEstimate:
         lo, hi = self.incremental_interval(level)
         return lo / self.counterfactual_total, hi / self.counterfactual_total
 
+    def test_counterfactual(self, test_days: int) -> float:
+        """Twin's total over the ads-on days, for the meaningful effect (§8)."""
+        return float(self.counterfactual[self.n_pre:self.n_pre + test_days].sum() * self.n_geos)
+
+    def chart(self) -> dict:
+        return {"observed": (self.observed * self.n_geos).round(2).tolist(),
+                "counterfactual": (self.counterfactual * self.n_geos).round(2).tolist(), "role": "cell"}
+
 
 def estimate(series: CellSeries, statistic: str = "abs_sum", levels=(0.90, 0.95),
              fixed_effects: bool = True, lam: float | None = None, kpi: str = "",

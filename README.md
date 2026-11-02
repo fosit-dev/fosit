@@ -20,6 +20,8 @@ Attribution reports often work like that flyer guy. Meanwhile CTV has the opposi
 2. **Run:** each vendor targets only its own markets.
 3. **Read:** upload sales through the end of the test and each vendor's spend and delivery. FOSIT builds a statistical twin of each cell from the control markets (augmented synthetic control), reports lift, iCPA, and iROAS with confidence ranges, compares the vendors head-to-head, and runs six honesty checks on every report.
 
+**Don't want to switch CTV off in most of the country?** A **national holdout** keeps one campaign running everywhere except about a tenth of the country, and measures what it drives from the markets left dark ([METHODOLOGY §13](docs/METHODOLOGY.md#13-national-holdout)).
+
 ## Principles
 
 1. **Vendor-neutral:** cells are user-labelled. Every cell runs the same code path. No vendor names in code or defaults.
