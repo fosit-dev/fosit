@@ -13,15 +13,17 @@ permissions:
 env:
   # Pinned reference versions. Bump deliberately and record it in docs/CHANGELOG.md.
   GEOLIFT_REF: db34ea4299ff0e28515ebac502b78c076c93c905
-  AUGSYNTH_REF: 7e70072232fe75057aa8b5d7af08c7e1aef53ae8
+  # augsynth as of GeoLift's last update (GeoLift db34ea4, 2026-04-01). Later augsynth (May 2026+) changed
+  # summary() internals that GeoLift calls, and GeoLift crashes with them.
+  AUGSYNTH_REF: 65c5a6f34f4e4a8b1011182fe12309ef022d992f
 
 jobs:
   geolift:
     runs-on: ubuntu-24.04   # pinned: system library names differ across Ubuntu releases
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - uses: r-lib/actions/setup-r@v2
@@ -31,7 +33,7 @@ jobs:
       - name: System libraries for R packages
         run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
       - name: Cache R library
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.R_LIBS_USER }}
           key: r4.5-${{ runner.os }}-${{ env.GEOLIFT_REF }}-${{ env.AUGSYNTH_REF }}
@@ -53,7 +55,7 @@ jobs:
       - name: Report in job summary
         if: always()
         run: cat validation/out/report.md >> "$GITHUB_STEP_SUMMARY" || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: validation-report
