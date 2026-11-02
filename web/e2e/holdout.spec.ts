@@ -42,6 +42,7 @@ test("plans a national holdout on the sample data", async ({ page }) => {
   const plan = JSON.parse(readFileSync((await json.path())!, "utf8"));
   expect(plan.commitment.design).toEqual({ type: "national_holdout", ads_before_test: "off" });
   expect(plan.commitment.cells).toHaveLength(1);
+  expect(plan.commitment.method.placebo_calibration).toEqual({ n: 40 });
   expect(plan.commitment.control.geo_ids.length).toBeGreaterThanOrEqual(10);
   const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download plan PDF" }).click()]);
   expect(readFileSync((await pdf.path())!).subarray(0, 5).toString()).toBe("%PDF-");

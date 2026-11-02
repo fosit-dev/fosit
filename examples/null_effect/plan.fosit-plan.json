@@ -4,7 +4,7 @@
     "tool": {
       "name": "FOSIT",
       "version": "0.1.0",
-      "core_sha256": "a2b8faca2a859a16278302091728a785ccf550ed812bdf5775c6aa7a4d3c824b"
+      "core_sha256": "d893c4b4213dcf8d5f42876da28f01c6188d580b9644fd2ed862627d849e270e"
     },
     "created_at": "2026-09-01T09:00:00Z",
     "test_name": "Example: null effect",
@@ -310,6 +310,9 @@
       "permutations": {
         "kind": "moving_block"
       },
+      "placebo_calibration": {
+        "n": 40
+      },
       "test_statistic": "abs_sum",
       "alpha": 0.1,
       "report_levels": [
@@ -371,7 +374,7 @@
   "hash": {
     "algorithm": "SHA-256",
     "canonicalization": "RFC8785",
-    "value": "1a98473c016c372db9627d4cd3740bf3450326af6a42b3a31acfdba568ec894f"
+    "value": "296742f1e65be1a5ad405e98bb1fb2f53e5e8261ca2e2c003fbb9ad0d7441485"
   },
   "appendix": {
     "note": "Design diagnostics. Not part of the fingerprint.",

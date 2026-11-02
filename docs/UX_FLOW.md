@@ -136,7 +136,7 @@ A row of six check tiles: Plan match · Pre-period fit · Geo leakage · Spend b
 - Standing caveat ⓘ: "The cells ran in different markets, so this compares vendor + markets. We balanced the markets to keep this fair."
 
 ### R5. Under the hood (collapsed)
-Weights table (which control markets make up each twin), λ chosen, placebo-in-time sensitivity check, permutation distribution plot, and links to the exact code.
+Weights table (which control markets make up each twin), λ chosen, the placebo check (*Built:* how many placebo cells ran, whether they widened the range, and the placebo p-value; METHODOLOGY §5.6), placebo-in-time sensitivity check, permutation distribution plot, and links to the exact code.
 
 ### R6. Export
 **CFO-ready PDF** (verdicts first, checks, methods appendix, plan hash on every page) · **Results CSV** · **Analysis config** ("anyone can re-run this and get the same numbers").

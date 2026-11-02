@@ -4,7 +4,7 @@
     "tool": {
       "name": "FOSIT",
       "version": "0.1.0",
-      "core_sha256": "a2b8faca2a859a16278302091728a785ccf550ed812bdf5775c6aa7a4d3c824b"
+      "core_sha256": "d893c4b4213dcf8d5f42876da28f01c6188d580b9644fd2ed862627d849e270e"
     },
     "created_at": "2026-09-01T09:00:00Z",
     "test_name": "Example: two-vendor CTV test",
@@ -310,6 +310,9 @@
       "permutations": {
         "kind": "moving_block"
       },
+      "placebo_calibration": {
+        "n": 40
+      },
       "test_statistic": "abs_sum",
       "alpha": 0.1,
       "report_levels": [
@@ -371,7 +374,7 @@
   "hash": {
     "algorithm": "SHA-256",
     "canonicalization": "RFC8785",
-    "value": "2ecf9b91ac79159f9cc4c793ecf0fe95b848b7bab5cfd81d6158d06f456c9706"
+    "value": "11678908cc8189df5cd97cc5cc851e445b04fb6243d08e50adbe02d4c76c17e5"
   },
   "appendix": {
     "note": "Design diagnostics. Not part of the fingerprint.",

@@ -16,6 +16,7 @@ from . import ascm, conformal
 from .estimate import cell_series
 from .holdout import holdout_series
 from .panel import Panel
+from .placebo import placebo_errors, quantile
 
 COARSE_EFFECTS = (0.025, 0.05, 0.10, 0.15, 0.20, 0.30, 0.50)
 SPARE_DAYS = 42   # history kept free for placebo windows: 7 windows at 7-day steps
@@ -43,6 +44,9 @@ class PowerConfig:
     # National holdout (§13): the cell is the campaign's markets, the control is the holdout, and
     # the lift is injected into the campaign markets, which are the holdout twin's donors.
     holdout: bool = False
+    # Placebo calibration (§5.6): a detection must also clear the placebo range, so the MDE matches the Read module.
+    placebos: int = 0
+    seed: int = 0
 
 
 def simulation_pre_days(cfg: PowerConfig, n_days: int, n_post: int) -> int:
@@ -99,7 +103,24 @@ class PowerSimulator:
                                pre.weights if cfg.holdout else None))
         return out
 
-    def _detected(self, w: _Window, effect: float) -> bool:
+    def _placebo_q(self, cell: list[str], test_days: int) -> float:
+        """Placebo quantile for the latest window (§5.6); 0 = no placebo requirement."""
+        cfg = self.cfg
+        if not cfg.placebos:
+            return 0.0
+        n_post = test_days + cfg.cooldown_days
+        pre_days = simulation_pre_days(cfg, self.panel.n_days, n_post)
+        starts = placebo_starts(self.panel.n_days, pre_days, n_post, 1, cfg.window_step)
+        if not starts:
+            return 0.0
+        s = starts[0]
+        size, pool = (len(self.control), cell) if cfg.holdout else (len(cell), self.control)
+        z = placebo_errors(self.panel, cfg.kpi, size, pool, np.arange(s - pre_days, s), np.arange(s, s + n_post),
+                           holdout=cfg.holdout, n=cfg.placebos, seed=[cfg.seed, test_days, len(cell)],
+                           fixed_effects=cfg.fixed_effects, min_nonzero_share=cfg.donor_min_nonzero_share)
+        return quantile(z, 1 - cfg.alpha) if len(z) else 0.0
+
+    def _detected(self, w: _Window, effect: float, q: float = 0.0) -> bool:
         cfg = self.cfg
         y, Y0 = w.y1.copy(), w.Y0
         first = len(y) - w.n_post
@@ -116,11 +137,16 @@ class PowerSimulator:
         sign = -1 if w.weights is not None else 1
         if effect > 0 and sign * att <= 0:
             return False
+        if q > 0:
+            first_pre = len(y) - w.n_post
+            sd = float(np.std((w.y1 - w.pre_cf)[:first_pre]))
+            if sd <= 0 or abs(att) <= q * sd:
+                return False
         p = conformal.p_value(y, Y0, w.n_post, 0.0, w.lam, cfg.statistic, cfg.fixed_effects, cfg.permutations)
         return p <= cfg.alpha
 
-    def _power(self, windows: list[_Window], effect: float) -> float:
-        return float(np.mean([self._detected(w, effect) for w in windows]))
+    def _power(self, windows: list[_Window], effect: float, q: float = 0.0) -> float:
+        return float(np.mean([self._detected(w, effect, q) for w in windows]))
 
     def curve(self, cell: list[str], test_days: int) -> dict:
         """Power at 0 (false-positive rate), the coarse grid, and a bisection around the target crossing."""
@@ -129,10 +155,11 @@ class PowerSimulator:
         if not windows:
             return {"test_days": test_days, "windows": 0, "points": [], "mde": None,
                     "note": "History too short for any placebo window of this length."}
-        points = {0.0: self._power(windows, 0.0)}
+        q = self._placebo_q(cell, test_days)
+        points = {0.0: self._power(windows, 0.0, q)}
         crossing = None
         for e in COARSE_EFFECTS:
-            points[e] = self._power(windows, e)
+            points[e] = self._power(windows, e, q)
             if points[e] >= cfg.power_target:
                 crossing = e
                 break
@@ -142,7 +169,7 @@ class PowerSimulator:
             lo, hi = prev, crossing
             for _ in range(cfg.bisect_steps):
                 mid = round((lo + hi) / 2, 4)
-                points[mid] = self._power(windows, mid)
+                points[mid] = self._power(windows, mid, q)
                 lo, hi = (mid, hi) if points[mid] < cfg.power_target else (lo, mid)
             mde = hi
         y_recent = self.panel.kpis[cfg.kpi][self.panel.rows(cell), -BASELINE_DAYS:].sum(axis=0).mean()
@@ -150,6 +177,7 @@ class PowerSimulator:
             "test_days": test_days,
             "pre_days": simulation_pre_days(cfg, self.panel.n_days, test_days + cfg.cooldown_days),
             "windows": len(windows),
+            "placebo_quantile": q or None,
             "points": [{"effect": k, "power": v} for k, v in sorted(points.items())],
             "mde": mde,
             "false_positive_rate": points[0.0],

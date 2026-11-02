@@ -4,14 +4,14 @@
   "cells": {
     "cell_1": {
       "label": "CTV campaign",
-      "injected_lift": 0.1032,
-      "planned_mde": 0.0688,
+      "injected_lift": 0.1312,
+      "planned_mde": 0.0875,
       "multiple_of_mde": 1.5,
-      "true_incremental_orders": 15253,
-      "true_incremental_revenue": 1269895.12,
+      "true_incremental_orders": 19590,
+      "true_incremental_revenue": 1630271.76,
       "spend": 400000,
-      "true_icpa": 26.224349308332787,
-      "true_iroas": 3.1747378000000004
+      "true_icpa": 20.41858090862685,
+      "true_iroas": 4.0756794
     }
   },
   "note": "Exact orders and revenue added in the campaign states on ads-on days. FOSIT should recover these within its intervals."

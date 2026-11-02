@@ -130,12 +130,12 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
       `each indexed to its own history (ridge-augmented synthetic control with market fixed effects, ridge penalty chosen by ` +
       `cross-validation). The gap is the share of sales the ads drove, applied to the markets with ads. Uncertainty comes from conformal ` +
       `inference with ${m.permutations.kind === "moving_block" ? "moving-block (circular time-shift)" : "random (iid)"} permutations. ` +
-      `Decisions use ${pct(1 - m.alpha, 0)} intervals (95% also reported). The campaign was ${c.design?.type === "national_holdout" && c.design.ads_before_test === "always_on" ? "running everywhere" : "off everywhere"} during the history period.`
+      `Decisions use ${pct(1 - m.alpha, 0)} intervals (95% also reported)${m.placebo_calibration ? `, each checked against ${m.placebo_calibration.n} placebo cells over the same dates` : ""}. The campaign was ${c.design?.type === "national_holdout" && c.design.ads_before_test === "always_on" ? "running everywhere" : "off everywhere"} during the history period.`
     :
     `Each cell is compared with a statistical twin built from the control markets (ridge-augmented synthetic control with ` +
       `market fixed effects, ridge penalty chosen by cross-validation). Uncertainty comes from conformal inference with ` +
       `${m.permutations.kind === "moving_block" ? "moving-block (circular time-shift)" : "random (iid)"} permutations. ` +
-      `Decisions use ${pct(1 - m.alpha, 0)} intervals (95% also reported). Vendor-vs-vendor differences use a joint ` +
+      `Decisions use ${pct(1 - m.alpha, 0)} intervals (95% also reported)${m.placebo_calibration ? `, each checked against ${m.placebo_calibration.n} placebo cells over the same dates and widened if they drift more` : ""}. Vendor-vs-vendor differences use a joint ` +
       `confidence region for both cells, which is deliberately cautious about declaring a winner.`,
     { size: 9.5 },
   );

@@ -185,6 +185,34 @@ iid detects more lifts, but it overstates its certainty: about 1 in 8 null tests
 
 **The cost is power, and here's why.** Under each hypothesis the model is refit on all $T$ periods, which exactness requires. The refit absorbs part of a real effect. In one diagnostic case, about 70% of a 20% lift was absorbed before the permutation step. Circular shifts that overlap the real window then look almost as extreme as the observed one. **A longer pre-period is the main lever:** in a 40-panel simulation, power to detect a 20% lift rose from 75% with 12 weeks of history to 100% with 26 weeks. FOSIT therefore recommends using up to 26 weeks of pre-period when the history allows.
 
+### 5.6 Placebo calibration
+
+> **In plain English:** Before trusting a range, we test the method on fake cells: groups of markets that got no ads, over the very same dates. If the method finds "effects" in those fake cells more often than it should, we widen the real range until it doesn't. Ranges only ever get wider, never narrower.
+
+**Why.** Conformal inference (§5.1) is exact when the gap between a cell and its twin behaves the same in every stretch of time. Real twins drift: a cell and its donors respond a little differently to slow-moving shocks, and when the donor pool is small the twin can't fully cancel that. A slowly wandering gap is largest at the ends of the series, and the test window *is* the end of the series. So the post-period looks more extreme than a typical stretch for reasons that have nothing to do with the ads. We found this when planning on synthetic data exactly as the app does (market search, then the design with the best sensitivity): nominal 90% ranges held zero with no effect only **84%** of the time on state-level panels and **86%** on metro-level ones, with false "positive" verdicts at about **7–8%** instead of 5%. More history, a different ridge penalty and per-market linear trends did not fix it (per-market trends over-corrected, tripling the range).
+
+**Procedure** (`core/fosit/placebo.py`). For each cell and KPI:
+
+1. Draw $P$ placebo cells (default 40, locked in the plan as `method.placebo_calibration`), each a random set of markets from the cell's donor pool (the control markets; for a national holdout, the campaign markets on indexed series, §13.3) of the same size as the real cell (at most half the pool). Draws are seeded from the plan's seed, cell and KPI, so the read is reproducible.
+2. For each placebo, build its twin from the rest of the pool with exactly the estimator of §4 (λ by cross-validation), fitted on the plan's pre-period, and record its mean error over the plan's measurement window divided by its pre-period residual SD: $z_p = \bar{\hat u}_{p,\mathcal W} / \mathrm{sd}(\hat u_{p,\text{pre}})$.
+3. For level $1-\alpha$, let $q$ be the $\lceil (P+1)(1-\alpha) \rceil$-th smallest $|z_p|$ (infinite if there are too few placebos). The placebo range for the real cell is $\hat\tau \pm q \cdot \mathrm{sd}(\hat u_{\text{pre}})$.
+4. **Report the hull** of the conformal range (§5.2) and the placebo range. The reported p-value is the larger of the conformal p-value and the placebo p-value $\big(1 + \#\{p : |z_p| \ge |z|\}\big)/(P+1)$, so it agrees with the range.
+
+The power simulation (§10) applies the same rule: a placebo window counts as "detected" only if it also clears the placebo range, with $q$ computed from placebos over the most recent placebo window. So the planned MDE already includes this check.
+
+**What it costs and buys** (`validation/calibration_study.py`, plans made exactly as in the app; with no effect and with lift = the planned MDE):
+
+| Data · design | Covers zero, no effect: before → after (90% nominal) | "Positive", no effect: before → after (5% nominal) | Planned MDE detected, after (80% planned) | Median planned MDE, before → after |
+|---|---|---|---|---|
+| 51 states · two cells (200 panels, 386 cells) | 83.7% → **93.5%** | 7.3% → **2.3%** | 85.5% | 21.2% → 20.0% |
+| 51 states · national holdout (200 panels) | 83.0% → **93.0%** | 7.5% → **1.5%** | 86.5% | 19.4% → 19.4% |
+| 250 metros · two cells (60 panels, 120 cells) | 85.8% → **92.5%** | 8.3% → **5.8%** | 91.7% | 25.6% → 25.6% |
+| 250 metros · national holdout (60 panels) | 85.0% → **88.3%** | 6.7% → **5.0%** | 90.0% | 20.6% → 30.0% |
+
+The planned sensitivity barely moves on state data: the placebo range binds mostly in the null cases it was built for. The head-to-head (§7.2) was already conservative (its joint region covered the true difference 97% of the time on the state panels), so it is not recalibrated. Planning takes about twice as long (the placebo cells are extra fits).
+
+Plans locked before this check existed (no `method.placebo_calibration`) are read exactly as locked, with plain conformal ranges, and the report says so.
+
 ---
 
 ## 6. Business metrics
@@ -461,15 +489,13 @@ As in §10, with one change: the lift is injected into the **campaign markets** 
 
 ### 13.6 Evidence
 
-`tests/test_holdout.py` checks the gates, the translation and the shipped example (`examples/national_holdout`) on every change. A larger study, `validation/holdout_study.py` (200 synthetic state-level panels: 51 states, about 6,500 orders a day nationally, with per-state trends; 18 weeks of history, a 4-week test and 1-week cooldown; holdout chosen by the planner; each panel read once with no effect and once with lift = the planned MDE; under a minute on a laptop):
+`tests/test_holdout.py` checks the gates, the translation and the shipped example (`examples/national_holdout`) on every change. `validation/calibration_study.py --design holdout` runs the larger study: 200 synthetic state-level panels (51 states, about 6,500 orders a day nationally, with per-state trends; 18 weeks of history, a 4-week test and 1-week cooldown; holdout chosen by the planner), each read once with no effect and once with lift = the planned MDE. With placebo calibration (§5.6, on by default):
 
 | Holdout share | Covers zero, no effect (90% nominal) | "Positive", no effect (5% nominal) | Covers truth, lift = MDE | "Positive", lift = MDE (80% planned) | Mean bias | Median MDE (4 weeks) |
 |---|---|---|---|---|---|---|
-| 5%–15% | 80% | 10.0% | 91% | 84% | +3.9% | 20.0% |
-| **10%–20% (default)** | **83%** | **7.5%** | **94.5%** | **86%** | **−0.6%** | **19.4%** |
-| 10%–25% | 85% | 5.5% | 95.5% | 84% | −0.9% | 19.4% |
+| **10%–20% (default)** | **93.0%** | **1.5%** | **97.0%** | **86.5%** | **+0.1%** | **19.4%** |
 
-**What this says.** The holdout read is close to unbiased, and the planner's sensitivity estimates hold (the planned MDE is detected about 85% of the time against an 80% target). Larger holdouts are better calibrated at about the same sensitivity, so the default is 10%–20%. But with no effect, the 90% intervals contain zero only about 83% of the time, not 90%. **This is a property of state-level data, not of the holdout**: on the same kind of synthetic state panels, the standard two-cell design covered zero about 82% of the time (60 cells). With only 51 states and state-specific trends, the moving-block permutations understate how far a twin can drift in a few weeks. On metro-level (CBSA) data, coverage is 92% (§5.5). Until this is fixed, read a state-level "positive" at 90% as roughly 85% confidence (§14).
+Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.6% / 19.4%, and holdout sizes of 5%–15% and 10%–25% gave 80% and 85% coverage of zero (median MDE 20.0% and 19.4%). Larger holdouts calibrate better at about the same sensitivity, which is why the default is 10%–20%.
 
 ---
 
@@ -484,7 +510,7 @@ As in §10, with one change: the lift is injected into the **campaign markets** 
 - **Holidays and promotions inside the test window:** fine if they hit treatment and control alike, which the external-shocks check asks about.
 - **Out of scope for v1:** household-level holdouts, time-series-only reads without controls (for example, a past campaign that ran nationwide with no market held out), MMM (see README roadmap).
 - **National holdout:** the effect is measured in the holdout and applied to the campaign markets, which assumes the ads would have worked the same way there (§13.4).
-- **State-level designs are over-confident.** On synthetic state data, nominal 90% intervals cover the truth about 82–85% of the time, for both geo cells and national holdouts (§13.6). Prefer metro areas (CBSAs) when vendors can target them.
+- **Few markets, wider ranges.** With 51 states, twins drift more than with hundreds of metro areas. Plain conformal ranges were over-confident on such data; placebo calibration (§5.6) corrects that by widening them, so state-level tests need bigger effects to reach a verdict. Prefer metro areas (CBSAs) when vendors can target them.
 
 ---
 
@@ -500,6 +526,7 @@ As in §10, with one change: the lift is injected into the **campaign markets** 
 | λ selection | Time-series CV, 1-SE rule | ✓ |
 | Test statistic | Two-sided average effect, $\lvert\sum \hat u\rvert$ (GeoLift's "Total" is $\sum\lvert \hat u\rvert$; see §5.1) | ✓ |
 | Permutations | Moving-block (circular shifts). iid optional (§5.5) | ✓ |
+| Placebo calibration | 40 placebo cells per cell and KPI; report the hull with the conformal range (§5.6) | ✓ |
 | Donor screening | Drop donors with zero KPI on > 50% of pre-period days | ✓ |
 | Decision α | 0.10 (90% interval). 95% also reported | ✓ |
 | Head-to-head | Joint conformal region, projected | ✓ |

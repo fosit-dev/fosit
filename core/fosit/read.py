@@ -17,6 +17,7 @@ import pandas as pd
 from . import conformal
 from .estimate import CellEstimate, CellSeries, cell_series, estimate
 from .holdout import estimate_holdout
+from .placebo import calibrate, placebo_errors
 from .panel import Panel
 from .spend import SpendData, leakage
 
@@ -189,11 +190,13 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
     planned_mde = (c["decision"].get("planned_mde_lift") or
                    {by_label[m["label"]]: m["mde"] for m in (appendix or {}).get("mde", []) if m.get("mde") and m.get("label") in by_label})
 
+    # §5.6: plans that lock placebo calibration get conformal ranges checked against placebo cells
+    n_placebos = int((method.get("placebo_calibration") or {}).get("n", 0))
     cells_out, work = [], {}
     total_steps = len(kpis) * len(c["cells"]) * 2
     step = 0
-    for kpi in kpis:
-        for cell in c["cells"]:
+    for ki, kpi in enumerate(kpis):
+        for ci, cell in enumerate(c["cells"]):
             if holdout:
                 series = None
                 est = estimate_holdout(panel, kpi, control, sorted(plan_geos[cell["id"]]), pre_cols, post_cols,
@@ -201,7 +204,16 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
             else:
                 series = cell_series(panel, kpi, sorted(plan_geos[cell["id"]]), control, pre_cols, post_cols, min_nonzero)
                 est = estimate(series, method.get("test_statistic", "abs_sum"), levels, fixed_effects, kpi=kpi, perms=perms)
-            work[(kpi, cell["id"])] = {"id": cell["id"], "series": series, "est": est, "spend": spend_by.get(cell["id"])}
+            cal = None
+            if n_placebos:
+                target = est.index if holdout else est
+                z = placebo_errors(panel, kpi, len(control) if holdout else len(plan_geos[cell["id"]]),
+                                   sorted(plan_geos[cell["id"]]) if holdout else control, pre_cols, post_cols,
+                                   holdout=holdout, n=n_placebos, seed=[int(method.get("seed", 0)), ci, ki],
+                                   fixed_effects=fixed_effects, min_nonzero_share=min_nonzero)
+                cal = calibrate(target, z, levels)
+            work[(kpi, cell["id"])] = {"id": cell["id"], "series": series, "est": est, "spend": spend_by.get(cell["id"]),
+                                       "placebo": cal.to_dict() if cal else ({"n": 0} if n_placebos else None)}
             step += 1
             if progress:
                 progress({"stage": "estimate", "done": step, "total": total_steps})
@@ -223,6 +235,7 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
             m["series"] = {"dates": [x.strftime("%Y-%m-%d") for x in est.dates], **est.chart(),
                            "n_pre": est.n_pre, "test_days": test_days}
             top = sorted(est.weights.items(), key=lambda kv: -abs(kv[1]))[:12]
+            m["placebo"] = w["placebo"]
             m["under_the_hood"] = {"lambda": est.lam, "top_weights": [{"geo_id": g, "weight": wt} for g, wt in top],
                                    "negative_weight_sum": float(sum(v for v in est.weights.values() if v < 0)),
                                    "donors": len(est.weights), "dropped_donors": est.dropped_donors,

@@ -10,8 +10,12 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 - Plan schema: optional `commitment.design` (`type`: `geo_cells` | `national_holdout`, plus `ads_before_test`). Plans without it read as geo cells, so existing plans and their fingerprints are unchanged.
 - Validation: `validation/holdout_study.py` (200 synthetic state panels) and `tests/test_holdout.py`. Results: close to unbiased (−0.6%), the planned MDE is detected 86% of the time (80% planned), but with no effect the 90% intervals hold zero only 83% of the time.
 
-### Found: state-level designs are over-confident
-- On synthetic state-level data, nominal 90% intervals cover the truth about 82–85% of the time, for the existing two-cell design as well as the national holdout (CBSA data: 92%). Documented in METHODOLOGY §13.6 and §14 (known limitations); not yet fixed.
+### Changed: placebo calibration of every range (METHODOLOGY §5.6) — can change results
+- **Found:** for designs chosen the way the planner chooses them, plain conformal ranges were over-confident: with no effect, nominal 90% ranges held zero 83–84% of the time on synthetic state data and 85–86% on metro data, with 7–8% false "positive" verdicts (5% nominal). Cause: a twin's gap drifts slowly, and the test window sits at the end of the series, where drift is largest. More history, a different ridge penalty and per-market trends did not fix it.
+- **Fix:** each cell is also checked against 40 placebo cells (markets without ads, same size, same dates, same estimator). The reported range is the hull of the conformal and placebo ranges, and the p-value is the larger of the two, so ranges never get narrower. The power simulation applies the same rule, so planned MDEs include it.
+- **Result** (`validation/calibration_study.py`): states, two cells 83.7% → 93.5% coverage and 7.3% → 2.3% false positives; states, holdout 83.0% → 93.0% and 7.5% → 1.5%; metros, two cells 85.8% → 92.5%; metros, holdout 85.0% → 88.3%. The planned MDE is still detected 85–92% of the time. Planning takes about twice as long.
+- Plan schema: `method.placebo_calibration` (`{"n": 40}`), written by the Plan module. Plans without it are read exactly as locked. Examples regenerated with it (same data and truth).
+- `validation/holdout_study.py` is now `validation/calibration_study.py` (both designs, states or metros, with or without placebos).
 
 ### Added: Read module
 - Core: `spend.py` (spend & delivery validation, leakage by destination) and `read.py`: per-cell estimates for every KPI with 90/95% intervals; incremental orders and revenue, lift, iCPA, iROAS and orders per 1,000 with intervals; verdicts (§8); joint-region head-to-head (§7.2); data-based honesty checks (§11); results CSV.

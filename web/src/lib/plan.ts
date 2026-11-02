@@ -64,6 +64,7 @@ export type Commitment = {
     lambda_selection: "cv_1se";
     inference: "conformal";
     permutations: { kind: "moving_block" | "iid"; n?: number; seed?: number };
+    placebo_calibration?: { n: number };   // METHODOLOGY.md §5.6; absent in plans from FOSIT 0.1
     test_statistic: "abs_sum";
     alpha: number;
     report_levels: number[];
@@ -194,6 +195,7 @@ export function buildCommitment(p: PlanInputs): Commitment {
       lambda_selection: "cv_1se",
       inference: "conformal",
       permutations: p.permutations === "iid" ? { kind: "iid", n: 1000, seed: p.seed } : { kind: "moving_block" },
+      placebo_calibration: { n: 40 },
       test_statistic: "abs_sum",
       alpha: p.alpha,
       report_levels: [0.9, 0.95],

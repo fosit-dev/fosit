@@ -155,6 +155,12 @@ export const GLOSSARY = {
     text: "The same information as iCPA, flipped. It stays meaningful even when a cell's lift is near zero, so it's the safest way to compare vendors.",
     doc: ["METHODOLOGY.md", "71-what-is-compared"],
   },
+  placebo: {
+    title: "Placebo check",
+    text: "We also run the same analysis on fake cells made of markets that got no ads, over the same dates. If those fake cells show 'effects' more often than they should, we widen the real ranges until they don't.",
+    doc: ["METHODOLOGY.md", "56-placebo-calibration"],
+    code: "core/fosit/placebo.py",
+  },
   holdout: {
     title: "National holdout",
     text: "The campaign runs everywhere except a few markets that get no ads. A twin of those markets, built from the markets with ads, shows what they'd have sold with the ads; the gap is what the ads drive.",

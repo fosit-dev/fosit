@@ -144,6 +144,7 @@ Structure:
 - Cell ids are `cell_1..cell_K`. Labels are unique.
 - `vendor_targeting_confirmed` has one `confirmed: true` entry per cell.
 - `method.lambda_value` present iff `lambda_selection = "fixed"`.
+- `method.placebo_calibration` (`{"n": 40}` in plans from the current Plan module) turns on placebo calibration ([METHODOLOGY §5.6](METHODOLOGY.md#56-placebo-calibration)). Plans without it are read with plain conformal ranges, exactly as they were locked.
 - `decision.target_icpa` present iff basis is `target_icpa`. Same for `breakeven_iroas`.
 - `decision.planned_mde_lift` (cell id → planned minimum detectable lift) is written by the current Plan module. For older plans, Read falls back to the planned MDE in the (unhashed) appendix.
 - `kpi.primary` must exist in the planning data.

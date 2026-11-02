@@ -2,7 +2,7 @@ import { InfoTip } from "../components/InfoTip";
 import { ImpactChart } from "../components/Charts";
 import { money, num, pct } from "../lib/format";
 import type { LockedPlan } from "../lib/plan";
-import type { CellResult, ReadResult } from "./types";
+import type { CellResult, KpiResult, ReadResult } from "./types";
 import { VERDICT, h2hLabel, cellSentence, h2hSentence, h2hValue, icpaText, levelKey, primaryH2H, rangeText } from "./text";
 
 type Props = { r: ReadResult; plan: LockedPlan; names: Record<string, string> };
@@ -40,6 +40,16 @@ function StatsTable({ cell, r, currency }: { cell: CellResult; r: ReadResult; cu
         ))}</tbody>
       </table>
     </div>
+  );
+}
+
+function PlaceboNote({ pl, level }: { pl: KpiResult["placebo"]; level: string }) {
+  if (pl == null) return <p className="small muted">This plan was locked without the placebo check, so the ranges are plain conformal ranges.</p>;
+  if (!pl.n) return <p className="small muted">Placebo check skipped: too few markets to build fake cells from.</p>;
+  return (
+    <p className="small">Placebo check<InfoTip term="placebo" />: {pl.n} fake cells over the same dates.{" "}
+      {pl.widened?.[level] ? "They drifted more than the conformal range allows, so the range was widened to match them." : "The conformal range already covered how far they drifted."}{" "}
+      Placebo p-value {pl.p_value?.toFixed(3)}.</p>
   );
 }
 
@@ -111,6 +121,7 @@ export function ReadResults({ r, plan, names }: Props) {
                 <h4>{holdout ? "The holdout's twin" : `${cell.label}'s twin`}</h4>
                 <p className="small">Built from {u.donors} {holdout ? "markets with ads, each indexed to its own history (METHODOLOGY §13.3)" : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}.</p>
                 <div className="chips">{u.top_weights.map((w) => <span key={w.geo_id} className="chip">{names[w.geo_id] ?? w.geo_id}: {w.weight.toFixed(3)}</span>)}</div>
+                <PlaceboNote pl={cell.kpis[r.primary_kpi].placebo} level={levelKey(r)} />
               </div>
             );
           })}

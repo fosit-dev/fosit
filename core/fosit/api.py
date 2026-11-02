@@ -13,7 +13,7 @@ from importlib import resources
 
 import numpy as np
 
-from . import __version__, ascm, conformal, holdout, orders, power, selection, synthetic
+from . import __version__, ascm, conformal, holdout, orders, placebo, power, selection, synthetic
 from .panel import Panel, load_kpi_history
 
 _state: dict = {}
@@ -130,7 +130,7 @@ def find_designs(config: dict, progress=None) -> dict:
     cooldown_days, share_min, share_max, min_control_share, balance_max, fit_max,
     n_candidates, seed, excluded, alpha, statistic, permutations ("moving_block"|"iid"),
     power_target, power_designs (how many designs get a power simulation),
-    budgets (list, one per cell), design ("geo_cells" | "national_holdout": then
+    budgets (list, one per cell), placebos (placebo cells per power curve, §5.6; 0 = off), design ("geo_cells" | "national_holdout": then
     share_min/share_max bound the holdout's share and n_cells is 1, §13).
     """
     panel = _panel()
@@ -160,6 +160,7 @@ def find_designs(config: dict, progress=None) -> dict:
         cooldown_days=cooldown, alpha=float(config.get("alpha", 0.10)),
         statistic=config.get("statistic", "abs_sum"), permutations=perms,
         power_target=float(config.get("power_target", 0.80)),
+        placebos=int(config.get("placebos", placebo.N_PLACEBOS)), seed=int(config.get("seed", 0)),
     )
     budgets = [float(b) for b in config.get("budgets", [])] or [0.0] * sel_cfg.n_cells
     n_power = int(config.get("power_designs", 5))

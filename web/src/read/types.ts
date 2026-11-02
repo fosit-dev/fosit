@@ -20,6 +20,8 @@ export type KpiResult = {
   intervals: Record<string, { incremental: Interval; lift: Interval; per_1000?: Interval; icpa?: Interval; iroas?: Interval }>;
   // role "holdout" (METHODOLOGY.md §13): observed = the held-out markets (no ads), counterfactual = their twin (with ads)
   series: { dates: string[]; observed: number[]; counterfactual: number[]; n_pre: number; test_days: number; role?: "cell" | "holdout" };
+  // METHODOLOGY.md §5.6; null when the plan doesn't lock placebo calibration, n = 0 when no placebo could run
+  placebo?: null | { n: number; quantiles?: Record<string, number>; p_value?: number; widened?: Record<string, boolean> };
   under_the_hood: {
     lambda: number;
     top_weights: { geo_id: string; weight: number }[];

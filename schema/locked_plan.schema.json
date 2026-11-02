@@ -310,6 +310,20 @@
                 }
               }
             },
+            "placebo_calibration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "n"
+              ],
+              "description": "METHODOLOGY.md \u00a75.6. Check each conformal range against n placebo cells over the same window and report the wider range. Absent = off (plans from FOSIT 0.1).",
+              "properties": {
+                "n": {
+                  "type": "integer",
+                  "minimum": 10
+                }
+              }
+            },
             "test_statistic": {
               "enum": [
                 "abs_sum",
