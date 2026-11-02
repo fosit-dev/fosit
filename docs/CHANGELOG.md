@@ -12,7 +12,7 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 
 ### Validation
 - **Correction:** METHODOLOGY §5.1 wrongly said FOSIT's test statistic matched GeoLift's "Total". GeoLift uses the sum of |daily residuals|; FOSIT uses |sum of residuals| (the average effect). Both are documented now, `sum_abs` is available as an option, and the GeoLift comparison is done with the statistics matched.
-- First GeoLift run: with the same λ, the counterfactual and point estimates match GeoLift to within 0.004%. The comparison now has a gating "matched" table and an informational "defaults" table scored against the truth.
+- **GeoLift validation passes** (CI run 6). With the same λ and statistic, point estimates agree to within 1e-5, p-values are identical in all 6 cases, and CI bounds agree within 0.2–1.4% of width. With each tool's defaults, FOSIT detected all 3 real effects (GeoLift: 0) and gave one false positive in 2 nulls (GeoLift: 0). Details: METHODOLOGY §12.
 
 ### CI
 - GeoLift validation: authenticated R installs from GitHub, R 4.5 (required by `bsts`, a GeoLift dependency), and augsynth pinned to 65c5a6f (2026-03-11), the version GeoLift was built against. Newer augsynth crashes inside GeoLift's `summary()` call. Runners pinned to Ubuntu 24.04; actions updated to current majors.

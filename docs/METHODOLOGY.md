@@ -369,7 +369,21 @@ Unknown-geo impressions (`geo_id = *`) count as **unverifiable**, not as leakage
 | CI bounds | ±5% of GeoLift's CI width (its grid step is about 2% of a typical width) |
 | p-value | ±0.02, and same side of α |
 
-**First results (CI run 5, before the statistic was matched):** with the same λ, FOSIT's counterfactual matched GeoLift's to within 0.004% of the daily level in all six cases. Lift and ATT agreed to within 1e-5. Run with `sum_abs`, FOSIT reproduces GeoLift's p-values exactly where both use the same λ (0.6807 and 0.7899 on two cases). The inference differences in run 5 came entirely from the different statistic.
+**Results (CI run 6, GeoLift 2.7.5 at db34ea4, augsynth 65c5a6f, R 4.5; all gating checks pass):**
+
+- *Matched (same λ, same statistic):* lift and ATT agree to within 1e-5 relative in all six cases, and the counterfactual to within 0.004% of the daily level. **p-values are identical in all six cases.** Where GeoLift's interval is a real conformal bound (3 cases), FOSIT's bounds agree within 0.2–1.4% of the interval width, inside GeoLift's own grid resolution. In the other 3 cases GeoLift's interval runs into its search limit and FOSIT's is unbounded: both tools are saying the same thing, "very wide".
+- *Defaults (informational), against the known truth:*
+
+| Case | True effect | FOSIT p-value | GeoLift p-value | FOSIT 90% CI covers truth | GeoLift 90% CI covers truth |
+|---|---|---|---|---|---|
+| lift10_a | +10% | **0.017** | 0.68 | yes | yes |
+| lift10_b | +10% | **0.050** | 0.34 | yes | yes (±70 per day: uninformative) |
+| lift20_a | +20% | **0.034** | 0.83 | yes | yes (±65 per day: uninformative) |
+| null_a | none | 0.008 (false positive) | 0.79 | no | yes |
+| null_b | none | 0.54 | 0.87 | yes | yes |
+| single_geo | +15% | 0.11 | 0.14 | yes | yes |
+
+  FOSIT's defaults detected all three real effects at α = 0.10, and GeoLift's detected none. In 3 of 6 cases GeoLift's cross-validation picked a near-zero λ (≈0.01), which lets the ridge step overfit so the conformal refit absorbs the effect. FOSIT's 1-SE rule kept λ large; on lift10_b that gave an estimate 6× closer to the truth. FOSIT produced one false positive in two nulls. That's consistent with its measured 8% rate over 500 simulations (§5.5), but it's a real example, and it's why the honesty checks and pre-registered thresholds exist. Six cases are an illustration; the calibration evidence is the 500-panel simulation.
 
 These tolerances are **provisional**. They'll be tightened or justified after the first harness runs, and every change is logged in [CHANGELOG.md](CHANGELOG.md).
 
