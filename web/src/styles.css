@@ -216,3 +216,7 @@ details > summary { cursor: pointer; font-weight: 600; margin: 8px 0; }
 .check-tile.fail { background: var(--err-soft); border-color: transparent; }
 .check-tile strong { display: block; }
 .watermark { border: 3px solid var(--err); color: var(--err); font-weight: 800; text-align: center; padding: 8px; border-radius: 10px; letter-spacing: 0.04em; }
+
+/* Embedded in a host page: let the host's background show through. */
+html[data-embed], html[data-embed] body { background: transparent; }
+html[data-embed] .page { padding-top: 20px; }

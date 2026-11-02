@@ -4,6 +4,7 @@ import { sha256Hex } from "../lib/hash";
 import type { FindResult } from "../lib/plan";
 import { addDays, todayUtc } from "../lib/dates";
 import { callPython, cancelEngine } from "../worker/client";
+import { scrollToTop } from "../embed";
 import type { Progress } from "../worker/protocol";
 import { StepData, dataStepProblems, type DataLoader } from "./StepData";
 import { StepFind } from "./StepFind";
@@ -139,7 +140,7 @@ export function PlanWizard({ startWithSample }: { startWithSample: boolean }) {
   const goTo = (i: number) => {
     setStep(i);
     setMaxStep((m) => Math.max(m, i));
-    window.scrollTo({ top: 0 });
+    scrollToTop();
   };
 
   return (

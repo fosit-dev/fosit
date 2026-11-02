@@ -5,11 +5,13 @@ import { ReadModule } from "./read/ReadModule";
 import { InfoTip } from "./components/InfoTip";
 import { CONTACT_LABEL, CONTACT_URL, DISCLOSURE, REPO_URL, REVIEW_URL, docUrl } from "./config";
 import { initEngine } from "./worker/client";
+import { INITIAL_THEME, scrollToTop } from "./embed";
 
 type Screen = "why" | "plan" | "read";
 type Theme = "system" | "light" | "dark";
 
 function loadTheme(): Theme {
+  if (INITIAL_THEME === "dark" || INITIAL_THEME === "light") return INITIAL_THEME;
   try {
     return (localStorage.getItem("fosit-theme") as Theme) || "system";
   } catch {
@@ -41,7 +43,7 @@ export function App() {
   const go = (s: Screen, withSample = false) => {
     setSample(withSample);
     setScreen(s);
-    window.scrollTo(0, 0);
+    scrollToTop();
   };
 
   return (
