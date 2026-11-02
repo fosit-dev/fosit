@@ -17,7 +17,7 @@ env:
 
 jobs:
   geolift:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: system library names differ across Ubuntu releases
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +36,8 @@ jobs:
           path: ${{ env.R_LIBS_USER }}
           key: r-${{ runner.os }}-${{ env.GEOLIFT_REF }}-${{ env.AUGSYNTH_REF }}
       - name: Install GeoLift (reference only, never vendored)
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}   # remotes::install_github is rate-limited without a token
         run: |
           Rscript -e 'install.packages(c("remotes", "jsonlite"))'
           Rscript -e 'remotes::install_github("ebenmichael/augsynth", ref = Sys.getenv("AUGSYNTH_REF"), upgrade = "never")'
