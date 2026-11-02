@@ -8,7 +8,7 @@ reference only**. No GeoLift or augsynth code is copied into FOSIT.
 |---|---|
 | `make_cases.py` | Writes deterministic synthetic cases (`cases/<name>/data.csv`, `case.json`): null effects, 10% and 20% lifts, a single-geo test |
 | `run_geolift.R` | Runs `GeoLift::GeoLift()` with FOSIT's settings (Ridge, fixed effects, `stat_test = "Total"`, `conformal_type = "block"`, α = 0.10) and writes JSON |
-| `compare.py` | Runs FOSIT on the same cases in two modes (λ pinned to GeoLift's, and FOSIT's own λ), checks the tolerances in METHODOLOGY.md §12, writes `out/report.md`, exits non-zero on failure |
+| `compare.py` | Runs FOSIT on the same cases two ways: **matched** (GeoLift's λ and GeoLift's test statistic, gating) and **defaults** (each tool's own, informational, scored against the truth). Writes `out/report.md` and exits non-zero if a matched comparison is outside the METHODOLOGY.md §12 tolerances |
 
 CI: `.github/workflows/validation.yml` pins GeoLift and augsynth to exact commits.
 

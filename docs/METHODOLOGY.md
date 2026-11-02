@@ -147,7 +147,9 @@ To test $H_0: \tau_t = \tau_0$ for all $t \in \mathcal W$ (a constant daily effe
 1. Subtract the hypothesized effect: $Y^{(\tau_0)}_{1t} = Y_{1t} - \tau_0 \cdot \mathbb 1[t \in \mathcal W]$.
 2. Refit the ASCM weights on **all $T$ periods** (pre and window), treating the adjusted series as untreated, with $\lambda$ held fixed.
 3. Compute residuals $\hat u_t = Y^{(\tau_0)}_{1t} - \hat Y_{1t}(0)$ for $t = 1..T$.
-4. Test statistic (two-sided, average effect): $S(\hat u) = \left| \sum_{t \in \mathcal W} \hat u_t \right|$. This matches GeoLift's `stat_test = "Total"`. A one-sided variant ($-\sum$ or $+\sum$) is available and must be chosen in the plan.
+4. Test statistic (two-sided, average effect): $S(\hat u) = \left| \sum_{t \in \mathcal W} \hat u_t \right|$. A one-sided variant ($-\sum$ or $+\sum$) is available and must be chosen in the plan.
+
+   *Note on GeoLift.* An earlier draft of this document said this statistic matched GeoLift's `stat_test = "Total"`. **It doesn't.** GeoLift's two-sided statistic is $\sum_{t \in \mathcal W} |\hat u_t|$, the $q=1$ statistic of Chernozhukov et al. It tests "no effect on any day", so day-to-day noise counts against detection and it has much less power against a steady lift. Its test-inversion intervals can even exclude the point estimate. FOSIT's question is "did the ads add orders on average over the window?", which $|\sum \hat u_t|$ answers directly, and its calibration is verified (§5.5). `sum_abs` is available as an option and is what the GeoLift comparison uses (§12).
 5. **Moving-block permutations** (default): for each shift $j = 0..T-1$, circularly shift the residual series, $\hat u^{(j)}_t = \hat u_{(t+j) \bmod T}$, and recompute $S$. Circular shifts keep autocorrelation intact, which is why we shift instead of shuffling individual days. See [§5.5](#55-permutation-scheme-why-moving-block) for why this is the default.
 6. $p(\tau_0) = \frac{1}{T}\sum_{j=0}^{T-1} \mathbb 1\left[S(\hat u^{(j)}) \ge S(\hat u)\right]$. A shift counts when its statistic is at least the observed one, with a $10^{-9}$ relative tolerance for floating-point ties. A p-value equal to α is rejected.
 
@@ -355,16 +357,19 @@ Unknown-geo impressions (`geo_id = *`) count as **unverifiable**, not as leakage
 
 - **Independence:** FOSIT's core is written from the papers in [§15](#15-references). No GeoLift or `augsynth` source is copied, and none ever will be. GeoLift's licensing is ambiguous: GitHub's license detection lists MIT, but the package's DESCRIPTION file says GPL (≥ 2), and GPL code can't be folded into an Apache-2.0 project. `augsynth` is MIT. Both are used only as external black boxes in CI.
 - **Harness:** `/validation` generates deterministic synthetic cases (null effects, 10% and 20% lifts, a single-geo test). It runs `GeoLift::GeoLift()` on each with `model = "Ridge"`, `fixed_effects = TRUE`, `stat_test = "Total"`, `conformal_type = "block"` (GeoLift's own default is `"iid"`, see §5.5), `grid_size = 250`, α = 0.10 and `ConfidenceIntervals = TRUE`. A GitHub Actions job (`.github/workflows/validation.yml`) compares the outputs to FOSIT's. GeoLift and augsynth are pinned to exact commits, and the job runs on R 4.5. augsynth is pinned to the version current when GeoLift was last updated (March 2026). Later augsynth releases changed internals GeoLift calls, and GeoLift crashes with them. Bumping either pin is a deliberate change logged in the CHANGELOG.
-- **Two comparison modes:**
-  1. **Pinned λ** (FOSIT uses GeoLift's selected λ). This isolates the estimator and inference. Tight tolerances.
-  2. **Auto λ** (each tool picks its own). This checks the end-to-end defaults. Looser tolerances.
+- **Two comparisons per case** (`validation/compare.py`):
+  1. **Matched (gating).** FOSIT runs with GeoLift's selected λ *and* GeoLift's test statistic (`sum_abs`). Same model, same test, so every number must agree. This validates the estimator and the conformal engine.
+  2. **Defaults (informational).** Each tool uses its own defaults, side by side, with each one's error against the known truth. They differ by design: FOSIT picks λ with 7-day held-out blocks and tests the average effect; GeoLift picks λ with 1-day holdouts and tests every day. This table never fails the job.
+- GeoLift searches interval bounds on a fixed grid (mean ATT ± 6 × RMS of the post-period ATT, 250 points) and falls back to jackknife+ when no grid point is accepted. Bounds at the grid edge, or from the fallback, aren't conformal bounds, so they're skipped and reported.
 
-| Quantity | Pinned λ tolerance | Auto λ tolerance |
-|---|---|---|
-| Percent lift | ±0.25 pp absolute | ±1.0 pp absolute |
-| ATT (avg daily effect) | ±1% relative | ±5% relative |
-| CI bounds | ±5% of CI width | ±15% of CI width |
-| p-value | ±0.02, and same side of α | ±0.05, and same side of α |
+| Quantity (matched comparison) | Tolerance |
+|---|---|
+| Percent lift | ±0.25 pp absolute |
+| ATT (avg daily effect) | ±1% relative |
+| CI bounds | ±5% of GeoLift's CI width (its grid step is about 2% of a typical width) |
+| p-value | ±0.02, and same side of α |
+
+**First results (CI run 5, before the statistic was matched):** with the same λ, FOSIT's counterfactual matched GeoLift's to within 0.004% of the daily level in all six cases. Lift and ATT agreed to within 1e-5. Run with `sum_abs`, FOSIT reproduces GeoLift's p-values exactly where both use the same λ (0.6807 and 0.7899 on two cases). The inference differences in run 5 came entirely from the different statistic.
 
 These tolerances are **provisional**. They'll be tightened or justified after the first harness runs, and every change is logged in [CHANGELOG.md](CHANGELOG.md).
 
@@ -399,7 +404,7 @@ These tolerances are **provisional**. They'll be tightened or justified after th
 | Cooldown | 7 days | ✓ |
 | Fixed effects | On | ✓ |
 | λ selection | Time-series CV, 1-SE rule | ✓ |
-| Test statistic | Two-sided, $\lvert\sum\rvert$ ("Total") | ✓ |
+| Test statistic | Two-sided average effect, $\lvert\sum \hat u\rvert$ (GeoLift's "Total" is $\sum\lvert \hat u\rvert$; see §5.1) | ✓ |
 | Permutations | Moving-block (circular shifts). iid optional (§5.5) | ✓ |
 | Donor screening | Drop donors with zero KPI on > 50% of pre-period days | ✓ |
 | Decision α | 0.10 (90% interval). 95% also reported | ✓ |

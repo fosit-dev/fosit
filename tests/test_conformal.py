@@ -28,6 +28,15 @@ class WindowSums(unittest.TestCase):
         self.assertAlmostEqual(C.p_value_from_residuals(u, 5, "negative_sum"), 1 / 40)
         self.assertEqual(C.p_value_from_residuals(u, 5, "positive_sum"), 1.0)
 
+    def test_sum_abs_statistic_matches_brute_force(self):
+        rng = np.random.default_rng(4)
+        u = rng.normal(size=30)
+        n_post = 7
+        T = len(u)
+        stats = [sum(abs(u[(t + j) % T]) for t in range(T - n_post, T)) for j in range(T)]
+        expected = np.mean(np.array(stats) >= stats[0] - 1e-12)
+        self.assertAlmostEqual(C.p_value_from_residuals(u, n_post, "sum_abs"), expected)
+
     def test_iid_permutations_are_seeded_and_include_observed(self):
         u = np.random.default_rng(1).normal(size=60)
         perms = C.Permutations("iid", n=500, seed=7)

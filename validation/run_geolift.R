@@ -42,6 +42,12 @@ for (case_path in list.dirs(cases_dir, recursive = FALSE)) {
   observed_avg <- colMeans(matrix(gl$results$data$y[treated_rows, ], nrow = length(treated_rows)))
   lift <- (sum(observed_avg) - sum(y_hat[window])) / abs(sum(y_hat[window]))
 
+  # GeoLift searches its CI on a fixed grid: mean ATT +/- 6 * RMS(post ATT), 250 points (ConfIntervals()).
+  # Bounds at the grid edge mean "at least this wide"; bounds outside it come from its jackknife+ fallback.
+  att_path <- as.numeric(predict(gl$results, att = TRUE))
+  post_att <- att_path[case$treatment_start_time:length(att_path)]
+  grid_half <- 6 * sqrt(mean(post_att^2))
+
   out <- list(
     case = case$name,
     conformal_type = conformal_type,
@@ -56,6 +62,8 @@ for (case_path in list.dirs(cases_dir, recursive = FALSE)) {
     incremental = gl$incremental,
     incremental_ci = c(gl$lower_bound, gl$upper_bound),
     lambda = if (is.null(gl$results$lambda)) NA else gl$results$lambda,
+    ci_grid = c(mean(post_att) - grid_half, mean(post_att) + grid_half),
+    ci_grid_size = 250,
     y_hat = y_hat,
     weights = gl$df_weights
   )

@@ -17,7 +17,11 @@ import numpy as np
 
 from . import ascm
 
-STATISTICS = ("abs_sum", "positive_sum", "negative_sum")
+# abs_sum  |sum of window residuals|: tests the average effect (FOSIT default, METHODOLOGY.md §5.1)
+# sum_abs  sum of |window residuals|: the q=1 statistic of Chernozhukov et al. and GeoLift's
+#          two-sided "Total" test; it tests a zero effect on every day, so it has less power
+#          against a steady lift. Available for comparison with GeoLift (§12).
+STATISTICS = ("abs_sum", "sum_abs", "positive_sum", "negative_sum")
 _TIE_TOL = 1e-9
 
 
@@ -92,7 +96,10 @@ def _stat(sums: np.ndarray, statistic: str) -> np.ndarray:
 def p_value_from_residuals(u: np.ndarray, n_post: int, statistic: str = "abs_sum",
                            perms: Permutations = BLOCK) -> float:
     """Share of permutations whose statistic is at least the observed one (§5.1 step 6)."""
-    s = _stat(perms.window_sums(u, n_post), statistic)
+    if statistic == "sum_abs":
+        s = perms.window_sums(np.abs(u), n_post)
+    else:
+        s = _stat(perms.window_sums(u, n_post), statistic)
     tol = _TIE_TOL * max(1.0, float(np.max(np.abs(s))))
     return float(np.mean(s >= s[0] - tol))
 
