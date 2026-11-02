@@ -10,6 +10,9 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 - `examples/`: two-vendor and null-effect datasets with a known truth (`generate_examples.py`), used by the in-app example and by `tests/test_end_to_end.py`.
 - Browser tests: Read on the example, a tampered plan being caught, and Read on a phone in dark mode.
 
+### CI
+- GeoLift validation: authenticated R installs from GitHub, R 4.5 (required by `bsts`, a GeoLift dependency), and augsynth pinned to 65c5a6f (2026-03-11), the version GeoLift was built against. Newer augsynth crashes inside GeoLift's `summary()` call. Runners pinned to Ubuntu 24.04; actions updated to current majors.
+
 ### Changed
 - The plan now locks `decision.planned_mde_lift`, so "no detectable lift" can't be redefined after the results are in (§8).
 
