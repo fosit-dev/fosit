@@ -6,7 +6,7 @@ FOSIT helps advertisers plan and read **geo-lift experiments** for CTV and other
 
 🔒 **Your data never leaves this browser.** All computation runs on your machine (Python via Pyodide, in a Web Worker). Nothing is uploaded, and a CI test fails if the app ever sends user data over the network.
 
-> **Status:** pre-release. The statistical core, the GeoLift validation harness and the **Plan** module (web) are built and tested. The Read module is next.
+> **Status:** pre-release. Plan and Read are both built and tested, end to end, on synthetic data with a known truth ([`/examples`](examples)). Awaiting the first GeoLift comparison run and an independent review.
 
 ## Why this exists
 

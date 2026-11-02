@@ -4,6 +4,15 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 
 ## [Unreleased]
 
+### Added: Read module
+- Core: `spend.py` (spend & delivery validation, leakage by destination) and `read.py`: per-cell estimates for every KPI with 90/95% intervals; incremental orders and revenue, lift, iCPA, iROAS and orders per 1,000 with intervals; verdicts (§8); joint-region head-to-head (§7.2); data-based honesty checks (§11); results CSV.
+- Web: Read screens (load plan + fingerprint anchor + diff against the original; data files; six honesty checks; "other changes" question before results; per-cell results with charts; head-to-head; under the hood), CFO-ready PDF report with INTERIM label and "NOT THE PRE-REGISTERED ANALYSIS" watermark, results CSV, analysis config for re-running.
+- `examples/`: two-vendor and null-effect datasets with a known truth (`generate_examples.py`), used by the in-app example and by `tests/test_end_to_end.py`.
+- Browser tests: Read on the example, a tampered plan being caught, and Read on a phone in dark mode.
+
+### Changed
+- The plan now locks `decision.planned_mde_lift`, so "no detectable lift" can't be redefined after the results are in (§8).
+
 ### Added: Plan module (web)
 - `/web`: React + TypeScript + Vite app; Python core runs in Pyodide 314 (Python 3.14) in a Web Worker. Pyodide and the numpy/scipy/pandas wheels are self-hosted (SHA-256 checked at build time); the core ships as a reproducible zip whose hash goes into every plan.
 - Screens: "Why this exists" (flyer story), then a 7-step Plan wizard (template → test → sales data → markets → timing → find markets → lock & share), ⓘ explanations with "Read more" / "See the code" links, light/dark themes, mobile layout.

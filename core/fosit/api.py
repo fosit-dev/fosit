@@ -173,3 +173,33 @@ def find_designs(config: dict, progress=None) -> dict:
                                               if k not in ("excluded", "not_eligible", "population")},
                                 "power": {**{k: v for k, v in vars(pow_cfg).items() if k != "permutations"},
                                           "permutations": vars(perms)}}})
+
+
+# ---- Read module (METHODOLOGY.md §6-§8, §11) ----
+
+def load_spend(csv_text: str, commitment: dict) -> dict:
+    """Validate the spend & delivery file against the locked plan (SCHEMA.md §3). Keeps it for run_read."""
+    from .spend import load_spend as _load
+
+    d = commitment["dates"]
+    data, issues = _load(csv_text, commitment["cells"], d["test_start"], d["cooldown_end"])
+    _state["spend"] = data
+    summary = None
+    if data is not None:
+        by = data.rows.groupby("cell_id").agg(spend=("spend", "sum"), impressions=("impressions", "sum"))
+        summary = {cid: {"spend": float(r.spend), "impressions": float(r.impressions)} for cid, r in by.iterrows()}
+        summary["_dates"] = {"first": data.rows["date"].min().strftime("%Y-%m-%d") if len(data.rows) else None,
+                             "last": data.rows["date"].max().strftime("%Y-%m-%d") if len(data.rows) else None}
+    return _clean({"ok": data is not None, "issues": [i.to_dict() for i in issues], "summary": summary})
+
+
+def clear_spend() -> dict:
+    _state["spend"] = None
+    return {"ok": True}
+
+
+def run_read(commitment: dict, plan_hash: str, today: str, appendix: dict | None = None, progress=None) -> dict:
+    """Per-cell results, head-to-head and data-based honesty checks, using only the plan's settings."""
+    from .read import run_read as _run
+
+    return _run(_panel(), commitment, _state.get("spend"), today, appendix, plan_hash, progress)

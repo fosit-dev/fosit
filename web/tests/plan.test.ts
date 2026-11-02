@@ -41,6 +41,8 @@ describe("locked plan", () => {
   it("coin flip swaps market sets but keeps labels and budgets with their cells", () => {
     const c = buildCommitment(inputs({ coinFlip: [1, 0], budgets: [60000, 40000] }));
     expect(c.cells[0]).toMatchObject({ label: "Vendor A", budget: 60000, geo_ids: ["16980", "38060", "47900"] });
+    const withMde = buildCommitment(inputs({ coinFlip: [1, 0], plannedMde: [0.05, 0.08] }));
+    expect(withMde.decision.planned_mde_lift).toEqual({ cell_1: 0.08, cell_2: 0.05 });
     expect(c.assignment.coin_flip_result).toEqual({ market_set_1: "cell_2", market_set_2: "cell_1" });
   });
 

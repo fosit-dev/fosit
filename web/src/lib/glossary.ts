@@ -113,6 +113,48 @@ export const GLOSSARY = {
     text: "Lets chance decide which vendor gets which market set, so nobody can claim the other got the better markets.",
     doc: ["METHODOLOGY.md", "95-optional-coin-flip-for-vendor-to-cell-assignment"],
   },
+  pValue: {
+    title: "p-value",
+    text: "How often a gap this big shows up by pure chance when the ads do nothing. Under 0.10 means it's unlikely to be luck.",
+    doc: ["METHODOLOGY.md", "51-testing-a-hypothesized-effect"],
+    code: "core/fosit/conformal.py",
+  },
+  range: {
+    title: "90% range",
+    text: "We're 90% confident the true value is in this range. If it includes zero, we can't rule out that the ads did nothing.",
+    doc: ["METHODOLOGY.md", "52-confidence-intervals-by-test-inversion"],
+  },
+  verdict: {
+    title: "Verdict",
+    text: "Positive: the whole range is above zero. No detectable lift: any lift is too small to be worth it. Inconclusive: the test can't tell either way. All three are honest answers.",
+    doc: ["METHODOLOGY.md", "8-verdicts"],
+    code: "core/fosit/read.py",
+  },
+  headToHead: {
+    title: "Head-to-head",
+    text: "A range for the difference between two cells, built so both cells' uncertainty counts. If it includes zero, you can't tell the vendors apart on this evidence.",
+    doc: ["METHODOLOGY.md", "7-head-to-head"],
+  },
+  planMatch: {
+    title: "Plan match",
+    text: "We recompute the plan's fingerprint and compare it with the one sent before launch. If anything was changed, it won't match.",
+    doc: ["PREREGISTRATION.md", "the-ritual-what-we-ask-users-to-do"],
+  },
+  leakage: {
+    title: "Geo leakage",
+    text: "Share of a cell's impressions that landed outside its own markets. Ads in control markets push measured lift toward zero.",
+    doc: ["METHODOLOGY.md", "11-honesty-checks-read"],
+  },
+  shocks: {
+    title: "Other changes",
+    text: "A promotion, price change or other campaign that hit some markets differently would be mistaken for an ad effect. Only you can know, so we ask.",
+    doc: ["METHODOLOGY.md", "11-honesty-checks-read"],
+  },
+  perThousand: {
+    title: "Incremental orders per 1,000 spent",
+    text: "The same information as iCPA, flipped. It stays meaningful even when a cell's lift is near zero, so it's the safest way to compare vendors.",
+    doc: ["METHODOLOGY.md", "71-what-is-compared"],
+  },
 } satisfies Record<string, Term>;
 
 export type TermKey = keyof typeof GLOSSARY;

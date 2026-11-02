@@ -144,6 +144,7 @@ Structure:
 - `vendor_targeting_confirmed` has one `confirmed: true` entry per cell.
 - `method.lambda_value` present iff `lambda_selection = "fixed"`.
 - `decision.target_icpa` present iff basis is `target_icpa`. Same for `breakeven_iroas`.
+- `decision.planned_mde_lift` (cell id → planned minimum detectable lift) is written by the current Plan module. For older plans, Read falls back to the planned MDE in the (unhashed) appendix.
 - `kpi.primary` must exist in the planning data.
 - `thresholds.pre_fit_nrmse_max` has an entry for every cell × KPI analysed.
 

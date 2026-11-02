@@ -228,7 +228,7 @@ The two cells share the same days, the same control pool, and the same national 
    where $\hat\sigma$ is each series' full-sample residual SD (the same under every shift, so the scaling doesn't change the permutation logic).
 3. Apply the **same** permutation (circular shift $j$, or the same iid draw if the plan locks iid) to both residual series, recompute $S_{\text{joint}}$, and get $p(\tau_a, \tau_b)$ as in §5.1.
 4. Joint $(1-\alpha)$ region: $R = \{(\tau_a, \tau_b) : p > \alpha\}$.
-5. Interval for any comparison $f$ (Δ iROAS, Δ iCPA, ratio): $[\min_R f,\ \max_R f]$.
+5. Interval for any comparison $f$ (Δ iROAS, Δ iCPA, ratio): $[\min_R f,\ \max_R f]$. Each cell's grid has 41 hypothesized effects spanning its 95% interval plus 25% on each side, so endpoints are accurate to about 1/40 of that span. Δ iCPA and the iCPA ratio are reported only if every point in the region has positive incremental orders for both cells. Implementation: `core/fosit/read.py::head_to_head`.
 
 **Properties:** valid for all comparisons at once, preserves cross-cell correlation, and uses the same machinery as the per-cell results. Projection is **conservative**: intervals for the difference are somewhat wider than a test built for one specific difference. This is deliberate. FOSIT should be slow to declare a winner between two vendors.
 
@@ -247,7 +247,7 @@ Cells run in **different markets.** A difference between cells is the difference
 
 > **In plain English:** Every cell gets one of four labels. "No detectable lift" and "inconclusive" are different. The first means we can rule out an effect big enough to matter. The second means the test can't tell either way. Both are honest answers, and both are useful.
 
-The decision level $\alpha$ (default 0.10) and the **meaningful effect** $\delta^*$ are locked in the plan. $\delta^*$ is the incremental-orders (or revenue) total that would hit the user's **target iCPA** (or **break-even iROAS**). If the user gives neither, $\delta^*$ defaults to the planned MDE ([§10](#10-power-simulation-plan)).
+The decision level $\alpha$ (default 0.10) and the **meaningful effect** $\delta^*$ are locked in the plan. $\delta^*$ is the incremental-orders (or revenue) total that would hit the user's **target iCPA** (or **break-even iROAS**), computed from the cell's actual spend: $S_k / \text{target iCPA}$ orders, or $S_k \times$ break-even iROAS revenue. If the user gives neither, $\delta^*$ is the cell's **planned MDE** (`decision.planned_mde_lift`, locked in the plan so it can't be redefined after the results are in) times the twin's counterfactual over the ads-on days.
 
 | Verdict | Rule (using the $(1-\alpha)$ interval $[\Delta_L, \Delta_U]$) |
 |---|---|
@@ -372,7 +372,7 @@ These tolerances are **provisional**. They'll be tightened or justified after th
 - SCM weights vs. an independent QP solve on small problems. Ridge step vs. a closed-form reference.
 - Conformal p-values on constructed series where the answer is known.
 - **Coverage simulation:** 500 synthetic panels with known effects (nightly; 200 on every change). Nominal 90% intervals must cover the truth 86–94% of the time. **Current result: 92.2% (90% intervals), 95.4% (95% intervals), 8.0% false positives at α = 0.10** (§5.5).
-- **End-to-end:** the two-vendor example recovers its injected effects within the 90% intervals, and the null example returns "no detectable lift" or "inconclusive" for both cells (never "positive").
+- **End-to-end** (`tests/test_end_to_end.py`, data from `examples/generate_examples.py`): the two-vendor example's true incremental orders, revenue and iCPA all fall inside the 90% intervals. The cell given 1.5× its planned MDE is called "positive". The null example returns "no detectable lift" or "inconclusive" for both cells, never "positive", and no head-to-head difference is called distinguishable. The effect is *added* to the same base data the plan was built on (extra orders drawn on ads-on days), so the truth is the exact number of orders added. Current run: Vendor A 1,242 estimated vs 1,321 true (90%: 913–1,834); Vendor B 449 vs 446 (90%: 37–839).
 
 ---
 

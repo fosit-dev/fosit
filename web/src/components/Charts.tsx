@@ -1,5 +1,5 @@
 // Small, dependency-free SVG charts. Each has an accessible name and a data-table alternative.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PowerCurve } from "../lib/plan";
 import { pct, weeks } from "../lib/format";
 
@@ -106,6 +106,58 @@ export function FitChart({ dates, observed, twin, fitEnd, title }: { dates: stri
         <table className="data-table">
           <thead><tr><th>Date</th><th>Real</th><th>Twin</th></tr></thead>
           <tbody>{dates.map((d, i) => <tr key={d}><td>{d}</td><td>{observed[i].toFixed(1)}</td><td>{twin[i].toFixed(1)}</td></tr>)}</tbody>
+        </table>
+      </TableToggle>
+    </figure>
+  );
+}
+
+/** Daily totals: what happened vs the twin's "no ads" estimate. Test days shaded, cooldown lighter. */
+export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, title, unit }: {
+  dates: string[]; observed: number[]; counterfactual: number[]; nPre: number; testDays: number; title: string; unit: string;
+}) {
+  const from = Math.max(0, nPre - 56);
+  const d = dates.slice(from), o = observed.slice(from), c = counterfactual.slice(from);
+  const pre = nPre - from;
+  // draw at the container's real width so labels stay readable on phones and desktops alike
+  const box = useRef<HTMLElement>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(300, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = W < 500 ? 200 : 260, L = 52, R = 8, T = 10, B = 24;
+  const all = [...o, ...c];
+  const max = Math.max(...all), min = Math.min(0, ...all);
+  const x = (i: number) => L + (i / Math.max(d.length - 1, 1)) * (W - L - R);
+  const y = (v: number) => T + (1 - (v - min) / (max - min || 1)) * (H - T - B);
+  const path = (vs: number[]) => vs.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const testEnd = Math.min(pre + testDays - 1, d.length - 1);
+  return (
+    <figure className="chart" ref={box}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: daily ${unit}, real vs the twin's estimate without ads`}>
+        <rect x={x(pre)} y={T} width={x(testEnd) - x(pre)} height={H - T - B} fill="var(--shade)" />
+        {testEnd < d.length - 1 && <rect x={x(testEnd)} y={T} width={x(d.length - 1) - x(testEnd)} height={H - T - B} fill="var(--shade)" opacity="0.45" />}
+        <text x={x(pre) + 4} y={T + 12} className="tick">ads on</text>
+        {[max, (max + min) / 2, min].map((v) => (
+          <text key={v} x={L - 6} y={y(v) + 4} textAnchor="end" className="tick">{Math.round(v).toLocaleString()}</text>
+        ))}
+        <path d={path(c)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 3" />
+        <path d={path(o)} fill="none" stroke="var(--series-1)" strokeWidth="1.75" />
+        <text x={L} y={H - 6} className="tick">{d[0]}</text>
+        <text x={W - R} y={H - 6} textAnchor="end" className="tick">{d[d.length - 1]}</text>
+      </svg>
+      <figcaption className="legend">
+        <span><i style={{ background: "var(--series-1)" }} aria-hidden />What happened</span>
+        <span><i className="dashed" style={{ borderColor: "var(--series-2)" }} aria-hidden />Twin: what would have happened without ads</span>
+      </figcaption>
+      <TableToggle label="daily results">
+        <table className="data-table">
+          <thead><tr><th>Date</th><th>Real</th><th>Twin</th><th>Gap</th></tr></thead>
+          <tbody>{d.map((day, i) => <tr key={day}><td>{day}{i >= pre ? " (test)" : ""}</td><td>{o[i].toFixed(0)}</td><td>{c[i].toFixed(0)}</td><td>{(o[i] - c[i]).toFixed(0)}</td></tr>)}</tbody>
         </table>
       </TableToggle>
     </figure>

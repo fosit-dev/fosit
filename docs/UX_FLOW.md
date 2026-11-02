@@ -1,6 +1,6 @@
 # UX flow and copy (v1)
 
-**Status:** the Plan module (screens 0 and P1–P7) is built in `/web`. Read (R1–R6) is next. Copy is editable; deviations from this draft are marked *(Built: …)*.
+**Status:** both modules are built in `/web`: Plan (screens 0 and P1–P7) and Read (R1–R6). Copy is editable; deviations from this draft are marked *(Built: …)*.
 
 ## Design principles
 
@@ -114,6 +114,7 @@ Cards, first one preselected:
 ## Read module
 
 ### R1. Load
+- *(Built: also "Try it with the example (two vendors, synthetic)", which loads `examples/two_vendor` from the app's own origin.)*
 - Drop the plan JSON → "✓ Plan *Q4 CTV two-vendor test*, 2 cells, test Sep 1–28, cooldown to Oct 5."
 - **Paste the code from your pre-launch email** ⓘ "This is what proves nobody changed the plan."
 - Drop KPI file (through cooldown) and spend & delivery file. Health cards as in P3.

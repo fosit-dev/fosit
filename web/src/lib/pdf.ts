@@ -9,12 +9,12 @@ import { money, pct, weeks } from "./format";
 
 type Names = Record<string, string>;
 
-const MARGIN = 54;
-const PAGE_W = 612; // US Letter, points
-const PAGE_H = 792;
-const WIDTH = PAGE_W - 2 * MARGIN;
+export const MARGIN = 54;
+export const PAGE_W = 612; // US Letter, points
+export const PAGE_H = 792;
+export const WIDTH = PAGE_W - 2 * MARGIN;
 
-class Writer {
+export class Writer {
   doc = new jsPDF({ unit: "pt", format: "letter" });
   y = MARGIN;
 
@@ -48,11 +48,15 @@ class Writer {
   row(label: string, value: string) {
     this.doc.setFontSize(10);
     const lines = this.doc.splitTextToSize(value, WIDTH - 150) as string[];
-    this.ensure(lines.length * 13.5);
-    this.doc.setFont("helvetica", "bold").setTextColor(80, 85, 100).text(label, MARGIN, this.y);
+    this.doc.setFont("helvetica", "bold");
+    const labels = this.doc.splitTextToSize(label, 140) as string[];
+    const n = Math.max(lines.length, labels.length);
+    this.ensure(n * 13.5);
+    this.doc.setTextColor(80, 85, 100);
+    labels.forEach((l, i) => this.doc.text(l, MARGIN, this.y + i * 13.5));
     this.doc.setFont("helvetica", "normal").setTextColor(30, 30, 30);
     lines.forEach((l, i) => this.doc.text(l, MARGIN + 150, this.y + i * 13.5));
-    this.y += lines.length * 13.5 + 2;
+    this.y += n * 13.5 + 2;
   }
   footer(hash: string) {
     const pages = this.doc.getNumberOfPages();

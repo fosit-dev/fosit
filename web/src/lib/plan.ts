@@ -82,6 +82,7 @@ export type Commitment = {
     meaningful_effect_basis: "target_icpa" | "breakeven_iroas" | "planned_mde";
     target_icpa?: number;
     breakeven_iroas?: number;
+    planned_mde_lift?: Record<string, number>;
   };
   assignment: {
     method: "stratified_random_search";
@@ -133,6 +134,7 @@ export type PlanInputs = {
   targetIcpa?: number;
   breakevenIroas?: number;
   coinFlip?: number[] | null;       // coinFlip[setIndex] = cell index the set was assigned to
+  plannedMde?: (number | null)[];   // index = market-set index; locked so "no detectable lift" can't be redefined later
   dataFingerprint: Commitment["data_fingerprint"];
   toolVersion: string;
   coreSha256: string;
@@ -201,6 +203,12 @@ export function buildCommitment(p: PlanInputs): Commitment {
       meaningful_effect_basis: p.decisionBasis,
       ...(p.decisionBasis === "target_icpa" && p.targetIcpa ? { target_icpa: round(p.targetIcpa, 2) } : {}),
       ...(p.decisionBasis === "breakeven_iroas" && p.breakevenIroas ? { breakeven_iroas: round(p.breakevenIroas, 4) } : {}),
+      ...(p.plannedMde?.some((m) => m)
+        ? { planned_mde_lift: Object.fromEntries(cells.flatMap((cell, k) => {
+            const m = p.plannedMde![order.indexOf(k)];
+            return m ? [[cell.id, round(m, 4)]] : [];
+          })) }
+        : {}),
     },
     assignment: {
       method: "stratified_random_search",

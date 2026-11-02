@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Why } from "./Why";
 import { PlanWizard } from "./plan/PlanWizard";
-import { ReadSoon } from "./ReadSoon";
+import { ReadModule } from "./read/ReadModule";
 import { InfoTip } from "./components/InfoTip";
 import { CONTACT_LABEL, CONTACT_URL, DISCLOSURE, REPO_URL, REVIEW_URL, docUrl } from "./config";
 import { initEngine } from "./worker/client";
@@ -77,7 +77,7 @@ export function App() {
       <main id="main" className="page">
         {screen === "why" && <Why onPlan={(s) => go("plan", s)} onRead={() => go("read")} />}
         {screen === "plan" && <PlanWizard startWithSample={sample} />}
-        {screen === "read" && <ReadSoon onPlan={() => go("plan")} />}
+        {screen === "read" && <ReadModule />}
       </main>
       <footer className="footer">
         <div className="footer-inner">

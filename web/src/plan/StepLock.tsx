@@ -59,6 +59,7 @@ export function StepLock({ s, set }: Props) {
         excluded: s.excluded, permutations: s.permutations, alpha: 0.1, seed: s.seed,
         decisionBasis: s.decisionBasis, targetIcpa: s.targetIcpa ?? undefined, breakevenIroas: s.breakevenIroas ?? undefined,
         coinFlip: s.coinFlip,
+        plannedMde: d.cells.map((_, i) => curveFor(d, i, s.duration)?.mde ?? null),
         dataFingerprint: { kpi_history_sha256: data.sha256, rows: data.rows, geos: data.summary.geos, first_date: data.summary.first_date, last_date: data.summary.last_date },
         toolVersion: APP_VERSION, coreSha256: core.sha256, createdAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
       });
