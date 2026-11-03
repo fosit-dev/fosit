@@ -9,7 +9,7 @@ git clone https://github.com/fosit-dev/fosit
 mkdir -p ~/.claude/skills && cp -R fosit/skill/fosit ~/.claude/skills/fosit
 ```
 
-Or install the packaged `fosit.skill` file from a release. Then just ask, for example: *"We want two CTV vendors to split the country 40/40 with a 20% no-CTV group. Here's our daily sales by state: can you plan it?"*
+Or, if you were given the packaged `fosit.skill` file, install that. Then just ask, for example: *"We want two CTV vendors to split the country 40/40 with a 20% no-CTV group. Here's our daily sales by state: can you plan it?"*
 
 Requirements: Python 3.12+ (or [`uv`](https://docs.astral.sh/uv/), which fetches Python itself) and internet on first use, when the skill installs FOSIT's engine (pinned version) into `~/.fosit`.
 
