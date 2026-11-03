@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: read-vendor-split-for-cfo
+expected_outcome: |
+  The pre-registered read of the plan: Vendor A positive (about 14,600 extra orders, 90% range about 9,800-18,900, iCPA about $14), Vendor B no detectable lift (range includes zero; iCPA has no upper limit), head-to-head favours Vendor A with the different-markets caveat, all honesty checks pass including the fingerprint, and a CFO summary in cfo_summary.md that quotes ranges, not just point estimates.
+context:
+  scaffold_script: place-files.sh

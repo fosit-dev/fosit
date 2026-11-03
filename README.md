@@ -22,6 +22,8 @@ Attribution reports often work like that flyer guy. Meanwhile CTV has the opposi
 
 **Don't want to switch CTV off in most of the country?** A **national holdout** keeps one campaign running everywhere except about a tenth of the country, and measures what it drives from the markets left dark ([METHODOLOGY §13](docs/METHODOLOGY.md#13-national-holdout)). Or let **vendors split the country**, say 40% each, with a no-CTV group of about 20% as the yardstick ([§13.7](docs/METHODOLOGY.md#137-several-vendors-split-the-country)).
 
+**Prefer to let Claude do it?** The [FOSIT skill](skill/README.md) lets Claude plan, lock and read tests for you with the same engine.
+
 ## Principles
 
 1. **Vendor-neutral:** cells are user-labelled. Every cell runs the same code path. No vendor names in code or defaults.

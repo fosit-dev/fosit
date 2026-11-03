@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: past-national-campaign
+expected_outcome: |
+  The assistant explains that a nationwide campaign with no markets held out can't be measured credibly with FOSIT's geo method (nothing ran at the same time to compare against), does not present an incremental-orders or iCPA figure as if it were a FOSIT result, and proposes a holdout or split design for the next flight (optionally a clearly labelled before/after read as weak evidence).
+context:
+  scaffold_script: place-files.sh

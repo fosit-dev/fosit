@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: plan-vendor-split-states
+expected_outcome: |
+  A locked, pre-registered vendor-split plan (two vendors sharing every non-held-out state, a no-CTV holdout of roughly 15-25% of sales), built from the sales file with the engine, plus the files to send (plan file, market lists, email/fingerprint), an explanation of how small a lift each vendor's share can detect and what that means in iCPA, and a reminder to send the plan before launch. Before opening the sales data the assistant notes that Claude will see it.
+context:
+  scaffold_script: place-files.sh
