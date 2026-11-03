@@ -6,10 +6,11 @@ import { downloadBlob, downloadText, slug } from "../lib/download";
 import { money, pct, weeks } from "../lib/format";
 import { groupHash, sha256Hex, shortCode } from "../lib/hash";
 import { buildCommitment, lockPlan, type LockedPlan } from "../lib/plan";
-import { budgets, isHoldout, preDays, type PlanState } from "./state";
+import { readLink } from "../embed";
+import { budgets, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
 import { curveFor, detectableIcpa } from "./StepFind";
 
-type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
+type Props = { s: PlanState; set: (p: Partial<PlanState>) => void; onRead?: (plan: LockedPlan) => void };
 
 type CoreManifest = { version: string; sha256: string; geo_mapping_sha256: string };
 
@@ -28,7 +29,7 @@ function shuffle(n: number): number[] {
   return order;
 }
 
-export function StepLock({ s, set }: Props) {
+export function StepLock({ s, set, onRead }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const d = s.result && s.chosen != null ? s.result.designs[s.chosen] : null;
@@ -40,6 +41,7 @@ export function StepLock({ s, set }: Props) {
   const ready = s.confirmed.every(Boolean) && s.datesFinal;
   const testEnd = addDays(s.testStart, s.duration - 1);
   const holdout = isHoldout(s);
+  const one = isOneCampaign(s);
 
   const lock = async () => {
     setError(null);
@@ -85,11 +87,14 @@ export function StepLock({ s, set }: Props) {
   const planForDownload = (p: LockedPlan): LockedPlan => (s.includeDiagnostics ? p : { ...p, appendix: undefined });
   const email = s.locked
     ? `Subject: Locked test plan: ${s.testName} (fingerprint ${shortCode(s.locked.hash.value)})\n\n` +
-      (holdout
+      (holdout && !one
+        ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)}, each vendor only in the markets listed for its cell. The ${d.control.length} held-out markets must get no CTV from anyone until ${pretty(addDays(testEnd, s.cooldown))}.\n\n` +
+          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the cooldown ends (${pretty(addDays(testEnd, s.cooldown))}), read the results here: ${readLink()}\n`
+        : holdout
         ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). From ${pretty(s.testStart)} to ${pretty(addDays(testEnd, s.cooldown))} the campaign runs everywhere except the ${d.control.length} held-out markets listed in the plan, which must get no ads at all.\n\n` +
-          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can keep every held-out market dark for those dates. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n`
+          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can keep every held-out market dark for those dates. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the cooldown ends (${pretty(addDays(testEnd, s.cooldown))}), read the results here: ${readLink()}\n`
         : `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)} in the markets listed for each cell; control markets get no test ads.\n\n` +
-          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n`)
+          `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the cooldown ends (${pretty(addDays(testEnd, s.cooldown))}), read the results here: ${readLink()}\n`)
     : "";
 
   if (s.locked) {
@@ -108,12 +113,17 @@ export function StepLock({ s, set }: Props) {
         <div className="row">
           <button className="btn-primary" onClick={async () => {
             const { planPdf } = await import("../lib/pdf"); // jsPDF is large: load it only when needed
-            downloadBlob(planPdf(planForDownload(s.locked!), names, s.includeDiagnostics), `${fileBase}.pdf`);
+            downloadBlob(planPdf(planForDownload(s.locked!), names, s.includeDiagnostics, readLink()), `${fileBase}.pdf`);
           }}>Download plan PDF</button>
           <button onClick={() => downloadText(JSON.stringify(planForDownload(s.locked!), null, 2), `${fileBase}.fosit-plan.json`)}>Download plan JSON</button>
           <button onClick={async () => { try { await navigator.clipboard.writeText(email); setCopied(true); } catch { setCopied(false); } }}>{copied ? "✓ Copied" : "Copy email text"}</button>
         </div>
         <details><summary>Email text</summary><pre className="small" style={{ whiteSpace: "pre-wrap" }}>{email}</pre></details>
+        <div className="callout" style={{ marginTop: 16 }}>
+          <strong>When the test is over</strong>, come back to <a href={readLink()} target="_top">{readLink()}</a> (it's in the email and the PDF too),
+          load the plan JSON, and FOSIT reads the results.
+          {onRead && <div style={{ marginTop: 8 }}><button onClick={() => onRead(s.locked!)}>Go to Read results with this plan →</button></div>}
+        </div>
         <p className="small muted" style={{ marginTop: 16 }}>Need to change something? Go back and edit. Locking again creates a new plan with a new fingerprint; mention the old one in your email.</p>
         <button className="link-btn small" onClick={() => set({ locked: null })}>Unlock and edit</button>
       </section>
@@ -156,7 +166,9 @@ export function StepLock({ s, set }: Props) {
       {s.labels.map((l, k) => (
         <label key={k} className="check">
           <input type="checkbox" checked={s.confirmed[k] ?? false} onChange={(e) => set({ confirmed: s.confirmed.map((c, j) => (j === k ? e.target.checked : c)) })} />
-          {holdout
+          {holdout && !one
+            ? <span><strong>{l}</strong>'s vendor confirmed they can target exactly these {d.cells[setFor(k)].length} markets, and nothing in the {d.control.length} held-out markets.</span>
+            : holdout
             ? <span><strong>{l}</strong>'s vendor(s) confirmed they can keep all {d.control.length} held-out markets free of ads from {pretty(s.testStart)} to {pretty(addDays(testEnd, s.cooldown))}.</span>
             : <span><strong>{l}</strong>'s vendor confirmed they can target exactly these {d.cells[setFor(k)].length} markets, and nothing in control.</span>}
         </label>

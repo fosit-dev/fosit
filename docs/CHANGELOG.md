@@ -4,6 +4,15 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 
 ## [Unreleased]
 
+### Added: vendors split the country, plus a no-CTV group (METHODOLOGY §13.7)
+- New Plan template: 2–4 vendors each run in their own part of the country (for example 40% each) and a holdout with no CTV (default 15%–25% of sales) is the yardstick. Each vendor gets its own twin of the holdout, from its own markets; vendors are compared with the joint head-to-head. Read and the PDFs say which vendor ran where. New in-app example `examples/vendor_split`.
+- Validation (200 synthetic state panels): no effect, 90.7% coverage and 3.6% false positives; planned MDE detected 86%; head-to-head held the true difference 99.5% of the time and found a planned-MDE difference half the time.
+- Plans now lock a pre-period fit limit of 1.5 × the worse of the holdout fit and the in-sample fit the Read module recomputes (§9.3). Using the holdout fit alone set limits a good holdout design could miss at read time.
+
+### Added: getting back to Read, and help from a person
+- After locking, "Go to Read results with this plan" opens Read with the plan loaded. The email text and the plan PDF include a link back to the tool that opens straight on Read (`#read`, also on the embedding page).
+- Optional offer of a free planning call (`VITE_CONSULT`, off by default): a header button, a callout on the intro and on the first Plan step. With `VITE_CONSULT=host` the embedding page opens its own contact form; the click sends nothing from the tool.
+
 ### Added: national holdout (METHODOLOGY §13)
 - A new design for one campaign that runs nationally: it runs everywhere except a planner-chosen holdout (default 10%–20% of sales, at least 10 markets). Plan: new template, a required question about whether the campaign ran before the test (only "off everywhere" or "on everywhere" can be measured), holdout-share settings, design cards, lock step, email and plan PDF. Read: holdout wording, chart and report. A second in-app example, `examples/national_holdout` (US states).
 - Method: the twin is built **for the holdout, from the markets with ads**, on series indexed to their own history. The gap is the share of sales the ads drove, applied to the markets with ads; iCPA uses actual spend. Building the twin the other way round (campaign markets from ~10 holdout markets) was tried and rejected: on 64 synthetic state panels it called a false positive 16% of the time, vs 5% for the method shipped.

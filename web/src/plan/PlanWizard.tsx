@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Issue } from "../components/Issues";
 import { sha256Hex } from "../lib/hash";
-import type { FindResult } from "../lib/plan";
+import type { FindResult, LockedPlan } from "../lib/plan";
 import { addDays, todayUtc } from "../lib/dates";
 import { callPython, cancelEngine } from "../worker/client";
 import { scrollToTop } from "../embed";
@@ -19,7 +19,7 @@ type Raw = { kind: "kpi" | "orders"; text: string; mapping?: string; meta: Omit<
 
 const countRows = (text: string) => Math.max(0, text.trimEnd().split(/\r?\n/).length - 1);
 
-export function PlanWizard({ startWithSample }: { startWithSample: boolean }) {
+export function PlanWizard({ startWithSample, onRead }: { startWithSample: boolean; onRead?: (plan: LockedPlan) => void }) {
   const [s, setState] = useState<PlanState>(initialState);
   const [step, setStep] = useState(startWithSample ? 2 : 0);
   const [maxStep, setMaxStep] = useState(step);
@@ -166,7 +166,7 @@ export function PlanWizard({ startWithSample }: { startWithSample: boolean }) {
       {step === 3 && <StepMarkets s={s} set={set} />}
       {step === 4 && <StepTiming s={s} set={set} />}
       {step === 5 && <StepFind s={s} set={set} run={runSearch} cancel={cancel} running={running} progress={progress} error={searchError} />}
-      {step === 6 && <StepLock s={s} set={set} />}
+      {step === 6 && <StepLock s={s} set={set} onRead={onRead} />}
 
       {problems.length > 0 && (
         <ul className="small" style={{ color: "var(--muted)" }} aria-live="polite">{problems.map((p) => <li key={p}>{p}</li>)}</ul>

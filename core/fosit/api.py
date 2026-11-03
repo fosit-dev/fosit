@@ -103,11 +103,13 @@ def design_chart(cells: list, control: list, kpi: str = "orders", pre_days: int 
     rows_ok = (mat != 0).mean(axis=1) >= 0.5
     n_fit = n - holdout_days
     if design == "national_holdout":
-        campaign = [r for r in panel.rows(cells[0]) if rows_ok[r]]
-        y1, Y0 = holdout.index_rows(mat, panel.rows(control), campaign, n_fit)
-        fit = ascm.fit(y1, Y0, n_fit)
-        return _clean({"dates": [d.strftime("%Y-%m-%d") for d in panel.dates[cols]], "fit_end": int(n_fit),
-                       "cells": [{"observed": y1.round(4).tolist(), "twin": fit.counterfactual.round(4).tolist()}]})
+        charts = []
+        for cell in cells:   # one twin of the holdout per cell, from that cell's markets (§13.7)
+            campaign = [r for r in panel.rows(cell) if rows_ok[r]]
+            y1, Y0 = holdout.index_rows(mat, panel.rows(control), campaign, n_fit)
+            fit = ascm.fit(y1, Y0, n_fit)
+            charts.append({"observed": y1.round(4).tolist(), "twin": fit.counterfactual.round(4).tolist()})
+        return _clean({"dates": [d.strftime("%Y-%m-%d") for d in panel.dates[cols]], "fit_end": int(n_fit), "cells": charts})
     donors = [g for g in control if rows_ok[panel.rows([g])[0]]]
     out = []
     for cell in cells:
@@ -130,19 +132,21 @@ def find_designs(config: dict, progress=None) -> dict:
     cooldown_days, share_min, share_max, min_control_share, balance_max, fit_max,
     n_candidates, seed, excluded, alpha, statistic, permutations ("moving_block"|"iid"),
     power_target, power_designs (how many designs get a power simulation),
-    budgets (list, one per cell), placebos (placebo cells per power curve, §5.6; 0 = off), design ("geo_cells" | "national_holdout": then
-    share_min/share_max bound the holdout's share and n_cells is 1, §13).
+    budgets (list, one per cell), placebos (placebo cells per power curve, §5.6; 0 = off),
+    design ("geo_cells" | "national_holdout": then share_min/share_max bound the holdout's
+    share and every other market goes to one of the n_cells cells, §13).
     """
     panel = _panel()
     attrs = _state.get("attributes", {})
     durations = tuple(int(d) for d in config.get("durations", (21, 28, 42, 56)))
     pop = {g: a["population"] for g, a in attrs.items() if a.get("population")} or config.get("population")
     holdout = config.get("design", "geo_cells") == "national_holdout"
+    n_cells_cfg = int(config.get("n_cells", 1 if holdout else 2))
     sel_cfg = selection.SelectionConfig(
-        n_cells=1 if holdout else int(config.get("n_cells", 2)), kpi=config.get("kpi", "orders"), holdout=holdout,
+        n_cells=int(config.get("n_cells", 1 if holdout else 2)), kpi=config.get("kpi", "orders"), holdout=holdout,
         pre_days=min(int(config.get("pre_days", 84)), panel.n_days), test_days=min(durations),
-        share_min=float(config.get("share_min", 0.10 if holdout else 0.03)),
-        share_max=float(config.get("share_max", 0.20 if holdout else 0.15)),
+        share_min=float(config.get("share_min", (0.10 if n_cells_cfg == 1 else 0.15) if holdout else 0.03)),
+        share_max=float(config.get("share_max", (0.20 if n_cells_cfg == 1 else 0.25) if holdout else 0.15)),
         min_control_share=float(config.get("min_control_share", 0.5)),
         balance_max=float(config.get("balance_max", 0.10)), fit_max=float(config.get("fit_max", 0.10)),
         n_candidates=int(config.get("n_candidates", 2000)), seed=int(config.get("seed", 0)),

@@ -4,7 +4,7 @@
     "tool": {
       "name": "FOSIT",
       "version": "0.1.0",
-      "core_sha256": "d893c4b4213dcf8d5f42876da28f01c6188d580b9644fd2ed862627d849e270e"
+      "core_sha256": "0d4d0218d74d9c43343721f7a8f0b17076ea576f3ef0070d3e611a53cd9b37d0"
     },
     "created_at": "2026-09-01T09:00:00Z",
     "test_name": "Example: national CTV campaign with a state holdout",
@@ -124,8 +124,8 @@
     "thresholds": {
       "pre_fit_nrmse_max": {
         "cell_1": {
-          "orders": 0.078,
-          "revenue": 0.078
+          "orders": 0.1091,
+          "revenue": 0.1091
         }
       },
       "leakage_warn_share": 0.05,
@@ -163,13 +163,16 @@
   "hash": {
     "algorithm": "SHA-256",
     "canonicalization": "RFC8785",
-    "value": "61818b17593369ae125a72f983cc4168e9e0322124555b69d36e4734545f3ee5"
+    "value": "971dd0db64d94793759090f9463e2c734c46e5cac7d1d6fa741a25dee66a5898"
   },
   "appendix": {
     "note": "Design diagnostics. Not part of the fingerprint.",
     "design": {
       "fit": [
         0.05201464610137367
+      ],
+      "shares": [
+        0.8062742015224886
       ],
       "balance": {
         "trend": 0.05426474110029376,

@@ -1,0 +1,29 @@
+{
+  "scenario": "vendor_split",
+  "seed": 2026,
+  "cells": {
+    "cell_1": {
+      "label": "Vendor A",
+      "injected_lift": 0.1312,
+      "planned_mde": 0.0875,
+      "multiple_of_mde": 1.5,
+      "true_incremental_orders": 10051,
+      "true_incremental_revenue": 848011.77,
+      "spend": 200000,
+      "true_icpa": 19.898517560441746,
+      "true_iroas": 4.2400588500000005
+    },
+    "cell_2": {
+      "label": "Vendor B",
+      "injected_lift": 0.0406,
+      "planned_mde": 0.0812,
+      "multiple_of_mde": 0.5,
+      "true_incremental_orders": 2559,
+      "true_incremental_revenue": 213797.06,
+      "spend": 200000,
+      "true_icpa": 78.15552950371239,
+      "true_iroas": 1.0689853
+    }
+  },
+  "note": "Exact orders and revenue added in each cell's states on ads-on days. FOSIT should recover these within its intervals."
+}

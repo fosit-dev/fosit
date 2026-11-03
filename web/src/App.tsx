@@ -3,9 +3,11 @@ import { Why } from "./Why";
 import { PlanWizard } from "./plan/PlanWizard";
 import { ReadModule } from "./read/ReadModule";
 import { InfoTip } from "./components/InfoTip";
-import { CONTACT_LABEL, CONTACT_URL, DISCLOSURE, REPO_URL, REVIEW_URL, docUrl } from "./config";
+import { CONSULT_SHORT, CONTACT_LABEL, CONTACT_URL, DISCLOSURE, REPO_URL, REVIEW_URL, docUrl } from "./config";
 import { initEngine } from "./worker/client";
-import { INITIAL_THEME, scrollToTop } from "./embed";
+import { INITIAL_THEME, OPEN_READ, scrollToTop } from "./embed";
+import { ConsultButton } from "./components/Consult";
+import type { LockedPlan } from "./lib/plan";
 
 type Screen = "why" | "plan" | "read";
 type Theme = "system" | "light" | "dark";
@@ -20,7 +22,8 @@ function loadTheme(): Theme {
 }
 
 export function App() {
-  const [screen, setScreen] = useState<Screen>("why");
+  const [screen, setScreen] = useState<Screen>(OPEN_READ ? "read" : "why");
+  const [lockedPlan, setLockedPlan] = useState<LockedPlan | null>(null);
   const [sample, setSample] = useState(false);
   const [theme, setTheme] = useState<Theme>(loadTheme);
 
@@ -45,6 +48,10 @@ export function App() {
     setScreen(s);
     scrollToTop();
   };
+  const readPlan = (p: LockedPlan) => {
+    setLockedPlan(p);
+    go("read");
+  };
 
   return (
     <>
@@ -67,6 +74,7 @@ export function App() {
           <div className="row">
             <button className={`btn-ghost small ${screen === "plan" ? "" : ""}`} onClick={() => go("plan")} aria-current={screen === "plan" ? "page" : undefined}>Plan</button>
             <button className="btn-ghost small" onClick={() => go("read")} aria-current={screen === "read" ? "page" : undefined}>Read</button>
+            <ConsultButton className="small hide-narrow" label={CONSULT_SHORT} />
             <label className="sr-only" htmlFor="theme">Theme</label>
             <select id="theme" value={theme} onChange={(e) => setTheme(e.target.value as Theme)} style={{ width: "auto" }}>
               <option value="system">Auto</option>
@@ -78,8 +86,8 @@ export function App() {
       </header>
       <main id="main" className="page">
         {screen === "why" && <Why onPlan={(s) => go("plan", s)} onRead={() => go("read")} />}
-        {screen === "plan" && <PlanWizard startWithSample={sample} />}
-        {screen === "read" && <ReadModule />}
+        {screen === "plan" && <PlanWizard startWithSample={sample} onRead={readPlan} />}
+        {screen === "read" && <ReadModule key={lockedPlan?.hash.value ?? "empty"} initialPlan={lockedPlan} />}
       </main>
       <footer className="footer">
         <div className="footer-inner">

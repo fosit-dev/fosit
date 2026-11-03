@@ -79,7 +79,7 @@ export function ReadResults({ r, plan, names }: Props) {
             <p className="small muted">{cell.n_geos} markets{holdout ? ` with ads, ${c.control.geo_ids.length} held out` : ""} · spend {money(cell.spend, currency)} of {money(cell.budget, currency)} planned · {cell.verdict_reason}</p>
             {cell.meaningful_effect != null && <p className="small muted">Worthwhile effect: {num(cell.meaningful_effect)} ({cell.meaningful_basis}).</p>}
             {holdout && <p className="small">The chart shows the held-out markets: what they sold without the ads, and what their twin (built from the markets
-              with ads) says they'd have sold with them. The gap is the share of sales the ads drove, applied to the {num(cell.n_geos)} markets with ads.<InfoTip term="holdout" /></p>}
+              with ads) says they'd have sold with them. The gap is the share of sales the ads drove, applied to the {num(cell.n_geos)} markets {r.cells.length > 1 ? `with ${cell.label}'s ads` : "with ads"}.<InfoTip term="holdout" /></p>}
             <ImpactChart title={holdout ? "Held-out markets" : cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
               counterfactual={m.series.counterfactual} nPre={m.series.n_pre} testDays={m.series.test_days} holdout={m.series.role === "holdout"} />
             <StatsTable cell={cell} r={r} currency={currency} />
@@ -118,8 +118,8 @@ export function ReadResults({ r, plan, names }: Props) {
             const u = cell.kpis[r.primary_kpi].under_the_hood;
             return (
               <div key={cell.id}>
-                <h4>{holdout ? "The holdout's twin" : `${cell.label}'s twin`}</h4>
-                <p className="small">Built from {u.donors} {holdout ? "markets with ads, each indexed to its own history (METHODOLOGY §13.3)" : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}.</p>
+                <h4>{holdout ? (r.cells.length > 1 ? `The holdout's twin from ${cell.label}'s markets` : "The holdout's twin") : `${cell.label}'s twin`}</h4>
+                <p className="small">Built from {u.donors} {holdout ? `markets with ${r.cells.length > 1 ? `${cell.label}'s ` : ""}ads, each indexed to its own history (METHODOLOGY §13.3)` : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}.</p>
                 <div className="chips">{u.top_weights.map((w) => <span key={w.geo_id} className="chip">{names[w.geo_id] ?? w.geo_id}: {w.weight.toFixed(3)}</span>)}</div>
                 <PlaceboNote pl={cell.kpis[r.primary_kpi].placebo} level={levelKey(r)} />
               </div>

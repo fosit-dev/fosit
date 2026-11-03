@@ -1,12 +1,13 @@
 """Calibration study (METHODOLOGY.md §5.6, §13.6): do FOSIT's ranges hold the truth as often as they claim?
 
-    python validation/calibration_study.py --design cells|holdout --unit state|cbsa [--seeds 200]
+    python validation/calibration_study.py --design cells|holdout|split --unit state|cbsa [--seeds 200]
                                            [--placebos 40] [--workers 4]
 
 For each seed: synthetic daily orders (50 states + DC, or the 250 largest metro areas), plan
 exactly as the app does (api.find_designs: market search, then power), then read the plan twice:
 once with no effect, once with extra orders equal to the planned minimum detectable lift added to
-the first cell's markets (all campaign markets for a holdout) on ads-on days. `--placebos 0` reads
+the first cell's markets on ads-on days ("holdout": one campaign everywhere except a holdout;
+"split": two vendors share every market that isn't held out, METHODOLOGY.md §13.7). `--placebos 0` reads
 without placebo calibration, for comparison. Reports how often the 90% range covers the truth,
 false positives, detections, bias, and (two cells) how often the head-to-head range covers the
 true difference. Everything is seeded; the same command gives the same table.
@@ -43,10 +44,10 @@ def panel_for(unit: str, seed: int) -> pd.DataFrame:
 
 def one_seed(args) -> list[dict]:
     seed, design, unit, placebos = args
-    holdout = design == "holdout"
+    holdout = design in ("holdout", "split")
     df = panel_for(unit, seed)
     api.load_history(df[df.date < TEST_START].to_csv(index=False), unit)
-    n_cells = 1 if holdout else 2
+    n_cells = 1 if design == "holdout" else 2
     found = api.find_designs({"design": "national_holdout" if holdout else "geo_cells", "n_cells": n_cells,
                               "pre_days": PRE, "durations": [TEST_DAYS], "seed": seed, "budgets": [100000] * n_cells,
                               "power_designs": 3, "placebos": placebos})
@@ -87,13 +88,14 @@ def one_seed(args) -> list[dict]:
                         "covered": lo <= truth <= hi, "verdict": cell["verdict"]})
         for h in r["head_to_head"]:
             iv = h["metrics"]["delta_incremental"]["intervals"]["0.9"]
-            out.append({"multiple": multiple, "cell": "h2h", "covered": iv is not None and iv[0] <= int(extra.sum()) <= iv[1]})
+            out.append({"multiple": multiple, "cell": "h2h", "covered": iv is not None and iv[0] <= int(extra.sum()) <= iv[1],
+                        "distinguishable": bool(h["metrics"]["delta_incremental"]["distinguishable"])})
     return out
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--design", choices=["cells", "holdout"], default="holdout")
+    p.add_argument("--design", choices=["cells", "holdout", "split"], default="holdout")
     p.add_argument("--unit", choices=["state", "cbsa"], default="state")
     p.add_argument("--seeds", type=int, default=200)
     p.add_argument("--placebos", type=int, default=40)
@@ -115,6 +117,8 @@ def main() -> None:
     if len(h):
         print(f"  head-to-head range covers the true difference: {h[h.multiple == 0].covered.mean():.1%} (no effect), "
               f"{h[h.multiple > 0].covered.mean():.1%} (lift in cell 1)")
+        print(f"  head-to-head calls a difference: {h[h.multiple == 0].distinguishable.mean():.1%} (no effect), "
+              f"{h[h.multiple > 0].distinguishable.mean():.1%} (cell 1 at its MDE, cell 2 none)")
 
 
 if __name__ == "__main__":

@@ -137,7 +137,7 @@ Structure:
 **Cross-field rules** (❌ unless noted):
 
 - `pre_start < pre_end < test_start ≤ test_end ≤ cooldown_end`. Pre-period < 56 days ⚠️.
-- `design.type` is `geo_cells` (default when absent) or `national_holdout` ([METHODOLOGY §13](METHODOLOGY.md#13-national-holdout)). A national holdout has exactly one cell (the campaign markets), its `control.geo_ids` are the holdout markets, and `design.ads_before_test` (`off` or `always_on`) is required.
+- `design.type` is `geo_cells` (default when absent) or `national_holdout` ([METHODOLOGY §13](METHODOLOGY.md#13-national-holdout)). A national holdout has one or more cells: with one, the cell is every market with the campaign; with several, vendors split those markets ([METHODOLOGY §13.7](METHODOLOGY.md#137-several-vendors-split-the-country)). Its `control.geo_ids` are the holdout markets, and `design.ads_before_test` (`off` or `always_on`) is required.
 - Cell `geo_ids`, `control.geo_ids`, and `excluded.geo_ids` are pairwise **disjoint**.
 - All geo lists sorted ascending (code-point order), so the canonical form is unique.
 - Every number in `commitment` is an integer or a decimal with absolute value in [0.0001, 1e15), so standard JSON libraries reproduce the RFC 8785 hash ([PREREGISTRATION.md](PREREGISTRATION.md)).

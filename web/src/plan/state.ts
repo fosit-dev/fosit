@@ -20,7 +20,7 @@ export type LoadedData = {
   mappingSha256?: string;
 };
 
-export type Template = "two_vendor" | "single" | "custom" | "national_holdout";
+export type Template = "two_vendor" | "single" | "custom" | "national_holdout" | "vendor_split";
 
 export type PlanState = {
   template: Template;
@@ -107,17 +107,27 @@ export function withCells(s: PlanState, n: number): Partial<PlanState> {
   return { nCells: n, labels, split, confirmed: Array(n).fill(false), coinFlip: null };
 }
 
-export const isHoldout = (s: Pick<PlanState, "template">) => s.template === "national_holdout";
+/** METHODOLOGY.md §13: one campaign everywhere except a holdout, or (§13.7) vendors splitting every market that isn't held out. */
+export const isHoldout = (s: Pick<PlanState, "template">) => s.template === "national_holdout" || s.template === "vendor_split";
+export const isOneCampaign = (s: Pick<PlanState, "template">) => s.template === "national_holdout";
 
-/** Switching between a national holdout and geo cells changes what the share sliders bound (holdout vs. each cell). */
+type Kind = "cells" | "campaign" | "split";
+const kindOf = (t: Template): Kind => (t === "national_holdout" ? "campaign" : t === "vendor_split" ? "split" : "cells");
+const SHARES: Record<Kind, { shareMin: number; shareMax: number }> = {
+  cells: { shareMin: 0.03, shareMax: 0.15 },       // each cell's share
+  campaign: { shareMin: 0.10, shareMax: 0.20 },    // the holdout's share
+  split: { shareMin: 0.15, shareMax: 0.25 },       // the holdout's share
+};
+
+/** Switching design kind changes what the share sliders bound (each cell vs. the holdout) and resets the names. */
 export function withTemplate(s: PlanState, template: Template, cells: number): Partial<PlanState> {
-  const holdout = template === "national_holdout";
-  const changed = holdout !== isHoldout(s);
+  const kind = kindOf(template);
+  const changed = kind !== kindOf(s.template);
   return {
     template,
     ...withCells(s, cells),
-    ...(holdout ? { labels: changed ? ["Campaign"] : s.labels.slice(0, 1) } : changed ? { labels: Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`) } : {}),
-    ...(changed ? (holdout ? { shareMin: 0.10, shareMax: 0.20 } : { shareMin: 0.03, shareMax: 0.15, adsBeforeTest: null }) : {}),
+    ...(changed ? { labels: kind === "campaign" ? ["Campaign"] : Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`), ...SHARES[kind] } : {}),
+    ...(changed && kind === "cells" ? { adsBeforeTest: null } : {}),
   };
 }
 
@@ -128,7 +138,7 @@ export const preDays = (s: PlanState) => Math.min(s.preWeeks * 7, s.data?.summar
 
 /** Anything that changes the market search makes old results stale. */
 export const searchKey = (s: PlanState) =>
-  JSON.stringify([s.data?.sha256, s.geoUnit, s.template === "national_holdout", s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
+  JSON.stringify([s.data?.sha256, s.geoUnit, isHoldout(s), s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
     s.durations, s.cooldown, preDays(s), s.permutations, s.seed]);
 
 export const STEPS = ["Template", "Your test", "Sales data", "Markets", "Timing", "Find markets", "Lock & share"] as const;

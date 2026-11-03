@@ -64,7 +64,10 @@ Cards, first one preselected:
 1. **Two-vendor test** *(Recommended)*: "Split one CTV budget between two platforms and find out which one really drives sales."
 2. **Single-channel test:** "Is this channel driving incremental sales at all?"
 3. **National campaign with a holdout:** "Keep the campaign running almost everywhere, leave about a tenth of the country without it, and measure what it really drives." *(Built. [METHODOLOGY §13](METHODOLOGY.md#13-national-holdout).)* Asks right away: "In the weeks before the test, is this campaign running?" **No, it's off** · **Yes, everywhere** (note: the result will be a little cautious; keep the holdout dark through the cooldown) · **Yes, but only in some markets** (blocked: "FOSIT can't measure this cleanly…", with what to do instead).
-4. **Custom:** "Up to 6 cells, your own settings."
+4. **Vendors split the country, plus a no-CTV group** *(Built, METHODOLOGY §13.7)*: "Each vendor runs in its own part of the country (for example 40% each) and a group with no CTV at all (for example 20%) shows what happens without it." Asks the same "running before the test?" question and the number of vendors (2–4). Later steps are those of the two-vendor test, except that the markets step asks that no one runs CTV in the held-out markets, the holdout share (15–25%) is under "Advanced", and design cards show each vendor's share of sales.
+5. **Custom:** "Up to 6 cells, your own settings."
+
+**Help from a person** *(Built, optional)*: when the deployment sets `VITE_CONSULT`, a "free analyst call" button sits in the header, and a short callout ("Finding this a lot to set up? …") on the intro and on P1. On adte.com it opens the site's own contact form.
 
 **National holdout differences in the later steps:** P2 has one "Campaign name" and a "Campaign budget during the test". P4 asks vendors to keep the held-out markets completely dark, and "Advanced" bounds the holdout's share of sales (10–20%). P6 is "Find a fair holdout": cards say "Can detect a lift of X or more in the campaign's markets", with chips for the share of sales held out and the number of markets held out vs. with ads; details compare the holdout with the markets with ads, and the chart shows the holdout's sales index vs. its twin. P7 asks the vendor(s) to confirm every held-out market stays free of ads until the cooldown ends; the email and plan PDF list the holdout first.
 
@@ -111,6 +114,7 @@ Cards, first one preselected:
 - **Lock plan** → shows the hash big: `9f2c 81ab …` + short code `9F2C81AB`.
 - Downloads: **Plan PDF** (for everyone) · **Plan JSON** (to load at read time) · toggle "Include design diagnostics (shows your sales shares)".
 - "**Now email the PDF, JSON and this code to the advertiser and both vendors, before launch.** That email is your proof the plan was set in advance." [Copy email text]
+- *(Built)* "When the test is over, come back to <link>": the same link is in the email and the PDF and opens the tool on Read. [Go to Read results with this plan →] opens Read now, with the plan loaded.
 
 ---
 

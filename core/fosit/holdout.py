@@ -1,6 +1,7 @@
 """National holdout: the campaign runs everywhere except a few held-out markets.
 
-METHODOLOGY.md §13. The twin is built for the *holdout* (a handful of markets)
+METHODOLOGY.md §13. With several cells (vendors that split the country, §13.7) each
+cell gets its own twin of the holdout, built only from that cell's markets. The twin is built for the *holdout* (a handful of markets)
 from the campaign markets (many), never the other way round: a twin of nearly
 the whole country built from ten markets leans on one or two of them and its
 intervals undercover badly (§13.3). Both sides are indexed to their own
@@ -16,7 +17,7 @@ only the series it is given and the translation into business units differ.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -56,6 +57,7 @@ class HoldoutEstimate:
     holdout_level: float        # holdout's average daily sales in the pre-period (index 1.0)
     campaign: np.ndarray        # (T,) campaign markets' total daily sales
     n_campaign: int
+    series: CellSeries | None = field(default=None, repr=False)   # the indexed inputs, for head-to-head grids
 
     # -- the estimator's own outputs --------------------------------------------------
     kpi = property(lambda s: s.index.kpi)
@@ -78,6 +80,11 @@ class HoldoutEstimate:
     def ads_share(self, tau: float) -> float:
         """Share of the campaign markets' sales the ads drove, if the holdout's index sat tau below its twin each day."""
         return -tau * self.n_post / self.twin_post
+
+    @property
+    def scale(self) -> float:
+        """Incremental total per unit of tau (linear), so head-to-head grids map like a geo cell's (§7.2)."""
+        return -self.n_post * self.campaign_total / self.twin_post
 
     @property
     def campaign_total(self) -> float:
@@ -121,4 +128,4 @@ def estimate_holdout(panel: Panel, kpi: str, holdout_geos, campaign_geos, pre_co
     series, level, campaign = holdout_series(panel, kpi, holdout_geos, campaign_geos, pre_cols, post_cols, min_nonzero_share)
     kw = {} if perms is None else {"perms": perms}
     est = estimate(series, statistic, levels, fixed_effects, kpi=kpi, **kw)
-    return HoldoutEstimate(est, level, campaign, len(campaign_geos))
+    return HoldoutEstimate(est, level, campaign, len(campaign_geos), series)

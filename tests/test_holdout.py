@@ -62,6 +62,37 @@ class Selection(unittest.TestCase):
         self.assertAlmostEqual(sel.holdout_fit(rows, augment=True)[0], float(np.sqrt(np.mean(r**2)) / y1[:n_fit].mean()), places=6)
 
 
+class Split(unittest.TestCase):
+    """§13.7: several vendors share every market that isn't held out; each gets its own twin of the holdout."""
+
+    @classmethod
+    def setUpClass(cls):
+        # seed 3's panel has one state with 16% of sales at 3x the sales per person, so no 2-way split is fair: that's
+        # the balance gate doing its job, so this test uses a panel where fair splits exist
+        df, pop = state_panel(seed=2026)
+        cls.panel, _ = load_kpi_history(df.to_csv(index=False))
+        cls.cfg = selection.SelectionConfig(n_cells=2, holdout=True, share_min=0.15, share_max=0.25, pre_days=126,
+                                            test_days=28, n_candidates=600, seed=7, population=pop)
+        cls.out = selection.MarketSelector(cls.panel, cls.cfg).run()
+
+    def test_partition(self):
+        self.assertGreater(len(self.out["designs"]), 0)
+        for d in self.out["designs"]:
+            a, b, held = set(d.cells[0]), set(d.cells[1]), set(d.control)
+            self.assertFalse(a & b or (a | b) & held)
+            self.assertEqual(a | b | held, set(self.panel.geos))
+            self.assertTrue(self.cfg.share_min <= d.control_share <= self.cfg.share_max)
+            self.assertTrue(min(len(a), len(b), len(held)) >= self.cfg.min_holdout_geos)
+            self.assertEqual(len(d.fit), 2)
+            self.assertLessEqual(d.balance_score, self.cfg.balance_max)
+            self.assertIn("share", d.balance)
+            self.assertIn("holdout_per_capita", d.balance)
+
+    def test_split_is_seeded(self):
+        again = selection.MarketSelector(self.panel, self.cfg).run()
+        self.assertEqual([d.key for d in again["designs"]], [d.key for d in self.out["designs"]])
+
+
 class Translation(unittest.TestCase):
     """§13.4: from the holdout's gap to incremental sales in the campaign markets."""
 
@@ -162,6 +193,46 @@ class Example(unittest.TestCase):
         r = api.run_read(c, "", "2026-11-02")
         self.assertTrue(r["ok"])
         self.assertIn("campaign_coverage", [x["id"] for x in r["checks"]])
+
+
+class VendorSplitExample(unittest.TestCase):
+    """examples/vendor_split: two vendors share the country with a holdout. Ranges must hold the truth."""
+
+    @classmethod
+    def setUpClass(cls):
+        folder = os.path.join(os.path.dirname(EXAMPLE), "vendor_split")
+        with open(os.path.join(folder, "plan.fosit-plan.json")) as f:
+            cls.plan = json.load(f)
+        with open(os.path.join(folder, "truth.json")) as f:
+            cls.truth = json.load(f)["cells"]
+        with open(os.path.join(folder, "kpi_history.csv")) as f:
+            assert api.load_history(f.read(), "state")["ok"]
+        with open(os.path.join(folder, "spend_delivery.csv")) as f:
+            assert api.load_spend(f.read(), cls.plan["commitment"])["ok"]
+        cls.r = api.run_read(cls.plan["commitment"], cls.plan["hash"]["value"], "2026-11-02", cls.plan.get("appendix"))
+
+    def test_each_vendor_is_measured_against_the_holdout(self):
+        self.assertTrue(self.r["ok"])
+        self.assertEqual(self.r["design"], "national_holdout")
+        self.assertEqual(len(self.r["cells"]), 2)
+        for cell in self.r["cells"]:
+            self.assertEqual(cell["kpis"]["orders"]["series"]["role"], "holdout")
+            self.assertEqual(cell["kpis"]["orders"]["placebo"]["n"], 40)
+
+    def test_truth_inside_90_percent_intervals(self):
+        for cell in self.r["cells"]:
+            t = self.truth[cell["id"]]
+            for kpi, true in (("orders", t["true_incremental_orders"]), ("revenue", t["true_incremental_revenue"])):
+                lo, hi = cell["kpis"][kpi]["intervals"]["0.9"]["incremental"]
+                self.assertLessEqual(lo, true, f"{cell['label']} {kpi}")
+                self.assertGreaterEqual(hi, true, f"{cell['label']} {kpi}")
+
+    def test_head_to_head_contains_the_true_difference(self):
+        h = next(h for h in self.r["head_to_head"] if h["kpi"] == "orders")
+        lo, hi = h["metrics"]["delta_incremental"]["intervals"]["0.9"]
+        true = self.truth["cell_1"]["true_incremental_orders"] - self.truth["cell_2"]["true_incremental_orders"]
+        self.assertLessEqual(lo, true)
+        self.assertGreaterEqual(hi, true)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { InfoTip } from "../components/InfoTip";
 import { addDays, pretty, todayUtc, daysBetween } from "../lib/dates";
 import { pct, weeks } from "../lib/format";
-import { DURATION_OPTIONS, isHoldout, preDays, type PlanState } from "./state";
+import { DURATION_OPTIONS, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
 
@@ -25,7 +25,12 @@ export function StepMarkets({ s, set }: Props) {
   return (
     <section className="card">
       <h2>Markets</h2>
-      {isHoldout(s) ? (
+      {isHoldout(s) && !isOneCampaign(s) ? (
+        <div className="callout warn">
+          <strong>Before you lock the plan:</strong> each vendor must be able to target exactly the markets they're given
+          {s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""}, and no one may run CTV in the held-out markets. Confirm this with each vendor. You'll be asked to tick it off at the end.
+        </div>
+      ) : isHoldout(s) ? (
         <div className="callout warn">
           <strong>Before you lock the plan:</strong> the campaign's vendor(s) must be able to keep every held-out market completely dark
           {s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""} while running everywhere else. Confirm this with each vendor. You'll be asked to tick it off at the end.
@@ -66,7 +71,7 @@ export function StepMarkets({ s, set }: Props) {
         <summary>{isHoldout(s) ? "Advanced: how big can the holdout be?" : "Advanced: how big can each cell be?"}</summary>
         <p className="small muted">
           {isHoldout(s)
-            ? "The held-out markets' share of your national sales. A bigger holdout costs more reach but makes the twin's ranges more trustworthy; 10–20% is the default."
+            ? `The held-out markets' share of your national sales. A bigger holdout costs more reach but makes the twin's ranges more trustworthy; ${isOneCampaign(s) ? "10–20%" : "15–25%"} is the default.${isOneCampaign(s) ? "" : " Every other market is split evenly between the vendors."}`
             : "Each cell's share of your national sales. Bigger cells detect smaller lifts but expose more of your business to the test."}
           <InfoTip term={isHoldout(s) ? "holdout" : "shareInTest"} />
         </p>

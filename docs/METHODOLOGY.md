@@ -316,6 +316,7 @@ Randomizing within strata gives balance by construction and means **no one hand-
 - **Fit (holdout):** for each cell, fit on the pre-period minus its final $H$ days ($H$ = shortest planned test length), forecast those $H$ days, and compute nRMSE. The holdout keeps us from rewarding designs that only *look* good in-sample. For speed this runs in two stages. Every candidate that passes the share and balance gates is screened with plain synthetic control. The best 60 are then re-scored with full ASCM (λ by cross-validation), and that score is the one reported and gated.
 - **Balance:** for each feature, the relative gap between cells, $|f_a - f_b| / \text{mean}(f_a, f_b)$ (for $K>2$, max over pairs). Balance score = the largest gap. Default gate: ≤ 10%.
 - **Gates:** share bounds, control share, fit ≤ threshold (default holdout nRMSE ≤ 10%), balance ≤ 10%.
+- **The Read check's limit.** For the shortlisted designs we also compute the **in-sample** fit over the whole pre-period, which is exactly what the Read module's pre-period fit check recomputes (§11). The plan locks a limit of 1.5 × the worse of the two fits, capped at 15%. Using the holdout fit alone set limits that a perfectly good design could miss at read time, because the two measure different things (on state-level holdouts the in-sample fit over 18–26 weeks ran higher than the 4-week forecast fit); with the in-sample fit included, the check fires when the data or the markets' behaviour really changed.
 
 ### 9.4 Ranking
 
@@ -497,6 +498,20 @@ As in §10, with one change: the lift is injected into the **campaign markets** 
 
 Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.6% / 19.4%, and holdout sizes of 5%–15% and 10%–25% gave 80% and 85% coverage of zero (median MDE 20.0% and 19.4%). Larger holdouts calibrate better at about the same sensitivity, which is why the default is 10%–20%.
 
+### 13.7 Several vendors split the country
+
+> **In plain English:** Each vendor runs in its own part of the country, say 40% each, and a group with no CTV at all, say 20%, shows what would have happened without it. Each vendor is measured against that same no-CTV group, using only its own markets.
+
+**Design.** The plan has $K$ cells (2–4 vendors) and a holdout; every market that isn't held out or excluded belongs to exactly one cell. Markets a vendor can't target (`treatment_eligible = false`) get no one's ads, so they are left out of every cell.
+
+**Choosing the split** (`selection.py`). The holdout is drawn as in §13.2 (default 15%–25% of sales; at least 10 markets). The remaining markets are dealt to the cells largest first: each goes to the cell that is smallest so far, measured by the larger of its share of sales and its share of population, so both sales and sales per person stay even; cells within half that market's size of the smallest are equally likely, so the search explores many splits. Each cell must also have at least 10 markets. Balance (§9.3) is checked between the cells (share of sales, trend, revenue per order, sales per person) and between the holdout and all markets with ads (trend, revenue per order, sales per person, as `holdout_*`). A single market that holds a large share of sales at an unusual rate per person can make every split fail the balance gate; then exclude it or accept a looser gate.
+
+**Estimation.** Cell $k$ gets its own twin of the holdout, built only from cell $k$'s markets (§13.3), so cell $k$'s gap is the share of sales *its* ads drove, applied to *its* markets (§13.4). Placebo calibration (§5.6) draws placebo cells from cell $k$'s markets. Power (§10, §13.5) injects the lift into cell $k$'s markets.
+
+**Head-to-head.** Both twins share the holdout as their treated series, so their errors are correlated. The joint conformal region of §7.2 handles this: both cells are permuted with the same time shift. A holdout read maps $\tau$ to incremental sales linearly (§13.4, with a negative slope), so the joint region projects onto every comparison exactly as for geo cells.
+
+**Evidence** (`validation/calibration_study.py --design split`, 200 synthetic state panels, two vendors, placebo calibration on): with no effect, 90% ranges held zero 90.7% of the time and 3.6% were called "positive"; with lift = the planned MDE in vendor 1, ranges held the truth 98.4% of the time and 86% were called positive (80% planned); bias +1.9%; median planned MDE 18.8% for 4 weeks. The head-to-head range held the true difference 99.5% of the time with no effect, and called a difference in 50% of tests where one vendor had its planned MDE and the other none (0.5% with no effect), about the same as the two-cell design (48%).
+
 ---
 
 ## 14. Known limitations
@@ -532,7 +547,7 @@ Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.
 | Head-to-head | Joint conformal region, projected | ✓ |
 | Cell share of national KPI | 3%–15% | ✓ |
 | Min control share | 50% | ✓ |
-| Fit gate (holdout nRMSE) | ≤ 10% | ✓ (read threshold = 1.5 × achieved, capped at 15%) |
+| Fit gate (holdout nRMSE) | ≤ 10% | ✓ (read threshold = 1.5 × the worse of the achieved holdout fit and the in-sample pre-period fit, capped at 15%) |
 | Balance gate | ≤ 10% relative gap | ✓ |
 | Power target | 80% | ✓ |
 | Leakage warn | > 5% of impressions | ✓ |

@@ -14,5 +14,5 @@
       "true_iroas": 4.0756794
     }
   },
-  "note": "Exact orders and revenue added in the campaign states on ads-on days. FOSIT should recover these within its intervals."
+  "note": "Exact orders and revenue added in each cell's states on ads-on days. FOSIT should recover these within its intervals."
 }

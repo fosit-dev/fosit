@@ -5,7 +5,7 @@ import type { DesignResult, FindResult, PowerCurve } from "../lib/plan";
 import { money, num, pct, weeks } from "../lib/format";
 import { callPython } from "../worker/client";
 import type { Progress } from "../worker/protocol";
-import { budgets, isHoldout, preDays, searchKey, type PlanState } from "./state";
+import { budgets, isHoldout, isOneCampaign, preDays, searchKey, type PlanState } from "./state";
 
 type Props = {
   s: PlanState;
@@ -76,7 +76,8 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
   const known = det.filter((x): x is number => x != null);
   const defaultIcpa = icpa || (known.length ? Math.max(1, Math.round(Math.min(...known))) : 50);
   const holdout = isHoldout(s);
-  const who = holdout ? "the campaign" : "a vendor";
+  const one = isOneCampaign(s);
+  const who = one ? "the campaign" : "a vendor";
 
   const expand = async () => {
     setOpen((o) => !o);
@@ -101,7 +102,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
       {d.power ? (
         <>
           <p className="big" style={{ margin: "6px 0" }}>
-            {mde != null ? <>Can detect a lift of <span style={{ color: "var(--accent)" }}>{pct(mde)}</span> or more {holdout ? "in the campaign's markets" : "in each cell"}</> : "Can't reliably detect lifts under 50% with this design"}
+            {mde != null ? <>Can detect a lift of <span style={{ color: "var(--accent)" }}>{pct(mde)}</span> or more {one ? "in the campaign's markets" : "in each cell"}</> : "Can't reliably detect lifts under 50% with this design"}
             {" "}({weeks(s.duration)} test)<InfoTip term="mde" />
           </p>
           {mde != null && (
@@ -113,7 +114,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
           )}
           {mde != null && s.decisionBasis === "target_icpa" && s.targetIcpa && det.some((x) => x != null && x < s.targetIcpa!) && (
             <p className="callout warn small">
-              Even {holdout ? "a campaign" : "a vendor"} that hits your target iCPA of {money(s.targetIcpa, s.currency)} would probably go undetected here. The test budget is
+              Even {one ? "a campaign" : "a vendor"} that hits your target iCPA of {money(s.targetIcpa, s.currency)} would probably go undetected here. The test budget is
               small relative to your sales. A bigger budget or a longer test would help{holdout ? "" : ", as would bigger cells"}; otherwise expect an "inconclusive" answer.
             </p>
           )}
@@ -127,7 +128,8 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
         {holdout ? (
           <>
             <span className="chip">{pct(d.control_share)} of sales held out<InfoTip term="holdout" /></span>
-            <span className="chip">{d.control.length} markets held out · {d.cells[0].length} with ads</span>
+            <span className="chip">{d.control.length} markets held out · {d.cells.map((c) => c.length).join(" + ")} with ads</span>
+            {!one && <span className="chip">{d.shares.map((x) => pct(x, 0)).join(" / ")} of sales per vendor</span>}
           </>
         ) : (
           <>
@@ -142,7 +144,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
         <div style={{ marginTop: 12 }}>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>{holdout ? "Campaign" : "Cell"}</th><th>Markets</th><th>Share of sales</th><th>Fit error</th><th>Detectable lift</th><th>Detectable iCPA</th><th>Fake-lift rate<InfoTip term="falsePositive" /></th></tr></thead>
+              <thead><tr><th>{one ? "Campaign" : "Cell"}</th><th>Markets</th><th>Share of sales</th><th>Fit error</th><th>Detectable lift</th><th>Detectable iCPA</th><th>Fake-lift rate<InfoTip term="falsePositive" /></th></tr></thead>
               <tbody>
                 {d.cells.map((c, i) => {
                   const cv = curveFor(d, i, s.duration);
@@ -157,7 +159,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
               </tbody>
             </table>
           </div>
-          <h4>{holdout ? "Balance: holdout vs. markets with ads" : "Balance between cells"}<InfoTip term="balance" /></h4>
+          <h4>{one ? "Balance: holdout vs. markets with ads" : holdout ? "Balance between cells, and the holdout vs. markets with ads" : "Balance between cells"}<InfoTip term="balance" /></h4>
           <div className="chips">{Object.entries(d.balance).map(([k, v]) => <span key={k} className={`chip ${v <= 0.1 ? "ok" : "warn"}`}>{k}: {pct(v)} gap</span>)}</div>
           {d.power && (
             <>
@@ -183,7 +185,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
             <div className="grid-2">
               {chart.cells.map((c, i) => (
                 <div key={i}>
-                  <h4 style={{ margin: "8px 0 0" }}>{holdout ? "Holdout markets vs their twin (sales index, 1 = average)" : `${s.labels[i]} vs its twin`}<InfoTip term="twin" /></h4>
+                  <h4 style={{ margin: "8px 0 0" }}>{one ? "Holdout markets vs their twin (sales index, 1 = average)" : holdout ? `Holdout vs its twin from ${s.labels[i]}'s markets (sales index)` : `${s.labels[i]} vs its twin`}<InfoTip term="twin" /></h4>
                   <FitChart title={holdout ? "Holdout" : s.labels[i]} dates={chart.dates} observed={c.observed} twin={c.twin} fitEnd={chart.fit_end} index={holdout} />
                 </div>
               ))}
@@ -191,7 +193,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
           )}
           {holdout && <details><summary>Held-out markets, no ads ({d.control.length})</summary><p className="small">{d.control.map((g) => names[g] ?? g).join(" · ")}</p></details>}
           {d.cells.map((c, i) => (
-            <details key={i}><summary>{holdout ? "Markets with ads" : `${s.labels[i]} markets`} ({c.length})</summary><p className="small">{c.map((g) => names[g] ?? g).join(" · ")}</p></details>
+            <details key={i}><summary>{one ? "Markets with ads" : `${s.labels[i]} markets`} ({c.length})</summary><p className="small">{c.map((g) => names[g] ?? g).join(" · ")}</p></details>
           ))}
         </div>
       )}

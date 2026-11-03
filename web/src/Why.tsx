@@ -1,5 +1,6 @@
 import { InfoTip } from "./components/InfoTip";
 import { docUrl, REPO_URL } from "./config";
+import { ConsultCallout } from "./components/Consult";
 
 /** Screen 0: why this exists (docs/UX_FLOW.md). Skippable: every CTA works from here. */
 export function Why({ onPlan, onRead }: { onPlan: (sample: boolean) => void; onRead: () => void }) {
@@ -15,6 +16,7 @@ export function Why({ onPlan, onRead }: { onPlan: (sample: boolean) => void; onR
         <button onClick={onRead}>I already have a locked plan → Read results</button>
         <button className="btn-ghost" onClick={() => onPlan(true)}>Try it with sample data</button>
       </div>
+      <ConsultCallout />
 
       <section className="card" style={{ marginTop: 28 }} aria-labelledby="story">
         <h2 id="story">Why this exists: the flyer guy</h2>

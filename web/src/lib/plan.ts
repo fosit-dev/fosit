@@ -30,6 +30,7 @@ export type DesignResult = {
   balance_score: number;
   fit_screen: number[];
   fit: number[];
+  pre_fit?: number[];               // in-sample fit over the whole pre-period, what Read checks (absent before FOSIT 0.2)
   share_in_test: number;
   power: { cells: { cell_index: number; curves: PowerCurve[] }[] } | null;
 };
@@ -97,7 +98,8 @@ export type Commitment = {
   data_fingerprint: { kpi_history_sha256: string; rows: number; geos: number; first_date: string; last_date: string };
 };
 
-/** METHODOLOGY.md §13: a national holdout has one cell (the campaign markets); its control is the holdout. */
+/** METHODOLOGY.md §13: a national holdout's control is the holdout; its one cell is every other market,
+ *  or (§13.7) several cells split those markets between vendors. */
 export type Design =
   | { type: "geo_cells" }
   | { type: "national_holdout"; ads_before_test: "off" | "always_on" };
@@ -165,7 +167,8 @@ export function buildCommitment(p: PlanInputs): Commitment {
   const kpis: Kpi[] = [p.primaryKpi, ...p.secondaryKpis.filter((k) => k !== p.primaryKpi)];
   const fitByCell: Record<string, Record<string, number>> = {};
   cells.forEach((c, k) => {
-    const fit = p.design.fit[order.indexOf(k)];
+    // §9.3: 1.5x the worse of the forecast fit and the in-sample fit Read will recompute, capped at 15%
+    const fit = Math.max(p.design.fit[order.indexOf(k)], p.design.pre_fit?.[order.indexOf(k)] ?? 0);
     const limit = round(Math.max(Math.min(1.5 * fit, 0.15), 0.0001), 4);
     fitByCell[c.id] = Object.fromEntries(kpis.map((kpi) => [kpi, limit]));
   });
@@ -259,7 +262,7 @@ export function validateCommitment(c: Commitment): string[] {
   const labels = c.cells.map((x) => x.label.trim());
   if (new Set(labels).size !== labels.length || labels.some((l) => !l)) problems.push("Cell labels must be unique and non-empty.");
   if (c.vendor_targeting_confirmed.length !== c.cells.length) problems.push("Every cell's targeting must be confirmed.");
-  if (isHoldout(c) && c.cells.length !== 1) problems.push("A national holdout has exactly one campaign cell.");
+  if (isHoldout(c) && !c.control.geo_ids.length) problems.push("A national holdout needs held-out markets.");
   const walk = (v: unknown, path: string) => {
     if (typeof v === "number" && v !== 0 && !Number.isInteger(v) && (Math.abs(v) < 1e-4 || Math.abs(v) >= 1e15))
       problems.push(`${path}: number out of the hash-safe range.`);

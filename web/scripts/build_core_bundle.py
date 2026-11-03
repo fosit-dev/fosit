@@ -52,7 +52,7 @@ def main():
     print(f"fosit-core.zip {digest} ({len(listed)} files)")
 
     # The Read module's "Try it with the example" buttons load these from the app's own origin.
-    for example in ("two_vendor", "national_holdout"):
+    for example in ("two_vendor", "national_holdout", "vendor_split"):
         src = os.path.normpath(os.path.join(HERE, "..", "..", "examples", example))
         dst = os.path.join(OUT, "examples", example)
         os.makedirs(dst, exist_ok=True)

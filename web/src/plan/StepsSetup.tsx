@@ -1,12 +1,14 @@
 import { InfoTip } from "../components/InfoTip";
+import { ConsultCallout } from "../components/Consult";
 import { money } from "../lib/format";
-import { budgets, isHoldout, withCells, withTemplate, type PlanState, type Template } from "./state";
+import { budgets, isHoldout, isOneCampaign, withCells, withTemplate, type PlanState, type Template } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
 
 const TEMPLATES: { id: Template; title: string; text: string; cells: number }[] = [
   { id: "two_vendor", title: "Two-vendor test", text: "Split one CTV budget between two platforms and find out which one really drives sales.", cells: 2 },
   { id: "single", title: "Single-channel test", text: "Is this channel driving incremental sales at all?", cells: 1 },
+  { id: "vendor_split", title: "Vendors split the country, plus a no-CTV group", text: "Each vendor runs in its own part of the country (for example 40% each) and a group with no CTV at all (for example 20%) shows what happens without it.", cells: 2 },
   { id: "national_holdout", title: "National campaign with a holdout", text: "Keep the campaign running almost everywhere, leave about a tenth of the country without it, and measure what it really drives.", cells: 1 },
   { id: "custom", title: "Custom", text: "Up to 6 cells, your own settings.", cells: 3 },
 ];
@@ -47,6 +49,14 @@ export function StepTemplate({ s, set }: Props) {
           )}
         </fieldset>
       )}
+      {s.template === "vendor_split" && (
+        <div className="field" style={{ marginTop: 16, maxWidth: 260 }}>
+          <label htmlFor="nvendors">Number of vendors<InfoTip term="cell" /></label>
+          <select id="nvendors" value={s.nCells} onChange={(e) => set(withCells(s, Number(e.target.value)))}>
+            {[2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+      )}
       {s.template === "custom" && (
         <div className="field" style={{ marginTop: 16, maxWidth: 260 }}>
           <label htmlFor="ncells">Number of cells<InfoTip term="cell" /></label>
@@ -55,6 +65,7 @@ export function StepTemplate({ s, set }: Props) {
           </select>
         </div>
       )}
+      <ConsultCallout />
     </section>
   );
 }
@@ -76,7 +87,7 @@ export function StepTest({ s, set }: Props) {
         </div>
       </div>
 
-      {isHoldout(s) ? (
+      {isOneCampaign(s) ? (
         <>
           <h3>Campaign<InfoTip term="holdout" /></h3>
           <p className="small muted">One campaign: one vendor, or several running together. To compare vendors, choose a two-vendor test instead.</p>
@@ -90,7 +101,7 @@ export function StepTest({ s, set }: Props) {
       <div className="grid-2">
         {s.labels.map((l, i) => (
           <div className="field" key={i}>
-            <label htmlFor={`label-${i}`}>{isHoldout(s) ? "Campaign name" : `Cell ${i + 1} name`}</label>
+            <label htmlFor={`label-${i}`}>{isOneCampaign(s) ? "Campaign name" : `Cell ${i + 1} name`}</label>
             <input id={`label-${i}`} type="text" value={l}
               onChange={(e) => set({ labels: s.labels.map((x, j) => (j === i ? e.target.value : x)) })} />
           </div>
@@ -99,7 +110,7 @@ export function StepTest({ s, set }: Props) {
 
       <div className="grid-2">
         <div className="field">
-          <label htmlFor="budget">{isHoldout(s) ? "Campaign budget during the test" : "Total test budget"}</label>
+          <label htmlFor="budget">{isOneCampaign(s) ? "Campaign budget during the test" : "Total test budget"}</label>
           <input id="budget" type="number" min={0} step={1000} value={s.totalBudget}
             onChange={(e) => set({ totalBudget: Math.max(0, Number(e.target.value)) })} />
         </div>

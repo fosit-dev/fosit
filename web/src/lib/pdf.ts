@@ -45,6 +45,14 @@ export class Writer {
     }
     this.y += 3;
   }
+  link(label: string, url: string) {
+    this.ensure(14);
+    this.doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(30, 30, 30);
+    this.doc.text(label, MARGIN, this.y);
+    this.doc.setFont("helvetica", "normal").setTextColor(35, 72, 201);
+    this.doc.textWithLink(url, MARGIN + this.doc.getTextWidth(label) + 6, this.y, { url });
+    this.y += 16;
+  }
   row(label: string, value: string) {
     this.doc.setFontSize(10);
     const lines = this.doc.splitTextToSize(value, WIDTH - 150) as string[];
@@ -71,7 +79,8 @@ export class Writer {
 
 const geoList = (ids: string[], names: Names) => ids.map((g) => (names[g] && names[g] !== g ? `${names[g]} (${g})` : g)).join("; ");
 
-export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean): Blob {
+/** `readUrl`: where to come back to read the results (shown as a link under the fingerprint). */
+export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean, readUrl?: string): Blob {
   const c = plan.commitment;
   const w = new Writer();
   const d = c.dates;
@@ -93,6 +102,10 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
       "the KPI or the method, it won't match, and the report is marked \"NOT THE PRE-REGISTERED ANALYSIS\".",
     { size: 9.5 },
   );
+  if (readUrl) {
+    w.para(`After the cooldown ends (${pretty(d.cooldown_end)}), load the plan JSON, your sales and each vendor's spend here:`, { size: 9.5 });
+    w.link("Read the results:", readUrl);
+  }
 
   w.heading("What we agreed");
   w.row("Measure", `${c.kpi.primary} (primary)${c.kpi.secondary.length ? `; ${c.kpi.secondary.join(", ")} (secondary)` : ""}, daily`);
@@ -106,8 +119,14 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
     w.heading(`Holdout — ${c.control.geo_ids.length} markets with NO ads from ${pretty(d.test_start)} to ${pretty(d.cooldown_end)}`);
     w.para(geoList(c.control.geo_ids, names), { size: 9 });
     for (const cell of c.cells) {
-      w.heading(`${cell.label} — runs everywhere else (${cell.geo_ids.length} markets), budget ${money(cell.budget, c.currency)}`);
-      w.para(geoList(cell.geo_ids, names), { size: 8 });
+      if (c.cells.length === 1) {
+        w.heading(`${cell.label} — runs everywhere else (${cell.geo_ids.length} markets), budget ${money(cell.budget, c.currency)}`);
+        w.para(geoList(cell.geo_ids, names), { size: 8 });
+      } else {
+        w.heading(`${cell.label} — ${cell.geo_ids.length} markets, budget ${money(cell.budget, c.currency)}`);
+        w.para(`Run ads ONLY in these markets (${cell.id}):`, { size: 9.5, bold: true });
+        w.para(geoList(cell.geo_ids, names), { size: 9 });
+      }
     }
   } else {
     for (const cell of c.cells) {
@@ -126,7 +145,7 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
   w.heading("How results will be read (fixed now)");
   const m = c.method;
   w.para(holdout
-    ? `National holdout (METHODOLOGY §13). The held-out markets are compared with a statistical twin built from the markets with ads, ` +
+    ? `National holdout (METHODOLOGY §13). The held-out markets are compared with a statistical twin built from the markets with ads${c.cells.length > 1 ? " (one twin per vendor, from that vendor's markets only)" : ""}, ` +
       `each indexed to its own history (ridge-augmented synthetic control with market fixed effects, ridge penalty chosen by ` +
       `cross-validation). The gap is the share of sales the ads drove, applied to the markets with ads. Uncertainty comes from conformal ` +
       `inference with ${m.permutations.kind === "moving_block" ? "moving-block (circular time-shift)" : "random (iid)"} permutations. ` +
@@ -150,7 +169,8 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
 
   w.heading("Before launch, each vendor confirmed");
   for (const cell of c.cells)
-    w.para(holdout ? `[x] ${cell.label} can keep every held-out market free of ads for the dates above.` : `[x] ${cell.label} can target exactly its market list above, and nothing in control.`, { size: 9.5 });
+    w.para(holdout && c.cells.length === 1 ? `[x] ${cell.label} can keep every held-out market free of ads for the dates above.` :
+      holdout ? `[x] ${cell.label} can target exactly its market list above, and nothing in the held-out markets.` : `[x] ${cell.label} can target exactly its market list above, and nothing in control.`, { size: 9.5 });
 
   if (includeAppendix && plan.appendix) {
     const a = plan.appendix as { design?: { fit: number[]; balance_score: number; share_in_test: number }; mde?: { label: string; mde: number | null; detectable_icpa: number | null }[] };

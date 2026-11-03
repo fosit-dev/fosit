@@ -40,11 +40,13 @@ function planCheck(v: Verify | null, changes: Change[]): Check {
   return { id: "plan_match", title: "Plan match", status: "pass", detail: "The plan is exactly the one fingerprinted before launch." };
 }
 
-export function ReadModule() {
-  const [plan, setPlan] = useState<LockedPlan | null>(null);
-  const [planName, setPlanName] = useState("");
+/** `initialPlan`: the plan just locked in this session (Plan → "Go to Read results"), so nobody has to reload it. */
+export function ReadModule({ initialPlan }: { initialPlan?: LockedPlan | null } = {}) {
+  const [plan, setPlan] = useState<LockedPlan | null>(initialPlan ?? null);
+  const [planName, setPlanName] = useState(initialPlan ? "the plan you just locked" : "");
+  const [fromSession] = useState(!!initialPlan);
   const [planError, setPlanError] = useState<string | null>(null);
-  const [anchor, setAnchor] = useState("");
+  const [anchor, setAnchor] = useState(initialPlan?.hash.value ?? "");
   const [v, setV] = useState<Verify | null>(null);
   const [changes, setChanges] = useState<Change[]>([]);
   const [kpi, setKpi] = useState<Loaded | null>(null);
@@ -99,6 +101,7 @@ export function ReadModule() {
   const EXAMPLES = {
     two_vendor: "Example: two-vendor test (synthetic)",
     national_holdout: "Example: national campaign with a state holdout (synthetic)",
+    vendor_split: "Example: two vendors split the country, with a no-CTV group (synthetic)",
   };
   const loadExample = async (name: keyof typeof EXAMPLES) => {
     setBusy("Loading the example…");
@@ -171,12 +174,15 @@ export function ReadModule() {
           </label>
           <button type="button" className="btn-ghost" onClick={() => loadExample("two_vendor")} disabled={!!busy}>Try it with the example (two vendors, synthetic)</button>
           <button type="button" className="btn-ghost" onClick={() => loadExample("national_holdout")} disabled={!!busy}>Try the national-holdout example (synthetic)</button>
+          <button type="button" className="btn-ghost" onClick={() => loadExample("vendor_split")} disabled={!!busy}>Try the vendor-split example (synthetic)</button>
         </div>
         {planError && <div className="callout err">{planError}</div>}
         {plan && c && (
           <div style={{ marginTop: 14 }}>
             <p><strong>{c.test_name}</strong>{c.advertiser_label ? ` · ${c.advertiser_label}` : ""} <span className="muted small">({planName})</span></p>
-            <p className="small">{isHoldout(c)
+            <p className="small">{isHoldout(c) && c.cells.length > 1
+              ? `Vendors split the country · ${c.cells.map((x) => `${x.label}: ${x.geo_ids.length} markets, ${money(x.budget, c.currency)}`).join(" · ")} · ${c.control.geo_ids.length} markets held out (no CTV)`
+              : isHoldout(c)
               ? `National holdout · ${c.cells[0].label}: ${c.cells[0].geo_ids.length} markets with ads, ${money(c.cells[0].budget, c.currency)} · ${c.control.geo_ids.length} markets held out`
               : `${c.cells.map((x) => `${x.label}: ${x.geo_ids.length} markets, ${money(x.budget, c.currency)}`).join(" · ")} · ${c.control.geo_ids.length} control markets`}</p>
             <p className="small">Ads {pretty(c.dates.test_start)} – {pretty(c.dates.test_end)}, cooldown to {pretty(c.dates.cooldown_end)}. Primary goal: {c.kpi.primary}.</p>
@@ -184,6 +190,7 @@ export function ReadModule() {
               <label htmlFor="anchor">Paste the fingerprint from your pre-launch email<InfoTip term="planMatch" /></label>
               <input id="anchor" type="text" value={anchor} onChange={(e) => setAnchor(e.target.value)} placeholder="64 characters (spaces are fine)" spellCheck={false} />
               {isExample && <span className="hint">Filled in for the example. In a real test, paste it from the email you sent before launch.</span>}
+              {fromSession && !isExample && <span className="hint">Filled in from the plan you just locked. When you come back after the test, load the plan JSON and paste the fingerprint from your email.</span>}
             </div>
             {v && <p className="small">This file's fingerprint: <code>{groupHash(v.recomputed)}</code> (short code {shortCode(v.recomputed)})</p>}
             {mismatch && (

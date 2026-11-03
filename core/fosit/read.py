@@ -103,7 +103,7 @@ def head_to_head(a: dict, b: dict, kpi: str, levels, decision_level: float) -> d
     """§7.2: joint conformal region for two cells, projected onto each comparison."""
     ga, gb = a["grid"], b["grid"]
     ea, eb = a["est"], b["est"]
-    inc_a, inc_b = ga.taus * ea.scale, gb.taus * eb.scale
+    inc_a, inc_b = ga.taus * ea.scale, gb.taus * eb.scale   # a holdout's scale is negative (§13.4); the grids map the same way
     sa, sb = a["spend"], b["spend"]
     p = conformal.joint_p_values(ga, gb)
     out = {"a": a["id"], "b": b["id"], "kpi": kpi, "metrics": {}, "grid_points": H2H_GRID}
@@ -171,8 +171,8 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
         plan_geos = {k: g & present for k, g in plan_geos.items()}
     elif missing_cells:
         errors.append(f"{len(missing_cells)} test markets have no sales rows: {', '.join(missing_cells[:8])}.")
-    if holdout and (len(c["cells"]) != 1 or not set(c["control"]["geo_ids"]) & present):
-        errors.append("A national holdout plan needs exactly one campaign cell and holdout markets with sales rows.")
+    if holdout and not set(c["control"]["geo_ids"]) & present:
+        errors.append("A national holdout plan needs holdout markets with sales rows.")
     if errors:
         return {"ok": False, "errors": errors}
 
@@ -198,9 +198,9 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
     for ki, kpi in enumerate(kpis):
         for ci, cell in enumerate(c["cells"]):
             if holdout:
-                series = None
                 est = estimate_holdout(panel, kpi, control, sorted(plan_geos[cell["id"]]), pre_cols, post_cols,
                                        method.get("test_statistic", "abs_sum"), levels, fixed_effects, perms, min_nonzero)
+                series = est.series
             else:
                 series = cell_series(panel, kpi, sorted(plan_geos[cell["id"]]), control, pre_cols, post_cols, min_nonzero)
                 est = estimate(series, method.get("test_statistic", "abs_sum"), levels, fixed_effects, kpi=kpi, perms=perms)
@@ -269,7 +269,7 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
             grids = {}
             for cell in c["cells"]:
                 w = work[(kpi, cell["id"])]
-                w["grid"] = _grid_for(w["series"], w["est"], perms, fixed_effects)
+                w["grid"] = _grid_for(w["series"], w["est"].index if holdout else w["est"], perms, fixed_effects)
                 grids[cell["id"]] = w
                 step += 1
                 if progress:
