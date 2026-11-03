@@ -176,6 +176,11 @@ th { color: var(--muted); font-weight: 600; }
 
 .story { border-left: 4px solid var(--accent); padding: 4px 0 4px 16px; margin: 16px 0; }
 .story p { font-size: 1.05rem; }
+.story-layout { display: grid; gap: 20px; align-items: center; grid-template-columns: 1fr; margin: 16px 0; }
+.story-layout .story { margin: 0; }
+.story-figure { margin: 0; border-radius: var(--radius); overflow: hidden; background: #000; }
+.story-figure img { display: block; width: 100%; height: auto; }
+@media (min-width: 760px) { .story-layout { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
 .steps-3 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); counter-reset: s; margin: 16px 0; }
 .steps-3 > div { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
 .trust { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; list-style: none; color: var(--muted); font-size: 0.92rem; margin: 18px 0; }

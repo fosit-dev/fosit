@@ -20,11 +20,17 @@ export function Why({ onPlan, onRead }: { onPlan: (sample: boolean) => void; onR
 
       <section className="card" style={{ marginTop: 28 }} aria-labelledby="story">
         <h2 id="story">Why this exists: the flyer guy</h2>
-        <div className="story">
-          <p>You own a restaurant. A flyer guy makes you an offer: <em>"Pay me $5 for every new customer who walks in holding my flyer."</em> Sounds fair. You only pay for results.</p>
-          <p>Business looks great. Dozens of flyers a day. You're paying him more every week.</p>
-          <p>Then one evening you step outside and see him standing <strong>right at your front door</strong>, handing flyers to people who were already walking in.</p>
-          <p><strong>You weren't buying new customers. You were paying a toll on the ones you already had.</strong></p>
+        <div className="story-layout">
+          <figure className="story-figure">
+            <img src="flyer-story.webp" width={1024} height={1010} loading="lazy"
+              alt="A man in a yellow jacket smiles as he hands a flyer to a customer who is already walking through the restaurant's door, while the owner watches from inside." />
+          </figure>
+          <div className="story">
+            <p>You own a restaurant. A flyer guy makes you an offer: <em>"Pay me $5 for every new customer who walks in holding my flyer."</em> Sounds fair. You only pay for results.</p>
+            <p>Business looks great. Dozens of flyers a day. You're paying him more every week.</p>
+            <p>Then one evening you step outside and see him standing <strong>right at your front door</strong>, handing flyers to people who were already walking in.</p>
+            <p><strong>You weren't buying new customers. You were paying a toll on the ones you already had.</strong></p>
+          </div>
         </div>
         <p>A lot of digital advertising is measured the same way: a platform gets credit for anyone who saw or clicked an ad, including people who were going to buy anyway.</p>
         <p>CTV has the <strong>opposite</strong> problem. Nobody clicks a TV, so click-based reports undercount it, and it gets cut even when it works.</p>
