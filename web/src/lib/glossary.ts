@@ -161,6 +161,12 @@ export const GLOSSARY = {
     doc: ["METHODOLOGY.md", "56-placebo-calibration"],
     code: "core/fosit/placebo.py",
   },
+  crossover: {
+    title: "Halves take turns (crossover)",
+    text: "The country is split into two balanced halves that take turns having the ads, in a random order fixed before launch. Both halves face the same season and news at the same time, so the gap when one has the ads is what the ads did.",
+    doc: ["METHODOLOGY.md", "14-geo-crossover-for-small-advertisers"],
+    code: "core/fosit/crossover.py",
+  },
   holdout: {
     title: "National holdout",
     text: "The campaign runs everywhere except a few markets that get no ads. A twin of those markets, built from the markets with ads, shows what they'd have sold with the ads; the gap is what the ads drive.",

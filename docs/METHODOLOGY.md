@@ -21,9 +21,10 @@
 11. [Honesty checks (Read)](#11-honesty-checks-read)
 12. [Validation against GeoLift](#12-validation-against-geolift)
 13. [National holdout: the campaign runs everywhere except a few markets](#13-national-holdout)
-14. [Known limitations](#14-known-limitations)
-15. [Defaults reference](#15-defaults-reference)
-16. [References](#16-references)
+14. [Geo crossover for small advertisers: halves take turns](#14-geo-crossover-for-small-advertisers)
+15. [Known limitations](#15-known-limitations)
+16. [Defaults reference](#16-defaults-reference)
+17. [References](#17-references)
 
 ---
 
@@ -395,7 +396,7 @@ Unknown-geo impressions (`geo_id = *`) count as **unverifiable**, not as leakage
 
 > **In plain English:** We didn't just write our own math and hope. We run the same datasets through Meta's open-source GeoLift (in R) and check that our answers match within stated tolerances. The check runs automatically on every code change.
 
-- **Independence:** FOSIT's core is written from the papers in [§16](#16-references). No GeoLift or `augsynth` source is copied, and none ever will be. GeoLift's licensing is ambiguous: GitHub's license detection lists MIT, but the package's DESCRIPTION file says GPL (≥ 2), and GPL code can't be folded into an Apache-2.0 project. `augsynth` is MIT. Both are used only as external black boxes in CI.
+- **Independence:** FOSIT's core is written from the papers in [§17](#17-references). No GeoLift or `augsynth` source is copied, and none ever will be. GeoLift's licensing is ambiguous: GitHub's license detection lists MIT, but the package's DESCRIPTION file says GPL (≥ 2), and GPL code can't be folded into an Apache-2.0 project. `augsynth` is MIT. Both are used only as external black boxes in CI.
 - **Harness:** `/validation` generates deterministic synthetic cases (null effects, 10% and 20% lifts, a single-geo test). It runs `GeoLift::GeoLift()` on each with `model = "Ridge"`, `fixed_effects = TRUE`, `stat_test = "Total"`, `conformal_type = "block"` (GeoLift's own default is `"iid"`, see §5.5), `grid_size = 250`, α = 0.10 and `ConfidenceIntervals = TRUE`. A GitHub Actions job (`.github/workflows/validation.yml`) compares the outputs to FOSIT's. GeoLift and augsynth are pinned to exact commits, and the job runs on R 4.5. augsynth is pinned to the version current when GeoLift was last updated (March 2026). Later augsynth releases changed internals GeoLift calls, and GeoLift crashes with them. Bumping either pin is a deliberate change logged in the CHANGELOG.
 - **Two comparisons per case** (`validation/compare.py`):
   1. **Matched (gating).** FOSIT runs with GeoLift's selected λ *and* GeoLift's test statistic (`sum_abs`). Same model, same test, so every number must agree. This validates the estimator and the conformal engine.
@@ -524,7 +525,61 @@ Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.
 
 ---
 
-## 14. Known limitations
+## 14. Geo crossover for small advertisers
+
+> **In plain English:** When an advertiser is too small to split the country into test and control markets, FOSIT splits it into two balanced halves that **take turns** having the ads: every two weeks (or four), in a random order fixed before launch. Both halves live through the same season, news and paydays at the same time, so when one half has the ads and the other doesn't, the gap is what the ads did. Every market gets the ads half the time, and nothing has to go dark for months.
+
+### 14.1 When to use it
+
+For advertisers at a few hundred orders a day or less, where geo cells or a holdout can't detect a useful lift (§9.3: below about 100 orders a day no geo design passes at all). It measures **one campaign** (one vendor, or several together). It takes longer than a geo test (16 weeks by default), and it assumes the ads' effect fades within days to a couple of weeks of them stopping.
+
+**Rejected alternatives**, with evidence from simulations on synthetic state data:
+- **National on/off weeks** (the whole country on, then off, at random): honest, but national week-to-week swings drown the effect. It caught a 20% lift only 58% of the time even at 400 orders a day, and sales volume barely helped.
+- **Before/after models** (e.g. CausalImpact without control series): not an experiment; can't tell the ads from anything else that changed.
+- **Larger fit blocks or relaxed market screening for geo designs**: at 50–100 orders a day the designs that pass couldn't detect less than a 42–50% lift.
+
+### 14.2 Design
+
+- **Halves.** Every market not excluded (and that vendors can target) goes to half A or half B. Markets are dealt largest first to whichever half is smaller so far, by the larger of its share of sales and of population; near-ties are random (as in §13.7). Balance gates (§9.3, ≤ 10%) apply between the halves on share of sales, trend, sales per person and revenue per order. Of the balanced splits, the planner shows them **in balance order, not by how well the halves tracked each other in the past**: picking the luckiest history made the planned sensitivity overpromise (detection fell from a planned 80% to 62% in testing).
+- **Blocks.** 2-week blocks for ads whose effect fades within days, 4-week blocks for effects that last a week or more. Test lengths: 8 or 12 blocks of 2 weeks, 6 or 8 blocks of 4 weeks (an even number, at least 6: with 4, chance can't be ruled out at α = 0.10).
+- **Washout.** The first 3 days of a 2-week block (5 of a 4-week one) are left out of the comparison, while the previous block's ads fade.
+- **Schedule.** Drawn at random when the plan is locked, each half on in exactly half the blocks (a balanced sequence), and fingerprinted with the plan (`design.schedule`, A = the cell's markets, B = the control list). Spend is not cut: the whole budget runs in whichever half is on.
+
+### 14.3 Estimate and inference
+
+For half $h$ and block $b$, $y_{hb}$ is the log of mean daily sales over the block's days after the washout. With two halves, the two-way fixed-effects estimate (half + block) of the ads' log lift is
+
+$$\hat\tau = \tfrac12\left(\overline{d}_{A\text{ on}} - \overline{d}_{B\text{ on}}\right), \qquad d_b = y_{Ab} - y_{Bb},$$
+
+which removes each half's level and every block's national shock. **Inference is exact** (Fisher; Bojinov, Simchi-Levi & Zhao 2023): for the sharp null "the ads change log sales by $\tau_0$", remove $\tau_0$ where the ads ran and recompute $\hat\tau$ under every other balanced schedule the randomization could have drawn (70 for 8 blocks; a seeded sample above 5,000). The p-value is the share at least as extreme as the observed; the range is every $\tau_0$ not rejected (bisection). No model of how sales move over time is needed, so the planning-time fit gates and placebo calibration (§5.6) don't apply: a noisy pair of halves makes the range wider, not wrong.
+
+**Business metrics.** For ads whose effect builds up and fades geometrically, the total extra sales over time equal the steady lift times the ads-on days, so incremental $= (1 - e^{-\hat\tau}) \times$ sales in the ads-on half-blocks (all days). $\hat\tau$ is measured after the washout, where the effect is close to, but below, its steady level, so **the estimate errs low** (about 15% with a 3-day half-life). iCPA uses actual spend (§6).
+
+**Checks** (§11, all non-blocking because the test is exact): the halves' block-to-block noise before the test vs. 1.5× the planned value; impressions delivered to the half that should have been dark ("schedule followed"); spend vs. budget; whole blocks only in an interim read.
+
+### 14.4 Planning the sensitivity
+
+The planner replays the test on past stretches of the history (up to 10, stepped by a week), each with 30 random schedules, adding a known lift to whichever half has the ads. The lift builds up and fades with a planning half-life (3 days for 2-week blocks, 7 days for 4-week blocks), so the replay measures what the washed-out days would really show. Because the replay is essentially one stretch of history, its sensitivity estimate is noisy and, on average, flattering; the planner therefore aims for 90% detection in the replay so real tests reach the 80% target (`replay_margin`).
+
+### 14.5 Evidence
+
+`validation/crossover_study.py` (200 synthetic state panels per row: 51 states, 26 weeks of history, 8 blocks of 2 weeks, effects fading with a 3-day half-life; each panel read with no effect and with lift = the planned MDE):
+
+| Orders a day | Covers zero, no effect (90% nominal) | "Positive", no effect | Covers truth, lift = MDE | "Positive", lift = MDE (80% planned) | Mean bias | Median planned MDE (16 weeks) |
+|---|---|---|---|---|---|---|
+| 50 | 91.5% | 4.5% | 87.5% | 85.0% | −14.3% | 15.6% |
+| 100 | 91.5% | 4.0% | 85.5% | 88.0% | −15.6% | 10.6% |
+| 400 | 94.0% | 3.0% | 91.0% | 86.5% | −15.9% | 7.5% |
+
+For comparison, geo designs at 400 orders a day planned about 24–28%, and none could be planned at 50.
+
+**When effects linger.** With a 7-day half-life and 2-week blocks, false positives stay at 4%, but the estimate falls 44% short and the range holds the truth only 58% of the time: ads still working in the "off" half shrink the contrast. With 4-week blocks (6 blocks, 7-day half-life): bias −21%, truth covered 84%, false positives 9.2%. Hence the planner's question about how long the advertising keeps working. Effects lasting much longer than a couple of weeks (pure brand building) are out of reach of any design this short.
+
+The shipped example `examples/crossover_small` (about 100 orders a day, lift 1.5× the planned MDE) reads as positive: 884 extra orders estimated vs. 1,064 true (90% range 481–1,261).
+
+---
+
+## 15. Known limitations
 
 - **Markets aren't vendors:** head-to-head differences include market differences (§7.3).
 - **Spillover:** people who live in one CBSA and shop or watch TV in another blur the line between treatment and control. This usually biases lift toward zero. Not modelled in v1.
@@ -539,7 +594,7 @@ Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.
 
 ---
 
-## 15. Defaults reference
+## 16. Defaults reference
 
 | Parameter | Default | Locked in plan |
 |---|---|---|
@@ -565,13 +620,15 @@ Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.
 | Candidates searched | 2,000 (seeded) | ✓ (seed) |
 | National holdout: holdout share | 10%–20% of national KPI (§13.2) | ✓ (holdout markets) |
 | National holdout: min holdout markets | 10 | ✓ (holdout markets) |
+| Crossover: blocks | 2 weeks (washout 3 days) or 4 weeks (washout 5 days), 8/12 or 6/8 blocks, balanced random schedule (§14) | ✓ (`design`) |
 
 ---
 
-## 16. References
+## 17. References
 
 - Abadie, A., Diamond, A., & Hainmueller, J. (2010). Synthetic control methods for comparative case studies. *JASA* 105(490).
 - Ben-Michael, E., Feller, A., & Rothstein, J. (2021). The augmented synthetic control method. *JASA* 116(536).
+- Bojinov, I., Simchi-Levi, D., & Zhao, J. (2023). Design and analysis of switchback experiments. *Management Science* 69(7), 3759–3777 (arXiv:2009.00148). Basis of the crossover's randomization test (§14).
 - Chernozhukov, V., Wüthrich, K., & Zhu, Y. (2021). An exact and robust conformal inference method for counterfactual and synthetic controls. *JASA* 116(536).
 - Meta Open Source, GeoLift (R package). Used as the reference implementation for validation only.
 - Rundgren, A., Jordan, B., & Erdtman, S. (2020). RFC 8785: JSON Canonicalization Scheme (JCS) (used for plan hashing, see [PREREGISTRATION.md](PREREGISTRATION.md)).

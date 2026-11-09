@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { InfoTip } from "../components/InfoTip";
 import { addDays, pretty, todayUtc, daysBetween } from "../lib/dates";
 import { pct, weeks } from "../lib/format";
-import { DURATION_OPTIONS, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
+import { DURATION_OPTIONS, crossoverSetup, isCrossover, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
 
@@ -25,7 +25,13 @@ export function StepMarkets({ s, set }: Props) {
   return (
     <section className="card">
       <h2>Markets</h2>
-      {isHoldout(s) && !isOneCampaign(s) ? (
+      {isCrossover(s) ? (
+        <div className="callout warn">
+          <strong>Before you lock the plan:</strong> the campaign's vendor(s) must be able to switch the ads between two halves of the
+          country on fixed dates, every {s.lingering === "long" ? "4" : "2"} weeks{s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""}.
+          Confirm this with each vendor. You'll be asked to tick it off at the end.
+        </div>
+      ) : isHoldout(s) && !isOneCampaign(s) ? (
         <div className="callout warn">
           <strong>Before you lock the plan:</strong> each vendor must be able to target exactly the markets they're given
           {s.geoUnit === "cbsa" ? " (metro areas, by ZIP list if needed)" : ""}, and no one may run CTV in the held-out markets. Confirm this with each vendor. You'll be asked to tick it off at the end.
@@ -67,7 +73,7 @@ export function StepMarkets({ s, set }: Props) {
       </div>
       <p className="small muted">{excludedIds.length ? `${excludedIds.length} excluded.` : "None excluded."} {geos.length > 200 && !query ? "Showing the 200 largest; search to find others." : ""}</p>
 
-      <details>
+      {!isCrossover(s) && <details>
         <summary>{isHoldout(s) ? "Advanced: how big can the holdout be?" : "Advanced: how big can each cell be?"}</summary>
         <p className="small muted">
           {isHoldout(s)
@@ -85,7 +91,7 @@ export function StepMarkets({ s, set }: Props) {
             <input id="smax" type="range" min={0.05} max={0.3} step={0.01} value={s.shareMax} onChange={(e) => set({ shareMax: Math.max(Number(e.target.value), s.shareMin + 0.01) })} />
           </div>
         </div>
-      </details>
+      </details>}
     </section>
   );
 }
@@ -100,6 +106,22 @@ export function StepTiming({ s, set }: Props) {
   return (
     <section className="card">
       <h2>Timing</h2>
+      {isCrossover(s) ? (
+        <>
+          <fieldset className="field">
+            <legend style={{ fontWeight: 600 }}>How long does your advertising keep working after it stops?<InfoTip term="crossover" /></legend>
+            {([["short", "A few days (most performance CTV)", "the halves swap every 2 weeks"],
+               ["long", "A week or more (brand campaigns)", "the halves swap every 4 weeks, and the test runs longer"]] as const).map(([v, text, hint]) => (
+              <label key={v} className="check">
+                <input type="radio" name="lingering" checked={s.lingering === v}
+                  onChange={() => { const x = crossoverSetup(v); set({ lingering: v, durations: x.durations, duration: x.durations[0] }); }} />
+                <span>{text} <span className="muted small">: {hint}</span></span>
+              </label>
+            ))}
+          </fieldset>
+          <p className="small muted">We'll compare a {weeks(s.durations[0])} and a {weeks(s.durations[s.durations.length - 1])} test. Longer catches smaller lifts.</p>
+        </>
+      ) : (
       <div className="field">
         <label>Test lengths to compare</label>
         <div className="row">
@@ -116,19 +138,20 @@ export function StepTiming({ s, set }: Props) {
         </div>
         <p className="small muted">We'll show how sensitive each length is. Longer tests catch smaller lifts.</p>
       </div>
+      )}
       <div className="grid-2">
         <div className="field">
           <label htmlFor="start">Planned start date</label>
           <input id="start" type="date" value={s.testStart} min={addDays(todayUtc(), 1)} onChange={(e) => e.target.value && set({ testStart: e.target.value })} />
           <span className="hint">{leadDays < 7 ? "⚠ Less than a week away: leave time to send the plan and set up targeting." : `In ${leadDays} days. Ads run until ${pretty(addDays(s.testStart, longest - 1))} at the longest.`}</span>
         </div>
-        <div className="field">
+        {!isCrossover(s) && <div className="field">
           <label htmlFor="cooldown">Cooldown after ads stop<InfoTip term="cooldown" /></label>
           <select id="cooldown" value={s.cooldown} onChange={(e) => set({ cooldown: Number(e.target.value) })}>
             {[0, 7, 14].map((c) => <option key={c} value={c}>{c} days</option>)}
           </select>
           {isHoldout(s) && <span className="hint">The held-out markets stay dark until the cooldown ends.</span>}
-        </div>
+        </div>}
       </div>
       <div className="field">
         <label htmlFor="pre">History to build the twins from: {s.preWeeks} weeks<InfoTip term="preperiod" /></label>

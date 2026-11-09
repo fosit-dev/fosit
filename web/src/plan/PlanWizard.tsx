@@ -11,7 +11,7 @@ import { StepFind } from "./StepFind";
 import { StepLock } from "./StepLock";
 import { StepMarkets, StepTiming } from "./StepsMarketsTiming";
 import { StepTemplate, StepTest, templateStepProblems, testStepProblems } from "./StepsSetup";
-import { STEPS, budgets, initialState, isHoldout, preDays, searchKey, type GeoRow, type LoadedData, type PlanState, type Summary } from "./state";
+import { STEPS, budgets, crossoverSetup, initialState, isCrossover, isHoldout, preDays, searchKey, type GeoRow, type LoadedData, type PlanState, type Summary } from "./state";
 
 type LoadResult = { ok: boolean; summary: Summary | null; geos: GeoRow[]; issues: Issue[] };
 /** The raw text behind the loaded data, kept in memory only, so we can re-validate (e.g. after a unit change or cancel). */
@@ -109,7 +109,11 @@ export function PlanWizard({ startWithSample, onRead }: { startWithSample: boole
       if (!engineHasData.current && raw.current) await validate(raw.current, s.geoUnit);
       const key = searchKey(s);
       const result = await callPython<FindResult>("find_designs", {
-        config: {
+        config: isCrossover(s) ? {
+          design: "crossover", kpi: s.primaryKpi, block_days: crossoverSetup(s.lingering).blockDays, durations: s.durations,
+          half_life: crossoverSetup(s.lingering).halfLife, excluded: Object.keys(s.excluded), seed: s.seed,
+          budgets: [s.totalBudget], alpha: 0.1,
+        } : {
           n_cells: s.nCells, kpi: s.primaryKpi, pre_days: preDays(s), durations: s.durations, cooldown_days: s.cooldown,
           share_min: s.shareMin, share_max: s.shareMax, excluded: Object.keys(s.excluded), seed: s.seed,
           permutations: s.permutations, budgets: budgets(s), alpha: 0.1, fit_period: s.fitPeriod,

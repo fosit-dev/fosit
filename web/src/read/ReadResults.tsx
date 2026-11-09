@@ -57,6 +57,7 @@ export function ReadResults({ r, plan, names }: Props) {
   const c = plan.commitment;
   const currency = c.currency;
   const holdout = r.design === "national_holdout";
+  const cross = r.design === "crossover";
   return (
     <>
       <section className="card" aria-labelledby="bottom-line">
@@ -80,7 +81,9 @@ export function ReadResults({ r, plan, names }: Props) {
             {cell.meaningful_effect != null && <p className="small muted">Worthwhile effect: {num(cell.meaningful_effect)} ({cell.meaningful_basis}).</p>}
             {holdout && <p className="small">The chart shows the held-out markets: what they sold without the ads, and what their twin (built from the markets
               with ads) says they'd have sold with them. The gap is the share of sales the ads drove, applied to the {num(cell.n_geos)} markets {r.cells.length > 1 ? `with ${cell.label}'s ads` : "with ads"}.<InfoTip term="holdout" /></p>}
-            <ImpactChart title={holdout ? "Held-out markets" : cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
+            {cross && <p className="small">The chart shows both halves together, and what they'd have sold without the ads (the estimated
+              extra sales taken out of whichever half had the ads).<InfoTip term="crossover" /></p>}
+            <ImpactChart crossover={m.series.role === "crossover"} title={holdout ? "Held-out markets" : cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
               counterfactual={m.series.counterfactual} nPre={m.series.n_pre} testDays={m.series.test_days} holdout={m.series.role === "holdout"} />
             <StatsTable cell={cell} r={r} currency={currency} />
           </section>
@@ -113,13 +116,27 @@ export function ReadResults({ r, plan, names }: Props) {
       <section className="card">
         <details>
           <summary>Under the hood</summary>
-          <p className="small">Method (locked in the plan): ridge-augmented synthetic control with market fixed effects; conformal inference with {r.permutations.kind === "moving_block" ? `moving-block permutations (${r.permutations.n} time shifts)` : `${r.permutations.n} random permutations`}; decisions at {pct(r.decision_level, 0)}. Measurement window {r.window.start} to {r.window.end} ({r.window.days} days, {r.window.test_days} with ads).</p>
+          {cross
+            ? <p className="small">Method (locked in the plan): two halves took turns having the ads on a random schedule; a two-way comparison (half and block) of log sales after each block's washout; an exact randomization test against every balanced schedule ({r.permutations.n}); decisions at {pct(r.decision_level, 0)}. Test {r.window.start} to {r.window.end} ({r.window.days} days).</p>
+            : <p className="small">Method (locked in the plan): ridge-augmented synthetic control with market fixed effects; conformal inference with {r.permutations.kind === "moving_block" ? `moving-block permutations (${r.permutations.n} time shifts)` : `${r.permutations.n} random permutations`}; decisions at {pct(r.decision_level, 0)}. Measurement window {r.window.start} to {r.window.end} ({r.window.days} days, {r.window.test_days} with ads).</p>}
           {r.cells.map((cell) => {
             const u = cell.kpis[r.primary_kpi].under_the_hood;
+            if (cross && u.blocks) return (
+              <div key={cell.id}>
+                <h4>Block by block</h4>
+                <p className="small">Mean daily {r.primary_kpi} per half, leaving out the first {u.washout_days} days of each {u.block_days}-day block.
+                  The result was tested against all {u.schedules_tested} balanced schedules the coin could have drawn.
+                  Before the test the halves' ratio moved {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)} from block to block.</p>
+                <div className="table-wrap"><table>
+                  <thead><tr><th>Block from</th><th>Ads in</th><th>Half A / day</th><th>Half B / day</th></tr></thead>
+                  <tbody>{u.blocks.map((b) => <tr key={b.start}><td>{b.start}</td><td>Half {b.on}</td><td>{num(b.a_daily)}</td><td>{num(b.b_daily)}</td></tr>)}</tbody>
+                </table></div>
+              </div>
+            );
             return (
               <div key={cell.id}>
                 <h4>{holdout ? (r.cells.length > 1 ? `The holdout's twin from ${cell.label}'s markets` : "The holdout's twin") : `${cell.label}'s twin`}</h4>
-                <p className="small">Built from {u.donors} {holdout ? `markets with ${r.cells.length > 1 ? `${cell.label}'s ` : ""}ads, each indexed to its own history (METHODOLOGY §13.3)` : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}{cell.kpis[r.primary_kpi].pre_fit_period === "week" ? " (on weekly totals)" : ""}.</p>
+                <p className="small">Built from {u.donors} {holdout ? `markets with ${r.cells.length > 1 ? `${cell.label}'s ` : ""}ads, each indexed to its own history (METHODOLOGY §13.3)` : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda?.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}{cell.kpis[r.primary_kpi].pre_fit_period === "week" ? " (on weekly totals)" : ""}.</p>
                 <div className="chips">{u.top_weights.map((w) => <span key={w.geo_id} className="chip">{names[w.geo_id] ?? w.geo_id}: {w.weight.toFixed(3)}</span>)}</div>
                 <PlaceboNote pl={cell.kpis[r.primary_kpi].placebo} level={levelKey(r)} />
               </div>

@@ -3,7 +3,7 @@
 
 import { canonicalize, type Json } from "./jcs";
 import { sha256Hex } from "./hash";
-import { addDays } from "./dates";
+import { addDays, daysBetween } from "./dates";
 
 // ---- results coming back from the Python core (core/fosit/api.py::find_designs) ----
 
@@ -61,16 +61,16 @@ export type Commitment = {
   control: { geo_ids: string[] };
   excluded: { geo_ids: string[]; reasons?: Record<string, string> };
   method: {
-    estimator: "ridge_ascm";
+    estimator: "ridge_ascm" | "crossover_twfe";
     fixed_effects: boolean;
-    lambda_selection: "cv_1se";
-    inference: "conformal";
-    permutations: { kind: "moving_block" | "iid"; n?: number; seed?: number };
+    lambda_selection: "cv_1se" | "none";
+    inference: "conformal" | "randomization";
+    permutations: { kind: "moving_block" | "iid" | "balanced_schedules"; n?: number; seed?: number };
     placebo_calibration?: { n: number };   // METHODOLOGY.md §5.6; absent in plans from FOSIT 0.1
-    test_statistic: "abs_sum";
+    test_statistic: "abs_sum" | "abs_tau";
     alpha: number;
     report_levels: number[];
-    head_to_head: "joint_conformal_projection";
+    head_to_head: "joint_conformal_projection" | "none";
     donor_min_nonzero_share: number;
     seed: number;
   };
@@ -104,9 +104,32 @@ export type Commitment = {
  *  or (§13.7) several cells split those markets between vendors. */
 export type Design =
   | { type: "geo_cells" }
-  | { type: "national_holdout"; ads_before_test: "off" | "always_on" };
+  | { type: "national_holdout"; ads_before_test: "off" | "always_on" }
+  // §14: half A = the cell's markets, half B = the control list; schedule = which half has the ads in each block
+  | { type: "crossover"; block_days: number; washout_days: number; schedule: string; planning_half_life: number };
 
 export const isHoldout = (c: Pick<Commitment, "design">) => c.design?.type === "national_holdout";
+export const isCrossoverPlan = (c: Pick<Commitment, "design">) => c.design?.type === "crossover";
+
+/** The crossover schedule as dated blocks, for the lock screen, the email and the PDF. */
+export function scheduleRows(c: Commitment): { block: number; start: string; end: string; on: "A" | "B" }[] {
+  if (c.design?.type !== "crossover") return [];
+  const { block_days: L, schedule } = c.design;
+  return schedule.split("").map((on, b) => ({
+    block: b + 1, start: addDays(c.dates.test_start, b * L), end: addDays(c.dates.test_start, (b + 1) * L - 1), on: on as "A" | "B",
+  }));
+}
+
+/** A fair random crossover schedule, each half on in exactly half the blocks (browser crypto; the plan locks it). */
+export function randomSchedule(blocks: number): string {
+  const order = Array.from({ length: blocks }, (_, i) => i);
+  for (let i = blocks - 1; i > 0; i--) {
+    const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const aOn = new Set(order.slice(0, blocks / 2));
+  return Array.from({ length: blocks }, (_, b) => (aOn.has(b) ? "A" : "B")).join("");
+}
 
 export type LockedPlan = {
   fosit_plan_version: "1.0";
@@ -195,20 +218,34 @@ export function buildCommitment(p: PlanInputs): Commitment {
     cells,
     control: { geo_ids: sorted(p.design.control) },
     excluded: { geo_ids: sorted(Object.keys(p.excluded)), reasons: { ...p.excluded } },
-    method: {
-      estimator: "ridge_ascm",
-      fixed_effects: true,
-      lambda_selection: "cv_1se",
-      inference: "conformal",
-      permutations: p.permutations === "iid" ? { kind: "iid", n: 1000, seed: p.seed } : { kind: "moving_block" },
-      placebo_calibration: { n: 40 },
-      test_statistic: "abs_sum",
-      alpha: p.alpha,
-      report_levels: [0.9, 0.95],
-      head_to_head: "joint_conformal_projection",
-      donor_min_nonzero_share: 0.5,
-      seed: p.seed,
-    },
+    method: p.designType?.type === "crossover"
+      ? {
+          estimator: "crossover_twfe",
+          fixed_effects: true,
+          lambda_selection: "none",
+          inference: "randomization",
+          permutations: { kind: "balanced_schedules" },
+          test_statistic: "abs_tau",
+          alpha: p.alpha,
+          report_levels: [0.9, 0.95],
+          head_to_head: "none",
+          donor_min_nonzero_share: 0.5,
+          seed: p.seed,
+        }
+      : {
+          estimator: "ridge_ascm",
+          fixed_effects: true,
+          lambda_selection: "cv_1se",
+          inference: "conformal",
+          permutations: p.permutations === "iid" ? { kind: "iid", n: 1000, seed: p.seed } : { kind: "moving_block" },
+          placebo_calibration: { n: 40 },
+          test_statistic: "abs_sum",
+          alpha: p.alpha,
+          report_levels: [0.9, 0.95],
+          head_to_head: "joint_conformal_projection",
+          donor_min_nonzero_share: 0.5,
+          seed: p.seed,
+        },
     thresholds: {
       pre_fit_nrmse_max: fitByCell,
       ...(p.fitPeriod === "week" ? { pre_fit_period: "week" as const } : {}),
@@ -267,6 +304,13 @@ export function validateCommitment(c: Commitment): string[] {
   if (new Set(labels).size !== labels.length || labels.some((l) => !l)) problems.push("Cell labels must be unique and non-empty.");
   if (c.vendor_targeting_confirmed.length !== c.cells.length) problems.push("Every cell's targeting must be confirmed.");
   if (isHoldout(c) && !c.control.geo_ids.length) problems.push("A national holdout needs held-out markets.");
+  if (c.design?.type === "crossover") {
+    const x = c.design;
+    const days = daysBetween(c.dates.test_start, c.dates.test_end) + 1;
+    if (c.cells.length !== 1) problems.push("A crossover has one campaign cell (half A) and a control list (half B).");
+    if (x.schedule.length * x.block_days !== days) problems.push("The crossover schedule must cover the test exactly, block by block.");
+    if (x.schedule.split("A").length - 1 !== x.schedule.length / 2) problems.push("Each half must have the ads in half the blocks.");
+  }
   const walk = (v: unknown, path: string) => {
     if (typeof v === "number" && v !== 0 && !Number.isInteger(v) && (Math.abs(v) < 1e-4 || Math.abs(v) >= 1e15))
       problems.push(`${path}: number out of the hash-safe range.`);

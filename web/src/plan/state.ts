@@ -20,7 +20,7 @@ export type LoadedData = {
   mappingSha256?: string;
 };
 
-export type Template = "two_vendor" | "single" | "custom" | "national_holdout" | "vendor_split";
+export type Template = "two_vendor" | "single" | "custom" | "national_holdout" | "vendor_split" | "crossover";
 
 export type PlanState = {
   template: Template;
@@ -47,6 +47,7 @@ export type PlanState = {
   preWeeks: number;
   permutations: "moving_block" | "iid";
   fitPeriod: "auto" | "day" | "week";   // how the search judges twin fit (METHODOLOGY.md §9.3)
+  lingering: "short" | "long";          // crossover: how long the ads keep working after they stop (§14.4)
   seed: number;
   result: FindResult | null;
   resultKey: string;            // inputs the result was computed from; stale if they change
@@ -89,6 +90,7 @@ export function initialState(): PlanState {
     preWeeks: 26,
     permutations: "moving_block",
     fitPeriod: "auto",
+    lingering: "short",
     seed: randomSeed(),
     result: null,
     resultKey: "",
@@ -113,13 +115,26 @@ export function withCells(s: PlanState, n: number): Partial<PlanState> {
 export const isHoldout = (s: Pick<PlanState, "template">) => s.template === "national_holdout" || s.template === "vendor_split";
 export const isOneCampaign = (s: Pick<PlanState, "template">) => s.template === "national_holdout";
 
-type Kind = "cells" | "campaign" | "split";
-const kindOf = (t: Template): Kind => (t === "national_holdout" ? "campaign" : t === "vendor_split" ? "split" : "cells");
+type Kind = "cells" | "campaign" | "split" | "crossover";
+const kindOf = (t: Template): Kind =>
+  t === "national_holdout" ? "campaign" : t === "vendor_split" ? "split" : t === "crossover" ? "crossover" : "cells";
 const SHARES: Record<Kind, { shareMin: number; shareMax: number }> = {
   cells: { shareMin: 0.03, shareMax: 0.15 },       // each cell's share
   campaign: { shareMin: 0.10, shareMax: 0.20 },    // the holdout's share
   split: { shareMin: 0.15, shareMax: 0.25 },       // the holdout's share
+  crossover: { shareMin: 0.03, shareMax: 0.15 },   // unused: the halves are always about 50/50
 };
+
+/** METHODOLOGY.md §14: two halves of the country take turns having the ads, for small advertisers. */
+export const isCrossover = (s: Pick<PlanState, "template">) => s.template === "crossover";
+/** Designs that measure one campaign (named "Campaign"), not cells per vendor. */
+export const isCampaign = (s: Pick<PlanState, "template">) => s.template === "national_holdout" || s.template === "crossover";
+
+/** Crossover block length, washout and the test lengths offered, by how long the ads keep working (§14.4). */
+export const crossoverSetup = (lingering: PlanState["lingering"]) =>
+  lingering === "long"
+    ? { blockDays: 28, washoutDays: 5, halfLife: 7, durations: [28 * 6, 28 * 8] }
+    : { blockDays: 14, washoutDays: 3, halfLife: 3, durations: [14 * 8, 14 * 12] };
 
 /** Switching design kind changes what the share sliders bound (each cell vs. the holdout) and resets the names. */
 export function withTemplate(s: PlanState, template: Template, cells: number): Partial<PlanState> {
@@ -128,8 +143,11 @@ export function withTemplate(s: PlanState, template: Template, cells: number): P
   return {
     template,
     ...withCells(s, cells),
-    ...(changed ? { labels: kind === "campaign" ? ["Campaign"] : Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`), ...SHARES[kind] } : {}),
+    ...(changed ? { labels: kind === "campaign" || kind === "crossover" ? ["Campaign"] : Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`), ...SHARES[kind] } : {}),
     ...(changed && kind === "cells" ? { adsBeforeTest: null } : {}),
+    ...(changed && kind === "crossover"
+      ? { durations: crossoverSetup(s.lingering).durations, duration: crossoverSetup(s.lingering).durations[0], cooldown: 0 }
+      : changed && kindOf(s.template) === "crossover" ? { durations: [21, 28, 42, 56], duration: 28, cooldown: 7 } : {}),
   };
 }
 
@@ -140,7 +158,7 @@ export const preDays = (s: PlanState) => Math.min(s.preWeeks * 7, s.data?.summar
 
 /** Anything that changes the market search makes old results stale. */
 export const searchKey = (s: PlanState) =>
-  JSON.stringify([s.data?.sha256, s.geoUnit, isHoldout(s), s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
+  JSON.stringify([s.data?.sha256, s.geoUnit, s.template === "crossover" ? `crossover-${s.lingering}` : isHoldout(s), s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
     s.durations, s.cooldown, preDays(s), s.permutations, s.fitPeriod, s.seed]);
 
 export const STEPS = ["Template", "Your test", "Sales data", "Markets", "Timing", "Find markets", "Lock & share"] as const;

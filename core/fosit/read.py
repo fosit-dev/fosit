@@ -149,6 +149,9 @@ def head_to_head(a: dict, b: dict, kpi: str, levels, decision_level: float) -> d
 def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str, appendix: dict | None = None,
              plan_hash: str = "", progress=None) -> dict:
     c = commitment
+    if c.get("design", {}).get("type") == "crossover":      # §14: halves take turns; its own exact test
+        from .crossover import run_read_crossover
+        return run_read_crossover(panel, c, spend, today, plan_hash)
     d = c["dates"]
     method = c["method"]
     alpha = float(method["alpha"])

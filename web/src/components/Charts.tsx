@@ -83,7 +83,7 @@ export function PowerChart({ curves, target = 0.8, title }: { curves: PowerCurve
 
 /** A cell's average daily KPI vs its twin; the shaded part is the holdout the twin never saw. */
 /** Pre-period fit. `index`: a national holdout's sales index (1 = its average), where "holdout" would be an ambiguous label. */
-export function FitChart({ dates, observed, twin, fitEnd, title, index = false }: { dates: string[]; observed: number[]; twin: number[]; fitEnd: number; title: string; index?: boolean }) {
+export function FitChart({ dates, observed, twin, fitEnd, title, index = false, labels }: { dates: string[]; observed: number[]; twin: number[]; fitEnd: number; title: string; index?: boolean; labels?: [string, string] }) {
   const W = 420, H = 170, L = 40, R = 8, T = 10, B = 24;
   const all = [...observed, ...twin];
   const max = Math.max(...all), min = Math.min(...all);
@@ -93,16 +93,18 @@ export function FitChart({ dates, observed, twin, fitEnd, title, index = false }
   return (
     <figure className="chart">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: real markets vs their twin before the test`}>
-        <rect x={x(fitEnd)} y={T} width={x(dates.length - 1) - x(fitEnd)} height={H - T - B} fill="var(--shade)" />
-        <text x={x(fitEnd) + 4} y={T + 12} className="tick">{index ? "unseen days" : "holdout"}</text>
+        {fitEnd < dates.length - 1 && <>
+          <rect x={x(fitEnd)} y={T} width={x(dates.length - 1) - x(fitEnd)} height={H - T - B} fill="var(--shade)" />
+          <text x={x(fitEnd) + 4} y={T + 12} className="tick">{index ? "unseen days" : "holdout"}</text>
+        </>}
         <path d={path(twin)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 3" />
         <path d={path(observed)} fill="none" stroke="var(--series-1)" strokeWidth="1.75" />
         <text x={L} y={H - 6} className="tick">{dates[0]}</text>
         <text x={W - R} y={H - 6} textAnchor="end" className="tick">{dates[dates.length - 1]}</text>
       </svg>
       <figcaption className="legend">
-        <span><i style={{ background: "var(--series-1)" }} aria-hidden />{index ? "Held-out markets (sales index)" : "Real markets (avg per market)"}</span>
-        <span><i className="dashed" style={{ borderColor: "var(--series-2)" }} aria-hidden />Twin</span>
+        <span><i style={{ background: "var(--series-1)" }} aria-hidden />{labels ? labels[0] : index ? "Held-out markets (sales index)" : "Real markets (avg per market)"}</span>
+        <span><i className="dashed" style={{ borderColor: "var(--series-2)" }} aria-hidden />{labels ? labels[1] : "Twin"}</span>
       </figcaption>
       <TableToggle label="fit">
         <table className="data-table">
@@ -115,10 +117,10 @@ export function FitChart({ dates, observed, twin, fitEnd, title, index = false }
 }
 
 /** Daily totals: what happened vs the twin's "no ads" estimate. Test days shaded, cooldown lighter. */
-export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, title, unit, holdout = false }: {
-  dates: string[]; observed: number[]; counterfactual: number[]; nPre: number; testDays: number; title: string; unit: string; holdout?: boolean;
+export function ImpactChart({ dates, observed, counterfactual, nPre, testDays, title, unit, holdout = false, crossover = false }: {
+  dates: string[]; observed: number[]; counterfactual: number[]; nPre: number; testDays: number; title: string; unit: string; holdout?: boolean; crossover?: boolean;
 }) {
-  const lab = impactLabels(holdout);
+  const lab = impactLabels(holdout, crossover);
   const from = Math.max(0, nPre - 56);
   const d = dates.slice(from), o = observed.slice(from), c = counterfactual.slice(from);
   const pre = nPre - from;

@@ -168,12 +168,13 @@
           "required": [
             "type"
           ],
-          "description": "Absent = geo_cells (plans from FOSIT 0.1). national_holdout: one cell (the campaign markets) and the control is the holdout; ads_before_test is required. METHODOLOGY.md \u00a713.",
+          "description": "Absent = geo_cells (plans from FOSIT 0.1). national_holdout: one cell (the campaign markets) and the control is the holdout; ads_before_test is required. METHODOLOGY.md \u00a713. crossover: two halves take turns having the ads (the cell's markets are half A, the control list is half B); block_days, washout_days and schedule are required (\u00a714).",
           "properties": {
             "type": {
               "enum": [
                 "geo_cells",
-                "national_holdout"
+                "national_holdout",
+                "crossover"
               ]
             },
             "ads_before_test": {
@@ -182,6 +183,26 @@
                 "always_on"
               ],
               "description": "Campaign status in every market during the history period (\u00a713.1)."
+            },
+            "block_days": {
+              "type": "integer",
+              "minimum": 7,
+              "description": "Crossover: days per block (\u00a714)."
+            },
+            "washout_days": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Crossover: days left out at the start of every block while the previous block's ads fade."
+            },
+            "schedule": {
+              "type": "string",
+              "pattern": "^[AB]+$",
+              "description": "Crossover: which half has the ads in each block, in order: A = the cell's markets, B = the control list. Drawn at random before launch, each half on in half the blocks."
+            },
+            "planning_half_life": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Crossover: days the ads' effect was assumed to take to fade by half when sizing the test."
             }
           }
         },
@@ -267,7 +288,10 @@
           ],
           "properties": {
             "estimator": {
-              "const": "ridge_ascm"
+              "enum": [
+                "ridge_ascm",
+                "crossover_twfe"
+              ]
             },
             "fixed_effects": {
               "type": "boolean"
@@ -275,7 +299,8 @@
             "lambda_selection": {
               "enum": [
                 "cv_1se",
-                "fixed"
+                "fixed",
+                "none"
               ]
             },
             "lambda_value": {
@@ -284,7 +309,10 @@
               "description": "Required when lambda_selection = fixed."
             },
             "inference": {
-              "const": "conformal"
+              "enum": [
+                "conformal",
+                "randomization"
+              ]
             },
             "permutations": {
               "type": "object",
@@ -297,7 +325,8 @@
                 "kind": {
                   "enum": [
                     "moving_block",
-                    "iid"
+                    "iid",
+                    "balanced_schedules"
                   ]
                 },
                 "n": {
@@ -328,7 +357,8 @@
               "enum": [
                 "abs_sum",
                 "positive_sum",
-                "negative_sum"
+                "negative_sum",
+                "abs_tau"
               ]
             },
             "alpha": {
@@ -344,7 +374,10 @@
               "minItems": 1
             },
             "head_to_head": {
-              "const": "joint_conformal_projection"
+              "enum": [
+                "joint_conformal_projection",
+                "none"
+              ]
             },
             "donor_min_nonzero_share": {
               "type": "number",

@@ -1,6 +1,6 @@
 # Validation against GeoLift
 
-FOSIT's statistics are written from the papers (docs/METHODOLOGY.md §16). This folder checks them against
+FOSIT's statistics are written from the papers (docs/METHODOLOGY.md §17). This folder checks them against
 Meta's open-source [GeoLift](https://github.com/facebookincubator/GeoLift) (R), run as an **external
 reference only**. No GeoLift or augsynth code is copied into FOSIT.
 

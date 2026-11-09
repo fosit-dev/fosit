@@ -2,7 +2,7 @@
 // One document for the advertiser and every vendor: what was agreed, and how to check it later.
 
 import { jsPDF } from "jspdf";
-import { isHoldout, type LockedPlan } from "./plan";
+import { isCrossoverPlan, isHoldout, scheduleRows, type LockedPlan } from "./plan";
 import { groupHash, shortCode } from "./hash";
 import { pretty, daysBetween } from "./dates";
 import { money, pct, weeks } from "./format";
@@ -87,6 +87,7 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
   const testDays = daysBetween(d.test_start, d.test_end) + 1;
   const cooldownDays = daysBetween(d.test_end, d.cooldown_end);
   const holdout = isHoldout(c);
+  const cross = isCrossoverPlan(c);
 
   w.doc.setFont("helvetica", "bold").setFontSize(20).setTextColor(20, 30, 60).text("Locked test plan", MARGIN, w.y + 6);
   w.y += 26;
@@ -115,7 +116,14 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
   w.row("Geography", `${c.geo.unit === "cbsa" ? "US metro and micro areas (Census CBSAs)" : c.geo.unit === "state" ? "US states" : "Custom markets"} — ${c.geo.mapping_name}`);
   w.row("Total budget", money(c.cells.reduce((s, x) => s + x.budget, 0), c.currency));
 
-  if (holdout) {
+  if (cross) {
+    w.heading("Schedule: which half has the ads (drawn at random before launch)");
+    for (const r of scheduleRows(c)) w.row(`Block ${r.block}`, `${pretty(r.start)} – ${pretty(r.end)}: ads in half ${r.on} ONLY`);
+    w.heading(`Half A — ${c.cells[0].geo_ids.length} markets (budget for the whole test ${money(c.cells[0].budget, c.currency)})`);
+    w.para(geoList(c.cells[0].geo_ids, names), { size: 8.5 });
+    w.heading(`Half B — ${c.control.geo_ids.length} markets`);
+    w.para(geoList(c.control.geo_ids, names), { size: 8.5 });
+  } else if (holdout) {
     w.heading(`Holdout — ${c.control.geo_ids.length} markets with NO ads from ${pretty(d.test_start)} to ${pretty(d.cooldown_end)}`);
     w.para(geoList(c.control.geo_ids, names), { size: 9 });
     for (const cell of c.cells) {
@@ -144,7 +152,13 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
 
   w.heading("How results will be read (fixed now)");
   const m = c.method;
-  w.para(holdout
+  w.para(cross
+    ? `Halves take turns (METHODOLOGY §14). For every half and block, mean daily sales after the first ${c.design?.type === "crossover" ? c.design.washout_days : 0} days ` +
+      `(while the previous block's ads fade) are compared: the gap between a half with the ads and the same half without them, ` +
+      `net of national swings that hit both halves at once, is the ads' lift. The result is tested against every other balanced ` +
+      `schedule the coin could have produced (an exact randomization test), and the range is every lift that test doesn't rule out. ` +
+      `Decisions use ${pct(1 - m.alpha, 0)} ranges (95% also reported).`
+    : holdout
     ? `National holdout (METHODOLOGY §13). The held-out markets are compared with a statistical twin built from the markets with ads${c.cells.length > 1 ? " (one twin per vendor, from that vendor's markets only)" : ""}, ` +
       `each indexed to its own history (ridge-augmented synthetic control with market fixed effects, ridge penalty chosen by ` +
       `cross-validation). The gap is the share of sales the ads drove, applied to the markets with ads. Uncertainty comes from conformal ` +
@@ -169,7 +183,8 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
 
   w.heading("Before launch, each vendor confirmed");
   for (const cell of c.cells)
-    w.para(holdout && c.cells.length === 1 ? `[x] ${cell.label} can keep every held-out market free of ads for the dates above.` :
+    w.para(cross ? `[x] ${cell.label} can switch the ads between the two halves on exactly the dates above.` :
+      holdout && c.cells.length === 1 ? `[x] ${cell.label} can keep every held-out market free of ads for the dates above.` :
       holdout ? `[x] ${cell.label} can target exactly its market list above, and nothing in the held-out markets.` : `[x] ${cell.label} can target exactly its market list above, and nothing in control.`, { size: 9.5 });
 
   if (includeAppendix && plan.appendix) {

@@ -5,9 +5,9 @@ import { addDays, pretty } from "../lib/dates";
 import { downloadBlob, downloadText, slug } from "../lib/download";
 import { money, pct, weeks } from "../lib/format";
 import { groupHash, sha256Hex, shortCode } from "../lib/hash";
-import { buildCommitment, lockPlan, type LockedPlan } from "../lib/plan";
+import { buildCommitment, lockPlan, randomSchedule, scheduleRows, type LockedPlan } from "../lib/plan";
 import { readLink } from "../embed";
-import { budgets, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
+import { budgets, crossoverSetup, isCrossover, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
 import { curveFor, detectableIcpa } from "./StepFind";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void; onRead?: (plan: LockedPlan) => void };
@@ -42,6 +42,8 @@ export function StepLock({ s, set, onRead }: Props) {
   const testEnd = addDays(s.testStart, s.duration - 1);
   const holdout = isHoldout(s);
   const one = isOneCampaign(s);
+  const cross = isCrossover(s);
+  const xs = crossoverSetup(s.lingering);
 
   const lock = async () => {
     setError(null);
@@ -59,7 +61,9 @@ export function StepLock({ s, set, onRead }: Props) {
         labels: s.labels.map((l) => l.trim()), budgets: b,
         testStart: s.testStart, testDays: s.duration, cooldownDays: s.cooldown, preDays: preDays(s),
         design: d, designRank: s.chosen! + 1, candidatesSearched: s.result!.funnel.generated, fitPeriod: s.result!.fit_period,
-        designType: holdout ? { type: "national_holdout", ads_before_test: s.adsBeforeTest === "always_on" ? "always_on" : "off" } : { type: "geo_cells" },
+        designType: cross
+          ? { type: "crossover", block_days: xs.blockDays, washout_days: xs.washoutDays, schedule: randomSchedule(s.duration / xs.blockDays), planning_half_life: xs.halfLife }
+          : holdout ? { type: "national_holdout", ads_before_test: s.adsBeforeTest === "always_on" ? "always_on" : "off" } : { type: "geo_cells" },
         excluded: s.excluded, permutations: s.permutations, alpha: 0.1, seed: s.seed,
         decisionBasis: s.decisionBasis, targetIcpa: s.targetIcpa ?? undefined, breakevenIroas: s.breakevenIroas ?? undefined,
         coinFlip: s.coinFlip,
@@ -85,7 +89,13 @@ export function StepLock({ s, set, onRead }: Props) {
 
   const fileBase = s.locked ? `${slug(s.testName)}-${shortCode(s.locked.hash.value).toLowerCase()}` : "";
   const planForDownload = (p: LockedPlan): LockedPlan => (s.includeDiagnostics ? p : { ...p, appendix: undefined });
-  const email = s.locked
+  const rows = s.locked ? scheduleRows(s.locked.commitment) : [];
+  const scheduleText = rows.map((r) => `  ${pretty(r.start)} – ${pretty(r.end)}: ads in half ${r.on} only`).join("\n");
+  const email = s.locked && cross
+    ? `Subject: Locked test plan: ${s.testName} (fingerprint ${shortCode(s.locked.hash.value)})\n\n` +
+      `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). The country is split into two halves (lists in the plan) that take turns having the ads, on this schedule:\n\n${scheduleText}\n\n` +
+      `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can switch the ads between the halves on exactly these dates. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the last block ends (${pretty(testEnd)}), read the results here: ${readLink()}\n`
+    : s.locked
     ? `Subject: Locked test plan: ${s.testName} (fingerprint ${shortCode(s.locked.hash.value)})\n\n` +
       (holdout && !one
         ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)}, each vendor only in the markets listed for its cell. The ${d.control.length} held-out markets must get no CTV from anyone until ${pretty(addDays(testEnd, s.cooldown))}.\n\n` +
@@ -104,6 +114,15 @@ export function StepLock({ s, set, onRead }: Props) {
         <h2>🔒 Plan locked</h2>
         <p>Plan fingerprint<InfoTip term="hash" />, short code <span className="short-code">{shortCode(h)}</span></p>
         <div className="hash" data-testid="plan-hash">{groupHash(h)}</div>
+        {rows.length > 0 && (
+          <div className="table-wrap" style={{ marginTop: 16 }}>
+            <table aria-label="Crossover schedule">
+              <thead><tr><th>Block</th><th>Dates</th><th>Ads run in</th></tr></thead>
+              <tbody>{rows.map((r) => <tr key={r.block}><td>{r.block}</td><td>{pretty(r.start)} – {pretty(r.end)}</td><td>Half {r.on} only</td></tr>)}</tbody>
+            </table>
+            <p className="small muted">Drawn at random when you locked the plan, each half on in half the blocks. Half A = {d.cells[0].length} markets, half B = {d.control.length} markets (lists in the PDF).</p>
+          </div>
+        )}
         <div className="callout ok" style={{ marginTop: 16 }}>
           <strong>Now email the PDF, the JSON and this fingerprint to the advertiser and every vendor, before {pretty(s.testStart)}.</strong>{" "}
           That email is your proof the plan was set in advance. FOSIT has no server, so it can't be your witness, and that's on purpose.
@@ -147,7 +166,7 @@ export function StepLock({ s, set, onRead }: Props) {
         </table>
       </div>
       <p className="small muted">Ads {pretty(s.testStart)} – {pretty(testEnd)} ({weeks(s.duration)}), cooldown to {pretty(addDays(testEnd, s.cooldown))}.{" "}
-        {holdout ? `${d.control.length} markets held out (${pct(d.control_share)} of sales), dark until ${pretty(addDays(testEnd, s.cooldown))}.` : `${d.control.length} control markets.`}{" "}
+        {cross ? `Halves of ${d.cells[0].length} and ${d.control.length} markets take turns every ${xs.blockDays / 7} weeks; the schedule is drawn when you lock.` : holdout ? `${d.control.length} markets held out (${pct(d.control_share)} of sales), dark until ${pretty(addDays(testEnd, s.cooldown))}.` : `${d.control.length} control markets.`}{" "}
         {Object.keys(s.excluded).length} excluded.</p>
 
       {d.cells.length > 1 && (
@@ -166,7 +185,9 @@ export function StepLock({ s, set, onRead }: Props) {
       {s.labels.map((l, k) => (
         <label key={k} className="check">
           <input type="checkbox" checked={s.confirmed[k] ?? false} onChange={(e) => set({ confirmed: s.confirmed.map((c, j) => (j === k ? e.target.checked : c)) })} />
-          {holdout && !one
+          {cross
+            ? <span><strong>{l}</strong>'s vendor(s) confirmed they can switch the ads between the two halves ({d.cells[0].length} and {d.control.length} markets) every {xs.blockDays / 7} weeks, on the dates the plan will list.</span>
+            : holdout && !one
             ? <span><strong>{l}</strong>'s vendor confirmed they can target exactly these {d.cells[setFor(k)].length} markets, and nothing in the {d.control.length} held-out markets.</span>
             : holdout
             ? <span><strong>{l}</strong>'s vendor(s) confirmed they can keep all {d.control.length} held-out markets free of ads from {pretty(s.testStart)} to {pretty(addDays(testEnd, s.cooldown))}.</span>

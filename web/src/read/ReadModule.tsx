@@ -102,6 +102,7 @@ export function ReadModule({ initialPlan }: { initialPlan?: LockedPlan | null } 
     two_vendor: "Example: two-vendor test (synthetic)",
     national_holdout: "Example: national campaign with a state holdout (synthetic)",
     vendor_split: "Example: two vendors split the country, with a no-CTV group (synthetic)",
+    crossover_small: "Example: small advertiser, halves take turns (synthetic)",
   };
   const loadExample = async (name: keyof typeof EXAMPLES) => {
     setBusy("Loading the example…");
@@ -175,12 +176,15 @@ export function ReadModule({ initialPlan }: { initialPlan?: LockedPlan | null } 
           <button type="button" className="btn-ghost" onClick={() => loadExample("two_vendor")} disabled={!!busy}>Try it with the example (two vendors, synthetic)</button>
           <button type="button" className="btn-ghost" onClick={() => loadExample("national_holdout")} disabled={!!busy}>Try the national-holdout example (synthetic)</button>
           <button type="button" className="btn-ghost" onClick={() => loadExample("vendor_split")} disabled={!!busy}>Try the vendor-split example (synthetic)</button>
+          <button type="button" className="btn-ghost" onClick={() => loadExample("crossover_small")} disabled={!!busy}>Try the small-business example (synthetic)</button>
         </div>
         {planError && <div className="callout err">{planError}</div>}
         {plan && c && (
           <div style={{ marginTop: 14 }}>
             <p><strong>{c.test_name}</strong>{c.advertiser_label ? ` · ${c.advertiser_label}` : ""} <span className="muted small">({planName})</span></p>
-            <p className="small">{isHoldout(c) && c.cells.length > 1
+            <p className="small">{c.design?.type === "crossover"
+              ? `Halves take turns · ${c.cells[0].label}: half A ${c.cells[0].geo_ids.length} markets, half B ${c.control.geo_ids.length} markets, ${money(c.cells[0].budget, c.currency)} · schedule ${c.design.schedule} (${c.design.block_days / 7}-week blocks)`
+              : isHoldout(c) && c.cells.length > 1
               ? `Vendors split the country · ${c.cells.map((x) => `${x.label}: ${x.geo_ids.length} markets, ${money(x.budget, c.currency)}`).join(" · ")} · ${c.control.geo_ids.length} markets held out (no CTV)`
               : isHoldout(c)
               ? `National holdout · ${c.cells[0].label}: ${c.cells[0].geo_ids.length} markets with ads, ${money(c.cells[0].budget, c.currency)} · ${c.control.geo_ids.length} markets held out`

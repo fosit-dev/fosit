@@ -137,6 +137,7 @@ Structure:
 **Cross-field rules** (❌ unless noted):
 
 - `pre_start < pre_end < test_start ≤ test_end ≤ cooldown_end`. Pre-period < 56 days ⚠️.
+- `design.type` is `crossover` for the small-advertiser design ([METHODOLOGY §14](METHODOLOGY.md#14-geo-crossover-for-small-advertisers)): one cell (half A), `control.geo_ids` is half B, and `design.block_days`, `design.washout_days` and `design.schedule` (one `A`/`B` per block, each half in half the blocks) are required; `cooldown_end` equals `test_end`, and the method is `crossover_twfe` with `randomization` inference.
 - `design.type` is `geo_cells` (default when absent) or `national_holdout` ([METHODOLOGY §13](METHODOLOGY.md#13-national-holdout)). A national holdout has one or more cells: with one, the cell is every market with the campaign; with several, vendors split those markets ([METHODOLOGY §13.7](METHODOLOGY.md#137-several-vendors-split-the-country)). Its `control.geo_ids` are the holdout markets, and `design.ads_before_test` (`off` or `always_on`) is required.
 - Cell `geo_ids`, `control.geo_ids`, and `excluded.geo_ids` are pairwise **disjoint**.
 - All geo lists sorted ascending (code-point order), so the canonical form is unique.

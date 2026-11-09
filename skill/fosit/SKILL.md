@@ -50,6 +50,7 @@ The first run installs FOSIT's engine (pinned version) into `~/.fosit` and needs
 | compare vendors, each in its own small set of markets, with a large no-ads control | geo cells | `--design cells --cells 2` |
 | keep one campaign national and hold out ~10–20% of the country | national holdout | `--design holdout` |
 | have vendors split the country (e.g. 40% / 40%) with a no-CTV group (~20%) | vendor split | `--design split --cells 2` |
+| measure one campaign for a **small business** (a few hundred orders a day or less) | halves take turns (crossover) | `--design crossover [--lingering long]` |
 
 **3. Data.** They need daily sales by market for at least 8 weeks (12+ recommended, up to 26 used), ending just before the test. Formats and fixes: `references/data-formats.md`.
 

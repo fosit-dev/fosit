@@ -23,6 +23,13 @@ Vendors split every market that isn't held out (for example 40% / 40%), and a no
 - Same history rule as the national holdout.
 - The split is balanced on sales and population; a single market with a large share of sales at an unusual rate per person can make every split fail the balance check: exclude it (`--exclude ID:reason`) or accept that no fair split exists.
 
+### Halves take turns, for small businesses (`--design crossover`)
+Two balanced halves of the country take turns having the ads, every 2 weeks (or 4), in a random balanced order drawn when the plan is locked. Both halves face the same season and news at once, so the gap when one has the ads is what the ads did; an exact randomization test against every other balanced schedule gives the range. Every market gets the ads half the time and spend isn't cut.
+- **Best for:** one campaign at a few hundred orders a day or less, where geo designs can't detect anything useful (below ~100 orders a day none can be planned). On synthetic state data: smallest detectable lift about 16% at 50 orders a day, 11% at 100, 7.5% at 400, for a 16-week test.
+- **Ask how long the ads keep working after they stop.** A few days → `--lingering short` (2-week blocks, 16 or 24 weeks). A week or more → `--lingering long` (4-week blocks, 24 or 32 weeks). Lingering effects shrink the contrast; estimates err low (about 15% even with a 3-day fade), which is cautious.
+- **Vendors must switch targeting between the halves on the schedule's dates.** The read checks impressions that landed in the dark half.
+- Lock with `lock DIR --weeks <test length> --confirm-targeting` (no `--ads-before`, no coin flip: the schedule is the randomization). The plan summary lists the dated schedule; send it with the plan.
+
 ## Geography (`--unit`)
 - **`cbsa` (US metro and micro areas):** hundreds of markets, sharper tests. Vendors usually target these via ZIP lists. Prefer it.
 - **`state`:** only 51 markets, so twins drift more and ranges are wider (FOSIT's placebo check widens them honestly). Use it when vendors can only target states.

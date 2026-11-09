@@ -5,7 +5,7 @@ import type { DesignResult, FindResult, PowerCurve } from "../lib/plan";
 import { money, num, pct, weeks } from "../lib/format";
 import { callPython } from "../worker/client";
 import type { Progress } from "../worker/protocol";
-import { budgets, isHoldout, isOneCampaign, preDays, searchKey, type PlanState } from "./state";
+import { budgets, isCrossover, isHoldout, isOneCampaign, preDays, searchKey, type PlanState } from "./state";
 
 type Props = {
   s: PlanState;
@@ -77,7 +77,8 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
   const known = det.filter((x): x is number => x != null);
   const defaultIcpa = icpa || (known.length ? Math.max(1, Math.round(Math.min(...known))) : 50);
   const holdout = isHoldout(s);
-  const one = isOneCampaign(s);
+  const cross = isCrossover(s);
+  const one = isOneCampaign(s) || cross;
   const who = one ? "the campaign" : "a vendor";
 
   const expand = async () => {
@@ -85,7 +86,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
     if (!chart && d.power) {
       const c = await callPython<typeof chart>("design_chart", {
         cells: d.cells, control: d.control, kpi: s.primaryKpi, pre_days: preDays(s), holdout_days: Math.min(...s.durations),
-        design: holdout ? "national_holdout" : "geo_cells",
+        design: cross ? "crossover" : holdout ? "national_holdout" : "geo_cells",
       }).catch(() => null);
       setChart(c);
     }
@@ -103,7 +104,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
       {d.power ? (
         <>
           <p className="big" style={{ margin: "6px 0" }}>
-            {mde != null ? <>Can detect a lift of <span style={{ color: "var(--accent)" }}>{pct(mde)}</span> or more {one ? "in the campaign's markets" : "in each cell"}</> : "Can't reliably detect lifts under 50% with this design"}
+            {mde != null ? <>Can detect a lift of <span style={{ color: "var(--accent)" }}>{pct(mde)}</span> or more {cross ? "while a half has the ads" : one ? "in the campaign's markets" : "in each cell"}</> : "Can't reliably detect lifts under 50% with this design"}
             {" "}({weeks(s.duration)} test)<InfoTip term="mde" />
           </p>
           {mde != null && (
@@ -124,9 +125,13 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
         <p className="muted">Sensitivity not simulated for this design (only the top 5 are, to save time).</p>
       )}
       <div className="chips">
-        <span className={`chip ${Math.max(...d.fit) <= 0.1 ? "ok" : "warn"}`}>Fit error{s.result?.fit_period === "week" ? " (weekly)" : ""} {d.fit.map((f) => pct(f)).join(" / ")}<InfoTip term="fit" /></span>
+        {cross
+          ? <span className="chip">Halves track each other within {pct(d.fit[0])} per block<InfoTip term="crossover" /></span>
+          : <span className={`chip ${Math.max(...d.fit) <= 0.1 ? "ok" : "warn"}`}>Fit error{s.result?.fit_period === "week" ? " (weekly)" : ""} {d.fit.map((f) => pct(f)).join(" / ")}<InfoTip term="fit" /></span>}
         <span className={`chip ${d.balance_score <= 0.1 ? "ok" : "warn"}`}>Balance gap {pct(d.balance_score)}<InfoTip term="balance" /></span>
-        {holdout ? (
+        {cross ? (
+          <span className="chip">Half A: {d.cells[0].length} markets ({pct(d.shares[0], 0)} of sales) · Half B: {d.control.length} markets</span>
+        ) : holdout ? (
           <>
             <span className="chip">{pct(d.control_share)} of sales held out<InfoTip term="holdout" /></span>
             <span className="chip">{d.control.length} markets held out · {d.cells.map((c) => c.length).join(" + ")} with ads</span>
@@ -145,7 +150,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
         <div style={{ marginTop: 12 }}>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>{one ? "Campaign" : "Cell"}</th><th>Markets</th><th>Share of sales</th><th>Fit error</th><th>Detectable lift</th><th>Detectable iCPA</th><th>Fake-lift rate<InfoTip term="falsePositive" /></th></tr></thead>
+              <thead><tr><th>{one ? "Campaign" : "Cell"}</th><th>Markets</th><th>Share of sales</th><th>{cross ? "Block-to-block noise" : "Fit error"}</th><th>Detectable lift</th><th>Detectable iCPA</th><th>Fake-lift rate<InfoTip term="falsePositive" /></th></tr></thead>
               <tbody>
                 {d.cells.map((c, i) => {
                   const cv = curveFor(d, i, s.duration);
@@ -160,7 +165,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
               </tbody>
             </table>
           </div>
-          <h4>{one ? "Balance: holdout vs. markets with ads" : holdout ? "Balance between cells, and the holdout vs. markets with ads" : "Balance between cells"}<InfoTip term="balance" /></h4>
+          <h4>{cross ? "Balance: half A vs. half B" : one ? "Balance: holdout vs. markets with ads" : holdout ? "Balance between cells, and the holdout vs. markets with ads" : "Balance between cells"}<InfoTip term="balance" /></h4>
           <div className="chips">{Object.entries(d.balance).map(([k, v]) => <span key={k} className={`chip ${v <= 0.1 ? "ok" : "warn"}`}>{k}: {pct(v)} gap</span>)}</div>
           {d.power && (
             <>
@@ -186,14 +191,17 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
             <div className="grid-2">
               {chart.cells.map((c, i) => (
                 <div key={i}>
-                  <h4 style={{ margin: "8px 0 0" }}>{one ? "Holdout markets vs their twin (sales index, 1 = average)" : holdout ? `Holdout vs its twin from ${s.labels[i]}'s markets (sales index)` : `${s.labels[i]} vs its twin`}<InfoTip term="twin" /></h4>
-                  <FitChart title={holdout ? "Holdout" : s.labels[i]} dates={chart.dates} observed={c.observed} twin={c.twin} fitEnd={chart.fit_end} index={holdout} />
+                  <h4 style={{ margin: "8px 0 0" }}>{cross ? "Half A vs half B, weekly sales (1 = each half's average)" : one ? "Holdout markets vs their twin (sales index, 1 = average)" : holdout ? `Holdout vs its twin from ${s.labels[i]}'s markets (sales index)` : `${s.labels[i]} vs its twin`}<InfoTip term="twin" /></h4>
+                  <FitChart title={cross ? "Halves" : holdout ? "Holdout" : s.labels[i]} dates={chart.dates} observed={c.observed} twin={c.twin} fitEnd={chart.fit_end} index={holdout || cross}
+                    labels={cross ? ["Half A", "Half B"] : undefined} />
                 </div>
               ))}
             </div>
           )}
+          {cross && <details><summary>Half A ({d.cells[0].length})</summary><p className="small">{d.cells[0].map((g) => names[g] ?? g).join(" · ")}</p></details>}
+          {cross && <details><summary>Half B ({d.control.length})</summary><p className="small">{d.control.map((g) => names[g] ?? g).join(" · ")}</p></details>}
           {holdout && <details><summary>Held-out markets, no ads ({d.control.length})</summary><p className="small">{d.control.map((g) => names[g] ?? g).join(" · ")}</p></details>}
-          {d.cells.map((c, i) => (
+          {!cross && d.cells.map((c, i) => (
             <details key={i}><summary>{one ? "Markets with ads" : `${s.labels[i]} markets`} ({c.length})</summary><p className="small">{c.map((g) => names[g] ?? g).join(" · ")}</p></details>
           ))}
         </div>
@@ -208,17 +216,20 @@ export function StepFind({ s, set, run, cancel, running, progress, error }: Prop
   const share = progress ? Math.min(1, progress.done / Math.max(progress.total, 1)) : 0;
   const [showAll, setShowAll] = useState(false);
   const holdout = isHoldout(s);
+  const cross = isCrossover(s);
   return (
     <section className="card">
-      <h2>{holdout ? "Find a fair holdout" : "Find fair market splits"}</h2>
+      <h2>{cross ? "Find balanced halves" : holdout ? "Find a fair holdout" : "Find fair market splits"}</h2>
       <p className="muted">
-        {holdout
+        {cross
+          ? "We try hundreds of ways to split the country into two halves with the same sales, people and trends, then replay your history with random schedules to see how small a lift the test could detect."
+          : holdout
           ? "We search thousands of random sets of markets to hold out, keep the ones that move like the rest of the country, then replay your history to see how small a lift each could detect."
           : "We search thousands of random ways to split your markets, keep the fair ones, then replay your history to see how small a lift each could detect."}
         {" "}This runs on your computer and can take a few minutes.
       </p>
       <div className="row">
-        <button className="btn-primary" onClick={run} disabled={running}>{r && !stale ? "Search again" : holdout ? "Find a fair holdout" : "Find fair market splits"}</button>
+        <button className="btn-primary" onClick={run} disabled={running}>{r && !stale ? "Search again" : cross ? "Find balanced halves" : holdout ? "Find a fair holdout" : "Find fair market splits"}</button>
         {running && <button onClick={cancel}>Cancel</button>}
       </div>
       {running && (

@@ -230,9 +230,9 @@ def cmd_sample(a) -> None:
 
 def _design_cfg(a, summary: dict) -> dict:
     holdout = a.design in ("holdout", "split")
-    n_cells = 1 if a.design == "holdout" else (a.cells or 2)
+    n_cells = 1 if a.design in ("holdout", "crossover") else (a.cells or 2)
     labels = [x.strip() for x in a.labels.split(",")] if a.labels else (
-        ["Campaign"] if a.design == "holdout" else [f"Cell {i + 1}" for i in range(n_cells)])
+        ["Campaign"] if a.design in ("holdout", "crossover") else [f"Cell {i + 1}" for i in range(n_cells)])
     if len(labels) != n_cells:
         sys.exit(f"--labels has {len(labels)} names but the design has {n_cells} cells.")
     split = [float(x) for x in a.split.split(",")] if a.split else [100 / n_cells] * n_cells
@@ -241,11 +241,19 @@ def _design_cfg(a, summary: dict) -> dict:
     budgets = [round(a.budget * p / 100, 2) for p in split]
     pre_days = min(a.pre_weeks * 7, summary["days"])
     durations = sorted({int(w) * 7 for w in a.weeks.split(",")})
+    block = 28 if a.lingering == "long" else 14
+    if a.design == "crossover":   # §14: block length and test lengths follow how long the ads keep working
+        durations = [block * 6, block * 8] if block == 28 else [block * 8, block * 12]
     excluded = {}
     for e in a.exclude or []:
         gid, _, reason = e.partition(":")
         excluded[gid.strip()] = reason.strip()
-    defaults = {"cells": (0.03, 0.15), "holdout": (0.10, 0.20), "split": (0.15, 0.25)}[a.design]
+    defaults = {"cells": (0.03, 0.15), "holdout": (0.10, 0.20), "split": (0.15, 0.25), "crossover": (0.03, 0.15)}[a.design]
+    if a.design == "crossover":
+        return {"design": "crossover", "n_cells": 1, "kpi": a.kpi, "pre_days": pre_days, "durations": durations,
+                "cooldown_days": 0, "block_days": block,
+                "half_life": 7 if a.lingering == "long" else 3, "excluded": list(excluded), "seed": a.seed,
+                "budgets": [a.budget], "alpha": 0.1, "_labels": labels, "_excluded": excluded, "_kind": a.design}
     return {
         "design": "national_holdout" if holdout else "geo_cells", "n_cells": n_cells, "kpi": a.kpi,
         "pre_days": pre_days, "durations": durations, "cooldown_days": a.cooldown,
@@ -294,12 +302,17 @@ def cmd_plan(a) -> None:
                   "more history, or fewer exclusions."]
     for i, d in enumerate(found["designs"][:a.show]):
         lines.append(f"## Design {i + 1}{' (best)' if i == 0 else ''}")
-        held = cfg["_kind"] != "cells"
-        lines.append(f"- {'Held out' if held else 'Control'}: {len(d['control'])} markets, {pct(d['control_share'])} of sales"
-                     + (" (no ads)" if held else ""))
-        for c, cell in enumerate(d["cells"]):
-            lines.append(f"- {cfg['_labels'][c]}: {len(cell)} markets, {pct(d['shares'][c])} of sales; fit error {pct(d['fit'][c])}")
-        lines.append(f"- Balance gap {pct(d['balance_score'])} ({', '.join(f'{k} {pct(v)}' for k, v in d['balance'].items())})")
+        if cfg["_kind"] == "crossover":
+            lines.append(f"- Half A: {len(d['cells'][0])} markets ({pct(d['shares'][0])} of sales); half B: {len(d['control'])} markets; "
+                         f"the halves' ratio moves {pct(d['fit'][0])} from block to block")
+            lines.append(f"- Balance gap {pct(d['balance_score'])} ({', '.join(f'{k} {pct(v)}' for k, v in d['balance'].items())})")
+        else:
+            held = cfg["_kind"] != "cells"
+            lines.append(f"- {'Held out' if held else 'Control'}: {len(d['control'])} markets, {pct(d['control_share'])} of sales"
+                         + (" (no ads)" if held else ""))
+            for c, cell in enumerate(d["cells"]):
+                lines.append(f"- {cfg['_labels'][c]}: {len(cell)} markets, {pct(d['shares'][c])} of sales; fit error {pct(d['fit'][c])}")
+            lines.append(f"- Balance gap {pct(d['balance_score'])} ({', '.join(f'{k} {pct(v)}' for k, v in d['balance'].items())})")
         if d["power"]:
             rows = ["| Test length | " + " | ".join(f"{l}: detectable lift / iCPA" for l in cfg["_labels"]) + " |",
                     "|---|" + "---|" * len(cfg["_labels"])]
@@ -360,6 +373,7 @@ def build_commitment(work: dict, d: dict, a) -> tuple[dict, dict]:
     curves = [next(cv for cv in pc["curves"] if cv["test_days"] == days) for pc in d["power"]["cells"]] if d["power"] else [None] * n
     mde = [cv["mde"] if cv else None for cv in curves]
     holdout = work["config"]["design"] == "national_holdout"
+    cross = work["config"]["design"] == "crossover"
     c = {
         "tool": {"name": "FOSIT", "version": fosit.__version__, "core_sha256": core_sha256()},
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -369,15 +383,23 @@ def build_commitment(work: dict, d: dict, a) -> tuple[dict, dict]:
         "kpi": {"primary": kpis[0], "secondary": kpis[1:], "aggregation": "daily"},
         "dates": {"pre_start": (pre_end - timedelta(days=work["config"]["pre_days"] - 1)).isoformat(), "pre_end": pre_end.isoformat(),
                   "test_start": test_start.isoformat(), "test_end": test_end.isoformat(),
-                  "cooldown_end": (test_end + timedelta(days=work["config"]["cooldown_days"])).isoformat()},
-        "design": {"type": "national_holdout", "ads_before_test": a.ads_before} if holdout else {"type": "geo_cells"},
+                  "cooldown_end": (test_end + timedelta(days=0 if cross else work["config"]["cooldown_days"])).isoformat()},
+        "design": ({"type": "crossover", "block_days": work["config"]["block_days"],
+                    "washout_days": {7: 2, 14: 3, 28: 5}[work["config"]["block_days"]],
+                    "schedule": random_schedule(days // work["config"]["block_days"]),
+                    "planning_half_life": int(work["config"]["half_life"])} if cross else
+                   {"type": "national_holdout", "ads_before_test": a.ads_before} if holdout else {"type": "geo_cells"}),
         "cells": cells,
         "control": {"geo_ids": sorted(d["control"])},
         "excluded": {"geo_ids": sorted(work["excluded"]), "reasons": dict(work["excluded"])},
-        "method": {"estimator": "ridge_ascm", "fixed_effects": True, "lambda_selection": "cv_1se", "inference": "conformal",
-                   "permutations": {"kind": "moving_block"}, "placebo_calibration": {"n": 40}, "test_statistic": "abs_sum",
-                   "alpha": 0.1, "report_levels": [0.9, 0.95], "head_to_head": "joint_conformal_projection",
-                   "donor_min_nonzero_share": 0.5, "seed": work["config"]["seed"]},
+        "method": ({"estimator": "crossover_twfe", "fixed_effects": True, "lambda_selection": "none", "inference": "randomization",
+                    "permutations": {"kind": "balanced_schedules"}, "test_statistic": "abs_tau", "alpha": 0.1,
+                    "report_levels": [0.9, 0.95], "head_to_head": "none", "donor_min_nonzero_share": 0.5,
+                    "seed": work["config"]["seed"]} if cross else
+                   {"estimator": "ridge_ascm", "fixed_effects": True, "lambda_selection": "cv_1se", "inference": "conformal",
+                    "permutations": {"kind": "moving_block"}, "placebo_calibration": {"n": 40}, "test_statistic": "abs_sum",
+                    "alpha": 0.1, "report_levels": [0.9, 0.95], "head_to_head": "joint_conformal_projection",
+                    "donor_min_nonzero_share": 0.5, "seed": work["config"]["seed"]}),
         "thresholds": {"pre_fit_nrmse_max": fit_by, "leakage_warn_share": 0.05, "spend_share_tolerance_pp": 5,
                        "min_budget_delivery": 0.9, "power_target": 0.8,
                        **({"pre_fit_period": "week"} if work["result"].get("fit_period") == "week" else {})},
@@ -411,6 +433,17 @@ def build_commitment(work: dict, d: dict, a) -> tuple[dict, dict]:
     return c, appendix
 
 
+def random_schedule(n_blocks: int) -> str:
+    """A fair random crossover schedule (§14): each half has the ads in exactly half the blocks."""
+    import secrets
+    order = list(range(n_blocks))
+    for i in range(n_blocks - 1, 0, -1):
+        j = secrets.randbelow(i + 1)
+        order[i], order[j] = order[j], order[i]
+    on_a = set(order[: n_blocks // 2])
+    return "".join("A" if b in on_a else "B" for b in range(n_blocks))
+
+
 def cmd_lock(a) -> None:
     work = json.loads((Path(a.workdir) / "designs.json").read_text())
     designs = work["result"]["designs"]
@@ -421,6 +454,8 @@ def cmd_lock(a) -> None:
     if not a.confirm_targeting:
         sys.exit("Every vendor must confirm it can target exactly its markets (and keep held-out markets dark) before a plan "
                  "is locked. Ask, then pass --confirm-targeting.")
+    if work["config"]["design"] == "crossover":
+        a.coin_flip = False   # one campaign; the schedule is the randomization
     if work["config"]["design"] == "national_holdout" and a.ads_before not in ("off", "always_on"):
         sys.exit("A holdout plan needs --ads-before off|always_on: was the campaign off everywhere, or on everywhere, during the "
                  "history? If it ran in only some markets, FOSIT can't measure it cleanly.")
@@ -438,25 +473,44 @@ def cmd_lock(a) -> None:
     names = work["names"]
     dd = commitment["dates"]
     holdout = commitment["design"]["type"] == "national_holdout"
+    cross = commitment["design"]["type"] == "crossover"
     lines = [f"# Locked plan: {a.name}", "", f"**Fingerprint (SHA-256):** `{h}`  ", f"**Short code:** `{h[:8].upper()}`", "",
              f"- Ads {dd['test_start']} to {dd['test_end']} ({a.weeks} weeks); cooldown to {dd['cooldown_end']}",
              f"- History used: {dd['pre_start']} to {dd['pre_end']}", ""]
+    if cross:
+        x = commitment["design"]
+        rows = [f"| {b + 1} | {date.fromisoformat(dd['test_start']) + timedelta(days=b * x['block_days'])} to "
+                f"{date.fromisoformat(dd['test_start']) + timedelta(days=(b + 1) * x['block_days'] - 1)} | half {on} ONLY |"
+                for b, on in enumerate(x["schedule"])]
+        lines += ["## Schedule (drawn at random when the plan was locked)", "", "| Block | Dates | Ads run in |", "|---|---|---|", *rows, "",
+                  f"## Half A: {len(commitment['cells'][0]['geo_ids'])} markets (budget for the whole test "
+                  f"{money(commitment['cells'][0]['budget'], commitment['currency'])})",
+                  ", ".join(names.get(g, g) for g in commitment["cells"][0]["geo_ids"]), "",
+                  f"## Half B: {len(commitment['control']['geo_ids'])} markets",
+                  ", ".join(names.get(g, g) for g in commitment["control"]["geo_ids"])]
     if holdout:
         lines.append(f"## Held out (NO ads from {dd['test_start']} to {dd['cooldown_end']}): {len(commitment['control']['geo_ids'])} markets")
         lines.append(", ".join(names.get(g, g) for g in commitment["control"]["geo_ids"]))
-    for cell in commitment["cells"]:
+    for cell in ([] if cross else commitment["cells"]):
         lines += ["", f"## {cell['label']}: {len(cell['geo_ids'])} markets, budget {money(cell['budget'], commitment['currency'])}",
                   ", ".join(names.get(g, g) for g in cell["geo_ids"])]
-    if not holdout:
+    if not holdout and not cross:
         lines += ["", f"## Control (no test ads from anyone): {len(commitment['control']['geo_ids'])} markets",
                   ", ".join(names.get(g, g) for g in commitment["control"]["geo_ids"])]
     write(out / "plan-summary.md", "\n".join(lines) + "\n")
     who = "the held-out markets get no CTV from anyone" if holdout else "control markets get no test ads"
-    email = (f"Subject: Locked test plan: {a.name} (fingerprint {h[:8].upper()})\n\nHi all,\n\nAttached is the locked plan for "
-             f"\"{a.name}\" (plan file and summary). Ads run {dd['test_start']} to {dd['test_end']}, each vendor only in the markets "
-             f"listed for it; {who} until {dd['cooldown_end']}.\n\nPlan fingerprint (SHA-256):\n{h}\n\nPlease confirm you can target "
-             f"exactly your markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n"
-             + (f"\nAfter the cooldown ends ({dd['cooldown_end']}), read the results here: {a.read_url}\n" if a.read_url else ""))
+    if cross:
+        email = (f"Subject: Locked test plan: {a.name} (fingerprint {h[:8].upper()})\n\nHi all,\n\nAttached is the locked plan for "
+                 f"\"{a.name}\". The country is split into two halves (lists in the summary) that take turns having the ads on the "
+                 f"schedule in the summary, from {dd['test_start']} to {dd['test_end']}.\n\nPlan fingerprint (SHA-256):\n{h}\n\n"
+                 f"Please confirm you can switch the ads between the halves on exactly those dates.\n"
+                 + (f"\nAfter the last block ends ({dd['test_end']}), read the results here: {a.read_url}\n" if a.read_url else ""))
+    else:
+        email = (f"Subject: Locked test plan: {a.name} (fingerprint {h[:8].upper()})\n\nHi all,\n\nAttached is the locked plan for "
+                 f"\"{a.name}\" (plan file and summary). Ads run {dd['test_start']} to {dd['test_end']}, each vendor only in the markets "
+                 f"listed for it; {who} until {dd['cooldown_end']}.\n\nPlan fingerprint (SHA-256):\n{h}\n\nPlease confirm you can target "
+                 f"exactly your markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n"
+                 + (f"\nAfter the cooldown ends ({dd['cooldown_end']}), read the results here: {a.read_url}\n" if a.read_url else ""))
     write(out / "email.txt", email)
     print("\n".join(lines[:7]))
     if commitment["assignment"]["label_assignment"] == "coin_flip":
@@ -625,7 +679,10 @@ def main() -> None:
     s.add_argument("--out", required=True)
     s = sub.add_parser("plan", help="search fair designs and simulate their sensitivity")
     s.add_argument("sales"); s.add_argument("--unit", choices=["cbsa", "state", "custom"], required=True)
-    s.add_argument("--design", choices=["cells", "holdout", "split"], default="cells")
+    s.add_argument("--design", choices=["cells", "holdout", "split", "crossover"], default="cells",
+                   help="crossover: halves take turns, for small advertisers (§14)")
+    s.add_argument("--lingering", choices=["short", "long"], default="short",
+                   help="crossover: do the ads keep working a few days (2-week blocks) or a week or more (4-week blocks)?")
     s.add_argument("--cells", type=int, help="number of cells (cells: 1-6, default 2; split: vendors 2-4)")
     s.add_argument("--labels", help="comma-separated cell names, e.g. 'Vendor A,Vendor B'")
     s.add_argument("--budget", type=float, required=True, help="total budget during the test")

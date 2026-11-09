@@ -1,0 +1,190 @@
+{
+  "fosit_plan_version": "1.0",
+  "commitment": {
+    "tool": {
+      "name": "FOSIT",
+      "version": "0.1.0",
+      "core_sha256": "a550e7d947fef8d5f07bfa00c4f62b3b9867f468b3880e610445369e0e0871ec"
+    },
+    "created_at": "2026-06-20T09:00:00Z",
+    "test_name": "Example: small advertiser, halves take turns",
+    "advertiser_label": "Synthetic example (not real data)",
+    "currency": "USD",
+    "geo": {
+      "unit": "state",
+      "mapping_name": "Census 2020 ZCTA-county relationship, by state (FOSIT geo_data)",
+      "mapping_sha256": "cd8ffdd946055406cb74acd28e43507fdacd12077aa9038df882581f26225d75"
+    },
+    "kpi": {
+      "primary": "orders",
+      "secondary": [
+        "revenue"
+      ],
+      "aggregation": "daily"
+    },
+    "dates": {
+      "pre_start": "2026-01-05",
+      "pre_end": "2026-07-05",
+      "test_start": "2026-07-06",
+      "test_end": "2026-10-25",
+      "cooldown_end": "2026-10-25"
+    },
+    "design": {
+      "type": "crossover",
+      "block_days": 14,
+      "washout_days": 3,
+      "schedule": "BBABAABA",
+      "planning_half_life": 3
+    },
+    "cells": [
+      {
+        "id": "cell_1",
+        "label": "CTV campaign",
+        "geo_ids": [
+          "AK",
+          "AL",
+          "CO",
+          "DC",
+          "FL",
+          "HI",
+          "KS",
+          "KY",
+          "ME",
+          "MI",
+          "NC",
+          "ND",
+          "NE",
+          "NM",
+          "NV",
+          "NY",
+          "OK",
+          "SC",
+          "TN",
+          "TX",
+          "VA",
+          "VT",
+          "WA",
+          "WI",
+          "WV",
+          "WY"
+        ],
+        "budget": 60000
+      }
+    ],
+    "control": {
+      "geo_ids": [
+        "AR",
+        "AZ",
+        "CA",
+        "CT",
+        "DE",
+        "GA",
+        "IA",
+        "ID",
+        "IL",
+        "IN",
+        "LA",
+        "MA",
+        "MD",
+        "MN",
+        "MO",
+        "MS",
+        "MT",
+        "NH",
+        "NJ",
+        "OH",
+        "OR",
+        "PA",
+        "RI",
+        "SD",
+        "UT"
+      ]
+    },
+    "excluded": {
+      "geo_ids": []
+    },
+    "method": {
+      "estimator": "crossover_twfe",
+      "fixed_effects": true,
+      "lambda_selection": "none",
+      "inference": "randomization",
+      "permutations": {
+        "kind": "balanced_schedules"
+      },
+      "test_statistic": "abs_tau",
+      "alpha": 0.1,
+      "report_levels": [
+        0.9,
+        0.95
+      ],
+      "head_to_head": "none",
+      "donor_min_nonzero_share": 0.5,
+      "seed": 2026
+    },
+    "thresholds": {
+      "pre_fit_nrmse_max": {
+        "cell_1": {
+          "orders": 0.1028,
+          "revenue": 0.1028
+        }
+      },
+      "leakage_warn_share": 0.05,
+      "spend_share_tolerance_pp": 5,
+      "min_budget_delivery": 0.9,
+      "power_target": 0.8
+    },
+    "decision": {
+      "primary_metric": "cell_lift",
+      "meaningful_effect_basis": "planned_mde",
+      "planned_mde_lift": {
+        "cell_1": 0.125
+      }
+    },
+    "assignment": {
+      "method": "stratified_random_search",
+      "candidates_searched": 1712,
+      "design_rank": 1,
+      "label_assignment": "coin_flip"
+    },
+    "vendor_targeting_confirmed": [
+      {
+        "cell_id": "cell_1",
+        "confirmed": true
+      }
+    ],
+    "data_fingerprint": {
+      "kpi_history_sha256": "d2bab86477b48f1774faf3faeab636f32b7da4fd271a7044c969732b3dc70534",
+      "rows": 9282,
+      "geos": 51,
+      "first_date": "2026-01-05",
+      "last_date": "2026-07-05"
+    }
+  },
+  "hash": {
+    "algorithm": "SHA-256",
+    "canonicalization": "RFC8785",
+    "value": "f881b822656bd9637106002a42ac871c7486b7c96c80932ec493969aaf5bf7e6"
+  },
+  "appendix": {
+    "note": "Design diagnostics. Not part of the fingerprint.",
+    "design": {
+      "noise": 0.06854289146870449,
+      "balance": {
+        "share": 0.0071950058194899524,
+        "trend": 0.0035806644121742716,
+        "per_capita": 0.009960479613263688,
+        "aov": 0.0006675004501820713
+      },
+      "shares": [
+        0.5017987514548725
+      ]
+    },
+    "mde": [
+      {
+        "label": "CTV campaign",
+        "test_days": 112,
+        "mde": 0.125
+      }
+    ]
+  }
+}

@@ -13,7 +13,7 @@ from importlib import resources
 
 import numpy as np
 
-from . import __version__, ascm, conformal, holdout, orders, placebo, power, selection, synthetic
+from . import __version__, ascm, conformal, crossover, holdout, orders, placebo, power, selection, synthetic
 from .panel import Panel, load_kpi_history
 
 _state: dict = {}
@@ -102,6 +102,12 @@ def design_chart(cells: list, control: list, kpi: str = "orders", pre_days: int 
     mat = panel.kpis[kpi][:, cols]
     rows_ok = (mat != 0).mean(axis=1) >= 0.5
     n_fit = n - holdout_days
+    if design == "crossover":   # §14: the two halves' weekly sales, each indexed to its own average
+        wk = (n // 7) * 7
+        a = mat[panel.rows(cells[0]), -wk:].sum(axis=0).reshape(-1, 7).sum(axis=1)
+        b = mat[panel.rows(control), -wk:].sum(axis=0).reshape(-1, 7).sum(axis=1)
+        return _clean({"dates": [d.strftime("%Y-%m-%d") for d in panel.dates[cols][-wk:][::7]], "fit_end": int(len(a)),
+                       "cells": [{"observed": (a / a.mean()).round(4).tolist(), "twin": (b / b.mean()).round(4).tolist()}]})
     if design == "national_holdout":
         charts = []
         for cell in cells:   # one twin of the holdout per cell, from that cell's markets (§13.7)
@@ -140,8 +146,33 @@ def choose_fit_period(panel: Panel, requested: str, share_min: float, shortest_t
     return "week" if share_min * per_day < SMALL_GROUP_ORDERS else "day"
 
 
+def find_crossover(config: dict, progress=None) -> dict:
+    """§14: balanced halves for a geo crossover, with each test length's sensitivity. config: kpi, block_days (7|14|28),
+    durations (days, an even number of blocks each, at least 6), seed, excluded, balance_max, budgets ([total]), alpha,
+    power_target, half_life (days the ads' effect takes to fade by half; planning assumption)."""
+    panel = _panel()
+    attrs = _state.get("attributes", {})
+    L = int(config.get("block_days", 14))
+    durations = [int(d) for d in config.get("durations", (L * 8, L * 12))]
+    blocks = tuple(d // L for d in durations)
+    if any(d % L or (d // L) % 2 or d // L < 6 for d in durations):
+        raise ValueError("Each test length must be an even number of blocks, at least 6 (with 4, chance alone can't be ruled out).")
+    pop = {g: a["population"] for g, a in attrs.items() if a.get("population")} or config.get("population")
+    cfg = crossover.CrossoverConfig(
+        kpi=config.get("kpi", "orders"), block_days=L, n_blocks=blocks, alpha=float(config.get("alpha", 0.10)),
+        power_target=float(config.get("power_target", 0.80)), balance_max=float(config.get("balance_max", 0.10)),
+        seed=int(config.get("seed", 0)), excluded=set(config.get("excluded", [])),
+        not_eligible={g for g, a in attrs.items() if not a.get("treatment_eligible", True)}, population=pop,
+        power_designs=int(config.get("power_designs", 5)),
+        half_life=float(config.get("half_life", crossover.PLANNING_HALF_LIFE)))
+    budget = float((config.get("budgets") or [0])[0])
+    out = crossover.find_halves(panel, cfg, budget, progress)
+    out["aggregation"] = "daily"
+    return _clean(out)
+
+
 def find_designs(config: dict, progress=None) -> dict:
-    """Market selection (§9) then power simulation (§10) on the best designs.
+    """Market selection (§9) then power simulation (§10) on the best designs. A crossover (§14) goes to find_crossover.
 
     config keys (all optional except budgets): n_cells, kpi, pre_days, durations,
     cooldown_days, share_min, share_max, min_control_share, balance_max, fit_max,
@@ -153,6 +184,8 @@ def find_designs(config: dict, progress=None) -> dict:
     fit_period ("day" | "week" | "auto", default auto: judge twin fit on weekly totals when the
     smallest group would sell under SMALL_GROUP_ORDERS orders a day, §9.3).
     """
+    if config.get("design") == "crossover":
+        return find_crossover(config, progress)
     panel = _panel()
     attrs = _state.get("attributes", {})
     durations = tuple(int(d) for d in config.get("durations", (21, 28, 42, 56)))

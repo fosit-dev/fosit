@@ -1,0 +1,66 @@
+// Geo crossover (METHODOLOGY.md §14): plan one on the sample data, and read the shipped small-business example.
+import { readFileSync } from "node:fs";
+import { expect, test } from "@playwright/test";
+
+test("plans a crossover and locks a random balanced schedule", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Plan a test" }).first().click();
+  await page.getByRole("button", { name: /Small business: halves take turns/ }).click();
+  const next = page.getByRole("button", { name: "Continue →" });
+  await next.click();
+  await expect(page.getByLabel("Campaign name")).toHaveValue("Campaign");
+  await page.getByLabel("Test name").fill("Crossover e2e");
+  await next.click();
+  await page.getByRole("button", { name: "Use sample data" }).click();
+  await expect(page.getByText("Looks good")).toBeVisible({ timeout: 240_000 });
+  await next.click();
+  await expect(page.getByText(/switch the ads between two halves/)).toBeVisible();
+  await next.click();
+  await page.getByLabel(/A week or more/).check();
+  await page.getByLabel(/A few days/).check();
+  await next.click();
+  await page.getByRole("button", { name: "Find balanced halves" }).click();
+  const design = page.getByRole("article", { name: "Design 1" });
+  await expect(design).toBeVisible({ timeout: 600_000 });
+  await expect(design.getByText(/while a half has the ads/)).toBeVisible();
+  await expect(design.getByText(/Halves track each other/)).toBeVisible();
+  await page.screenshot({ path: "test-results/x1-designs.png", fullPage: true });
+  await next.click();
+  await page.getByLabel(/can switch the ads between the two halves/).check();
+  await page.getByLabel("Dates and budgets are final.").check();
+  await page.getByRole("button", { name: "Lock plan" }).click();
+  await expect(page.getByRole("table", { name: "Crossover schedule" })).toBeVisible();
+  const [json] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download plan JSON" }).click()]);
+  const plan = JSON.parse(readFileSync((await json.path())!, "utf8"));
+  const x = plan.commitment.design;
+  expect(x.type).toBe("crossover");
+  expect(x.block_days).toBe(14);
+  expect(x.schedule).toMatch(/^[AB]{8}$/);
+  expect(x.schedule.split("A").length - 1).toBe(4);
+  expect(plan.commitment.method.inference).toBe("randomization");
+  const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download plan PDF" }).click()]);
+  expect(readFileSync((await pdf.path())!).subarray(0, 5).toString()).toBe("%PDF-");
+});
+
+test("reads the small-business crossover example", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Read", exact: true }).click();
+  await page.getByRole("button", { name: /Try the small-business example/ }).click();
+  await expect(page.getByText(/Halves take turns · CTV campaign/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run the analysis" })).toBeEnabled({ timeout: 240_000 });
+  await page.getByRole("button", { name: "Run the analysis" }).click();
+  await expect(page.getByRole("heading", { name: "3 · Honesty checks" })).toBeVisible({ timeout: 300_000 });
+  await expect(page.getByText("Halves tracked each other")).toBeVisible();
+  await expect(page.getByText("The plan is exactly the one fingerprinted before launch.")).toBeVisible();
+  await expect(page.getByText("NOT THE PRE-REGISTERED ANALYSIS")).toHaveCount(0);
+  await page.getByLabel("No, nothing else changed differently").check();
+  const bottom = page.locator("section", { has: page.getByRole("heading", { name: /Bottom line/ }) });
+  await expect(bottom.getByText(/CTV campaign drove .* incremental orders while each half had the ads/)).toBeVisible();
+  await expect(bottom.locator(".verdict").first()).toHaveText(/Positive lift/);
+  await expect(page.getByText("Without the ads (estimated)")).toBeVisible();
+  await page.getByText("Under the hood").click();
+  await expect(page.getByRole("heading", { name: "Block by block" })).toBeVisible();
+  await page.screenshot({ path: "test-results/x2-results.png", fullPage: true });
+  const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download report (PDF)" }).click()]);
+  expect(readFileSync((await pdf.path())!).subarray(0, 5).toString()).toBe("%PDF-");
+});

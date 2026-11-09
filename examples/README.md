@@ -13,6 +13,7 @@ python examples/generate_examples.py
 | `two_vendor/` | Vendor A's cell gets 1.5× its planned minimum detectable lift (MDE); Vendor B's gets 0.5× (low power: it may or may not be confirmed) |
 | `null_effect/` | Same markets, no effect |
 | `vendor_split/` | Two vendors ($200,000 each) split every state that isn't held out (§13.7). Vendor A gets 1.5× its planned MDE, Vendor B 0.5× |
+| `crossover_small/` | A small advertiser (about 100 orders a day) on US states: two halves take turns having the ads in 2-week blocks (§14), lift 1.5× the planned MDE fading with a 3-day half-life |
 | `national_holdout/` | One campaign ($400,000) on the 50 states + DC, running everywhere except a holdout chosen by the planner ([METHODOLOGY §13](../docs/METHODOLOGY.md#13-national-holdout)). The campaign states get 1.5× the planned MDE. Spend is spread by population; 0.5% can't be attributed to a state |
 
 Each folder holds `history_for_planning.csv` (26 weeks before the test), `plan.fosit-plan.json` (locked the way the app does it: market search, then power), `kpi_history.csv` (through the cooldown), `spend_delivery.csv` ($50,000 per vendor, with 1.5% of Vendor A's delivery leaking into control markets and 0.5% of Vendor B's unattributable), and `truth.json`.

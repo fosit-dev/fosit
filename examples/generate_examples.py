@@ -1,6 +1,6 @@
 """Generate FOSIT's example datasets with a known truth.
 
-    python examples/generate_examples.py [two_vendor | national_holdout | vendor_split]   (default: all)
+    python examples/generate_examples.py [two_vendor | national_holdout | vendor_split | crossover_small]   (default: all)
 
 Writes four scenarios, each a complete, realistic test you can load into the app:
 
@@ -325,10 +325,123 @@ def holdout_example(name: str) -> None:
     print(name, json.dumps({c: (v["true_incremental_orders"], v["true_icpa"]) for c, v in truth.items()}))
 
 
+CROSSOVER = {"label": "CTV campaign", "budget": 60_000, "per_day": 100, "block_days": 14, "blocks": 8, "half_life": 3,
+             "multiple": 1.5, "test_start": "2026-07-06"}   # fixed before looking at any result
+
+
+def crossover_example() -> None:
+    """A small advertiser (about 100 orders a day) on US states: the two halves take turns having the ads (§14)."""
+    from fosit import crossover
+    x = CROSSOVER
+    attrs = api.geo_attributes("state")
+    pop = {a["geo_id"]: a["population"] for a in attrs}
+    per_100k = x["per_day"] / (sum(pop.values()) / 1e5)
+    L, B = x["block_days"], x["blocks"]
+    test_start = x["test_start"]
+    pre_start = (pd.Timestamp(test_start) - pd.Timedelta(days=PRE_DAYS)).strftime("%Y-%m-%d")
+    total = PRE_DAYS + L * B
+    end = (pd.Timestamp(pre_start) + pd.Timedelta(days=total - 1)).strftime("%Y-%m-%d")
+    base = synthetic.sample_state_history(attrs, end, n_days=total, seed=SEED, orders_per_100k=per_100k)
+    history = base[base["date"] < test_start].reset_index(drop=True)
+    history_csv = history.to_csv(index=False)
+    assert api.load_history(history_csv, "state")["ok"]
+    found = api.find_designs({"design": "crossover", "block_days": L, "durations": [L * B], "seed": SEED,
+                              "budgets": [x["budget"]], "half_life": x["half_life"]})
+    best = found["designs"][0]
+    half_a, half_b = best["cells"][0], best["control"]
+    mde = best["power"]["cells"][0]["curves"][0]["mde"]
+    schedule = crossover.random_schedule(B, np.random.default_rng(SEED))
+    print("crossover design:", len(half_a), "+", len(half_b), "states; noise", round(best["fit"][0], 3), "MDE", mde, "schedule", schedule)
+
+    folder = os.path.join(HERE, "crossover_small")
+    os.makedirs(folder, exist_ok=True)
+    with open(os.path.join(folder, "history_for_planning.csv"), "w") as f:
+        f.write(history_csv)
+    test_end = (pd.Timestamp(test_start) + pd.Timedelta(days=L * B - 1)).strftime("%Y-%m-%d")
+    full = base.copy()
+    aov = (full["revenue"] / full["orders"].where(full["orders"] > 0)).fillna(full["revenue"].sum() / full["orders"].sum())
+    lift = round(x["multiple"] * mde, 4)
+    day = (pd.to_datetime(full["date"]) - pd.Timestamp(test_start)).dt.days.to_numpy()
+    on_a = np.repeat([1.0 if s == "A" else 0.0 for s in schedule], L)
+    rng = np.random.default_rng(SEED + 1)
+    extra = np.zeros(len(full), int)
+    for half, on in ((set(half_a), on_a), (set(half_b), 1 - on_a)):
+        share = crossover.adstock(on, x["half_life"])
+        m = (day >= 0) & full["geo_id"].isin(half).to_numpy()
+        extra[m] = rng.poisson(lift * full.loc[m, "orders"].to_numpy() * share[day[m]])
+    full["orders"] = full["orders"] + extra
+    extra_rev = np.round(extra * aov.to_numpy(), 2)
+    full["revenue"] = np.round(full["revenue"] + extra_rev, 2)
+    full.to_csv(os.path.join(folder, "kpi_history.csv"), index=False)
+    truth = {"cell_1": {"label": x["label"], "injected_lift": lift, "planned_mde": mde, "multiple_of_mde": x["multiple"],
+                        "effect_half_life_days": x["half_life"], "true_incremental_orders": int(extra.sum()),
+                        "true_incremental_revenue": float(extra_rev.sum().round(2)), "spend": x["budget"],
+                        "true_icpa": x["budget"] / extra.sum(), "true_iroas": float(extra_rev.sum() / x["budget"])}}
+
+    # spend & delivery: the budget spread evenly over the test, delivered by population in whichever half is on
+    rows = []
+    daily = x["budget"] / (L * B)
+    for i, d in enumerate(pd.date_range(test_start, test_end).strftime("%Y-%m-%d")):
+        half = half_a if schedule[i // L] == "A" else half_b
+        w = np.array([pop[g] for g in half], float)
+        w /= w.sum()
+        imps = daily / CPM * 1000
+        for g, wi in zip(half, w):
+            rows.append((d, x["label"], g, int(round(imps * 0.995 * wi)), round(daily * 0.995 * wi, 2)))
+        rows.append((d, x["label"], "*", int(round(imps * 0.005)), round(daily * 0.005, 2)))
+    pd.DataFrame(rows, columns=["date", "cell", "geo_id", "impressions", "spend"]).to_csv(os.path.join(folder, "spend_delivery.csv"), index=False)
+
+    with open(os.path.join(ROOT, "core", "fosit", "geo_data", "SOURCES.json")) as f:
+        mapping_sha = json.load(f)["outputs"]["zcta_to_geo.csv"]["sha256"]
+    limit = round(min(1.5 * best["fit"][0], 0.15), 4)
+    commitment = {
+        "tool": {"name": "FOSIT", "version": "0.1.0", "core_sha256": core_sha256()},
+        "created_at": "2026-06-20T09:00:00Z",
+        "test_name": "Example: small advertiser, halves take turns",
+        "advertiser_label": "Synthetic example (not real data)",
+        "currency": "USD",
+        "geo": {"unit": "state", "mapping_name": "Census 2020 ZCTA-county relationship, by state (FOSIT geo_data)",
+                "mapping_sha256": mapping_sha},
+        "kpi": {"primary": "orders", "secondary": ["revenue"], "aggregation": "daily"},
+        "dates": {"pre_start": pre_start, "pre_end": (pd.Timestamp(test_start) - pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
+                  "test_start": test_start, "test_end": test_end, "cooldown_end": test_end},
+        "design": {"type": "crossover", "block_days": L, "washout_days": crossover.WASHOUT[L], "schedule": schedule,
+                   "planning_half_life": x["half_life"]},
+        "cells": [{"id": "cell_1", "label": x["label"], "geo_ids": sorted(half_a), "budget": x["budget"]}],
+        "control": {"geo_ids": sorted(half_b)},
+        "excluded": {"geo_ids": []},
+        "method": {"estimator": "crossover_twfe", "fixed_effects": True, "lambda_selection": "none", "inference": "randomization",
+                   "permutations": {"kind": "balanced_schedules"}, "test_statistic": "abs_tau", "alpha": 0.1,
+                   "report_levels": [0.9, 0.95], "head_to_head": "none", "donor_min_nonzero_share": 0.5, "seed": SEED},
+        "thresholds": {"pre_fit_nrmse_max": {"cell_1": {"orders": limit, "revenue": limit}}, "leakage_warn_share": 0.05,
+                       "spend_share_tolerance_pp": 5, "min_budget_delivery": 0.9, "power_target": 0.8},
+        "decision": {"primary_metric": "cell_lift", "meaningful_effect_basis": "planned_mde", "planned_mde_lift": {"cell_1": round(mde, 4)}},
+        "assignment": {"method": "stratified_random_search", "candidates_searched": found["funnel"]["generated"],
+                       "design_rank": 1, "label_assignment": "coin_flip"},
+        "vendor_targeting_confirmed": [{"cell_id": "cell_1", "confirmed": True}],
+        "data_fingerprint": {"kpi_history_sha256": sha256(history_csv.encode()), "rows": len(history),
+                             "geos": int(history["geo_id"].nunique()), "first_date": history["date"].min(),
+                             "last_date": history["date"].max()},
+    }
+    plan = {"fosit_plan_version": "1.0", "commitment": commitment,
+            "hash": {"algorithm": "SHA-256", "canonicalization": "RFC8785", "value": plan_hash(commitment)},
+            "appendix": {"note": "Design diagnostics. Not part of the fingerprint.",
+                         "design": {"noise": best["fit"][0], "balance": best["balance"], "shares": best["shares"]},
+                         "mde": [{"label": x["label"], "test_days": L * B, "mde": mde}]}}
+    with open(os.path.join(folder, "plan.fosit-plan.json"), "w") as f:
+        json.dump(plan, f, indent=2)
+    with open(os.path.join(folder, "truth.json"), "w") as f:
+        json.dump({"scenario": "crossover_small", "seed": SEED, "cells": truth,
+                   "note": "Exact orders and revenue added while (and shortly after) each half had the ads. FOSIT should recover these within its intervals; with lingering effects its estimate errs low."}, f, indent=2)
+    print("crossover_small", json.dumps({k: (v["true_incremental_orders"], round(v["true_icpa"], 2)) for k, v in truth.items()}))
+
+
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["two_vendor", *HOLDOUT_SCENARIOS]
+    which = sys.argv[1:] or ["two_vendor", *HOLDOUT_SCENARIOS, "crossover_small"]
     if "two_vendor" in which:
         main()
     for name in HOLDOUT_SCENARIOS:
         if name in which:
             holdout_example(name)
+    if "crossover_small" in which:
+        crossover_example()

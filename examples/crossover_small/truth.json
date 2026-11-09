@@ -1,0 +1,19 @@
+{
+  "scenario": "crossover_small",
+  "seed": 2026,
+  "cells": {
+    "cell_1": {
+      "label": "CTV campaign",
+      "injected_lift": 0.1875,
+      "planned_mde": 0.125,
+      "multiple_of_mde": 1.5,
+      "effect_half_life_days": 3,
+      "true_incremental_orders": 1064,
+      "true_incremental_revenue": 86277.7,
+      "spend": 60000,
+      "true_icpa": 56.390977443609025,
+      "true_iroas": 1.4379616666666666
+    }
+  },
+  "note": "Exact orders and revenue added while (and shortly after) each half had the ads. FOSIT should recover these within its intervals; with lingering effects its estimate errs low."
+}

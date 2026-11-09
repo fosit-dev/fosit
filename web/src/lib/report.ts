@@ -16,7 +16,7 @@ type Args = {
 // jsPDF's built-in fonts only cover Latin-1: replace the few symbols our copy uses.
 const latin = (s: string) => s.replace(/[≤]/g, "<=").replace(/[≥]/g, ">=").replace(/[−]/g, "-").replace(/[→]/g, "->").replace(/[✓]/g, "OK").replace(/[…]/g, "...");
 
-function chart(w: Writer, dates: string[], observed: number[], cf: number[], nPre: number, testDays: number, holdout: boolean) {
+function chart(w: Writer, dates: string[], observed: number[], cf: number[], nPre: number, testDays: number, holdout: boolean, crossover = false) {
   const from = Math.max(0, nPre - 56);
   const o = observed.slice(from), c = cf.slice(from), pre = nPre - from;
   const h = 130, top = w.y, left = MARGIN + 34, width = WIDTH - 34;
@@ -42,7 +42,7 @@ function chart(w: Writer, dates: string[], observed: number[], cf: number[], nPr
   };
   line(c, [194, 65, 12], true);
   line(o, [35, 72, 201], false);
-  const lab = impactLabels(holdout);
+  const lab = impactLabels(holdout, crossover);
   doc.setFontSize(8).setTextColor(35, 72, 201).text(lab.real, left, y0 + h + 22);
   doc.setTextColor(194, 65, 12).text(`- - ${lab.twin}`, left + (holdout ? 110 : 80), y0 + h + 22);
   w.y = Math.max(top, y0) + h + 44;
@@ -76,7 +76,7 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
     w.heading(latin(`${cell.label}: ${VERDICT[cell.verdict].label}`));
     w.para(latin(`${cell.n_geos} markets. Spend ${money(cell.spend, cur)} of ${money(cell.budget, cur)} planned. ${cell.verdict_reason}`), { size: 9.5 });
     const m = cell.kpis[r.primary_kpi];
-    chart(w, m.series.dates, m.series.observed, m.series.counterfactual, m.series.n_pre, m.series.test_days, m.series.role === "holdout");
+    chart(w, m.series.dates, m.series.observed, m.series.counterfactual, m.series.n_pre, m.series.test_days, m.series.role === "holdout", m.series.role === "crossover");
     for (const [kpi, km] of Object.entries(cell.kpis)) {
       const unit = (x: number | null) => (kpi === "revenue" ? money(x, cur) : num(x));
       const ranges = (key: "incremental" | "lift" | "icpa" | "iroas", f: (x: number | null) => string) =>
@@ -105,7 +105,9 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
   }
 
   w.heading("How this was computed");
-  w.para(latin(r.design === "national_holdout"
+  w.para(latin(r.design === "crossover"
+    ? `Halves take turns (METHODOLOGY §14): two balanced halves of the country had the ads in alternate blocks, in a random order fixed in the plan. Per half and block, mean daily sales after a washout were compared; the lift is the gap between a half with and without the ads, net of national swings that hit both halves at once. Ranges and p-values come from an exact randomization test against every other balanced schedule. Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`
+    : r.design === "national_holdout"
     ? `National holdout: the ${c.control.geo_ids.length} held-out markets are compared with a statistical twin built from the markets with ads, each indexed to its own history (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). The gap is the share of sales the ads drove, applied to the markets with ads (METHODOLOGY §13). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. ${c.method.placebo_calibration ? `Ranges were checked against ${c.method.placebo_calibration.n} placebo cells over the same dates and widened where those drifted more (METHODOLOGY §5.6). ` : ""}Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`
     : `Each cell is compared with a statistical twin built from ${c.control.geo_ids.length} control markets (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. ${c.method.placebo_calibration ? `Ranges were checked against ${c.method.placebo_calibration.n} placebo cells over the same dates and widened where those drifted more (METHODOLOGY §5.6). ` : ""}Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`), { size: 9.5 });
   w.row("Plan fingerprint", groupHash(recomputed));

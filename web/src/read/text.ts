@@ -10,7 +10,9 @@ export const VERDICT: Record<Verdict, { icon: string; label: string; tone: "ok" 
 };
 
 /** Chart wording. In a national holdout the real line is the held-out markets and the twin shows them *with* the ads (§13.4). */
-export const impactLabels = (holdout: boolean) => holdout
+export const impactLabels = (holdout: boolean, crossover = false) => crossover
+  ? { real: "Sales, both halves", twin: "Without the ads (estimated)", aria: "daily", twinAria: "the estimate without the ads" }
+  : holdout
   ? { real: "Held-out markets (no ads)", twin: "Twin: what they'd have sold with the ads", aria: "the held-out markets' daily", twinAria: "their twin's estimate with ads" }
   : { real: "What happened", twin: "Twin: what would have happened without ads", aria: "daily", twinAria: "the twin's estimate without ads" };
 
@@ -48,7 +50,8 @@ export function cellSentence(cell: CellResult, r: ReadResult, currency: string):
   const unit = r.primary_kpi === "orders" ? "incremental orders" : "incremental revenue";
   const inc = fmtUnit(r.primary_kpi, m.incremental, currency);
   const range = rangeText(m.intervals[k].incremental, (x) => fmtUnit(r.primary_kpi, x, currency));
-  const where = r.design === "national_holdout" ? ` in its ${num(cell.n_geos)} markets` : "";
+  const where = r.design === "national_holdout" ? ` in its ${num(cell.n_geos)} markets`
+    : r.design === "crossover" ? " while each half had the ads" : "";
   let s = `${cell.label} drove ${inc} ${unit}${where} (${lp} range: ${range})`;
   if (r.primary_kpi === "orders" && m.spend) {
     const t = icpaText(m, k, currency);

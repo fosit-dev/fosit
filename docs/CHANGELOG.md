@@ -4,6 +4,12 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 
 ## [Unreleased]
 
+### Added: geo crossover for small advertisers (METHODOLOGY §14)
+- For advertisers at a few hundred orders a day or less: two balanced halves of the country take turns having the ads in 2- or 4-week blocks, on a random balanced schedule locked in the plan. Estimate: two-way (half + block) comparison of log sales after a washout; exact randomization test against every balanced schedule. New Plan template ("Small business: halves take turns"), lock step with the schedule, PDF, Read (block-by-block table, schedule-followed check), skill CLI (`--design crossover --lingering short|long`), example `examples/crossover_small`, `validation/crossover_study.py`.
+- Evidence (200 synthetic state panels per row, 16 weeks): no effect, 91.5–94% coverage and 3–4.5% false positives; the planned MDE detected 85–88% of the time; median planned MDE 15.6% at 50 orders a day, 10.6% at 100, 7.5% at 400 (geo designs: none at 50, about 24–28% at 400). Estimates err about 15% low (cautious). Lingering effects weaken it; 4-week blocks help.
+- Rejected after simulation: national on/off weeks (too weak), larger geo fit blocks (no viable design below ~100 orders a day).
+- Plan schema: `design.type: crossover` with `block_days`, `washout_days`, `schedule`, `planning_half_life`; method enums gain `crossover_twfe`, `randomization`, `balanced_schedules`, `abs_tau`, `none`. METHODOLOGY sections after §13 renumbered (limitations §15, defaults §16, references §17).
+
 ### Changed: small advertisers can now get a design (METHODOLOGY §9.3)
 - **Found:** at a few hundred orders a day, the 10% daily fit gate rejected every design, because day-to-day chance alone exceeds 10% for a small group. In a real case (about 400 orders a day) a 40/40/20 vendor split scored 18% and the only passing option held out 56% of the country.
 - **Fix:** when the smallest group a design may have would sell under 400 orders a day, the planner judges twin fit on weekly totals (automatic; can be forced either way). It's locked in the plan as `thresholds.pre_fit_period` and Read checks fit the same way. Estimates, ranges and power stay daily. Plans without the field are read exactly as before.

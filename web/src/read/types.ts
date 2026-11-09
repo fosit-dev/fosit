@@ -20,11 +20,16 @@ export type KpiResult = {
   iroas?: number;
   intervals: Record<string, { incremental: Interval; lift: Interval; per_1000?: Interval; icpa?: Interval; iroas?: Interval }>;
   // role "holdout" (METHODOLOGY.md §13): observed = the held-out markets (no ads), counterfactual = their twin (with ads)
-  series: { dates: string[]; observed: number[]; counterfactual: number[]; n_pre: number; test_days: number; role?: "cell" | "holdout" };
+  series: { dates: string[]; observed: number[]; counterfactual: number[]; n_pre: number; test_days: number; role?: "cell" | "holdout" | "crossover" };
   // METHODOLOGY.md §5.6; null when the plan doesn't lock placebo calibration, n = 0 when no placebo could run
   placebo?: null | { n: number; quantiles?: Record<string, number>; p_value?: number; widened?: Record<string, boolean> };
   under_the_hood: {
-    lambda: number;
+    lambda: number | null;
+    // crossover (§14): mean daily sales per half per block after the washout, and how many schedules were tested
+    blocks?: { start: string; on: "A" | "B"; a_daily: number; b_daily: number }[];
+    schedules_tested?: number;
+    block_days?: number;
+    washout_days?: number;
     top_weights: { geo_id: string; weight: number }[];
     negative_weight_sum: number;
     donors: number;
@@ -57,7 +62,7 @@ export type Check = { id: string; title: string; status: "pass" | "warn" | "fail
 export type ReadResult = {
   ok: boolean;
   errors?: string[];
-  design?: "geo_cells" | "national_holdout";
+  design?: "geo_cells" | "national_holdout" | "crossover";
   interim: boolean;
   window: { pre_start: string; pre_end: string; start: string; end: string; planned_end: string; days: number; test_days: number };
   alpha: number;
