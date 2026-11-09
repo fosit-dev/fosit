@@ -148,7 +148,7 @@ Structure:
 - `decision.target_icpa` present iff basis is `target_icpa`. Same for `breakeven_iroas`.
 - `decision.planned_mde_lift` (cell id → planned minimum detectable lift) is written by the current Plan module. For older plans, Read falls back to the planned MDE in the (unhashed) appendix.
 - `kpi.primary` must exist in the planning data.
-- `thresholds.pre_fit_nrmse_max` has an entry for every cell × KPI analysed.
+- `thresholds.pre_fit_nrmse_max` has an entry for every cell × KPI analysed. `thresholds.pre_fit_period` (`day`, the default when absent, or `week`) says whether that limit applies day by day or to weekly totals ([METHODOLOGY §9.3](METHODOLOGY.md#93-scoring)).
 
 ## 7. Outputs
 

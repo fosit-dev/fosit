@@ -112,7 +112,7 @@ export function PlanWizard({ startWithSample, onRead }: { startWithSample: boole
         config: {
           n_cells: s.nCells, kpi: s.primaryKpi, pre_days: preDays(s), durations: s.durations, cooldown_days: s.cooldown,
           share_min: s.shareMin, share_max: s.shareMax, excluded: Object.keys(s.excluded), seed: s.seed,
-          permutations: s.permutations, budgets: budgets(s), alpha: 0.1,
+          permutations: s.permutations, budgets: budgets(s), alpha: 0.1, fit_period: s.fitPeriod,
           design: isHoldout(s) ? "national_holdout" : "geo_cells",
         },
       }, setProgress);

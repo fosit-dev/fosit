@@ -58,7 +58,7 @@ export function StepLock({ s, set, onRead }: Props) {
         primaryKpi: s.primaryKpi, secondaryKpis: data.summary.kpis.filter((k) => k !== s.primaryKpi),
         labels: s.labels.map((l) => l.trim()), budgets: b,
         testStart: s.testStart, testDays: s.duration, cooldownDays: s.cooldown, preDays: preDays(s),
-        design: d, designRank: s.chosen! + 1, candidatesSearched: s.result!.funnel.generated,
+        design: d, designRank: s.chosen! + 1, candidatesSearched: s.result!.funnel.generated, fitPeriod: s.result!.fit_period,
         designType: holdout ? { type: "national_holdout", ads_before_test: s.adsBeforeTest === "always_on" ? "always_on" : "off" } : { type: "geo_cells" },
         excluded: s.excluded, permutations: s.permutations, alpha: 0.1, seed: s.seed,
         decisionBasis: s.decisionBasis, targetIcpa: s.targetIcpa ?? undefined, breakevenIroas: s.breakevenIroas ?? undefined,

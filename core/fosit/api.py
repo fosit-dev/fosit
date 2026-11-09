@@ -125,6 +125,21 @@ def _panel() -> Panel:
     return _state["panel"]
 
 
+# §9.3: below this many orders a day in the smallest group a design can have, counting noise alone makes a daily
+# fit error above 5% (1/sqrt(400)), half the gate, so fit is judged on weekly totals instead.
+SMALL_GROUP_ORDERS = 400
+
+
+def choose_fit_period(panel: Panel, requested: str, share_min: float, shortest_test: int) -> str:
+    """"day" or "week" for the fit gate. "auto" looks at orders (if the file has them) in the smallest group allowed."""
+    if requested in ("day", "week"):
+        return requested if requested == "day" or shortest_test % 7 == 0 else "day"
+    if "orders" not in panel.kpis or shortest_test % 7:
+        return "day"
+    per_day = float(panel.kpis["orders"][:, -min(84, panel.n_days):].sum(axis=0).mean())
+    return "week" if share_min * per_day < SMALL_GROUP_ORDERS else "day"
+
+
 def find_designs(config: dict, progress=None) -> dict:
     """Market selection (§9) then power simulation (§10) on the best designs.
 
@@ -134,7 +149,9 @@ def find_designs(config: dict, progress=None) -> dict:
     power_target, power_designs (how many designs get a power simulation),
     budgets (list, one per cell), placebos (placebo cells per power curve, §5.6; 0 = off),
     design ("geo_cells" | "national_holdout": then share_min/share_max bound the holdout's
-    share and every other market goes to one of the n_cells cells, §13).
+    share and every other market goes to one of the n_cells cells, §13),
+    fit_period ("day" | "week" | "auto", default auto: judge twin fit on weekly totals when the
+    smallest group would sell under SMALL_GROUP_ORDERS orders a day, §9.3).
     """
     panel = _panel()
     attrs = _state.get("attributes", {})
@@ -142,10 +159,12 @@ def find_designs(config: dict, progress=None) -> dict:
     pop = {g: a["population"] for g, a in attrs.items() if a.get("population")} or config.get("population")
     holdout = config.get("design", "geo_cells") == "national_holdout"
     n_cells_cfg = int(config.get("n_cells", 1 if holdout else 2))
+    share_min = float(config.get("share_min", (0.10 if n_cells_cfg == 1 else 0.15) if holdout else 0.03))
+    fit_period = choose_fit_period(panel, config.get("fit_period", "auto"), share_min, min(durations))
     sel_cfg = selection.SelectionConfig(
         n_cells=int(config.get("n_cells", 1 if holdout else 2)), kpi=config.get("kpi", "orders"), holdout=holdout,
         pre_days=min(int(config.get("pre_days", 84)), panel.n_days), test_days=min(durations),
-        share_min=float(config.get("share_min", (0.10 if n_cells_cfg == 1 else 0.15) if holdout else 0.03)),
+        share_min=share_min, fit_period=7 if fit_period == "week" else 1,
         share_max=float(config.get("share_max", (0.20 if n_cells_cfg == 1 else 0.25) if holdout else 0.15)),
         min_control_share=float(config.get("min_control_share", 0.5)),
         balance_max=float(config.get("balance_max", 0.10)), fit_max=float(config.get("fit_max", 0.10)),
@@ -186,7 +205,7 @@ def find_designs(config: dict, progress=None) -> dict:
 
     designs.sort(key=rank_key)
     return _clean({"designs": [d.to_dict() for d in designs], "funnel": found["funnel"],
-                   "best_failing": [d.to_dict() for d in found["best_failing"]],
+                   "best_failing": [d.to_dict() for d in found["best_failing"]], "fit_period": fit_period,
                    "settings": {"selection": {k: v for k, v in vars(sel_cfg).items()
                                               if k not in ("excluded", "not_eligible", "population")},
                                 "power": {**{k: v for k, v in vars(pow_cfg).items() if k != "permutations"},

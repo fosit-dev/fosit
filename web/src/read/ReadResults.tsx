@@ -119,7 +119,7 @@ export function ReadResults({ r, plan, names }: Props) {
             return (
               <div key={cell.id}>
                 <h4>{holdout ? (r.cells.length > 1 ? `The holdout's twin from ${cell.label}'s markets` : "The holdout's twin") : `${cell.label}'s twin`}</h4>
-                <p className="small">Built from {u.donors} {holdout ? `markets with ${r.cells.length > 1 ? `${cell.label}'s ` : ""}ads, each indexed to its own history (METHODOLOGY §13.3)` : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}.</p>
+                <p className="small">Built from {u.donors} {holdout ? `markets with ${r.cells.length > 1 ? `${cell.label}'s ` : ""}ads, each indexed to its own history (METHODOLOGY §13.3)` : "control markets"}{u.dropped_donors.length ? ` (${u.dropped_donors.length} too sparse to use)` : ""}. Ridge penalty λ = {u.lambda.toExponential(2)}. Sum of negative weights {u.negative_weight_sum.toFixed(3)}. {u.tests_evaluated} hypotheses tested to build the ranges. Pre-period fit error {pct(cell.kpis[r.primary_kpi].pre_fit_nrmse)}{cell.kpis[r.primary_kpi].pre_fit_period === "week" ? " (on weekly totals)" : ""}.</p>
                 <div className="chips">{u.top_weights.map((w) => <span key={w.geo_id} className="chip">{names[w.geo_id] ?? w.geo_id}: {w.weight.toFixed(3)}</span>)}</div>
                 <PlaceboNote pl={cell.kpis[r.primary_kpi].placebo} level={levelKey(r)} />
               </div>

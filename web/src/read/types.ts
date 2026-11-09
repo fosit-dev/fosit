@@ -8,6 +8,7 @@ export type KpiResult = {
   p_value: number;
   pre_fit_nrmse: number;
   pre_fit_limit: number | null;
+  pre_fit_period?: "day" | "week";
   pre_fit_ok: boolean;
   observed: number;
   counterfactual: number;

@@ -35,6 +35,9 @@ Vendors split every market that isn't held out (for example 40% / 40%), and a no
 - **Detectable iCPA** is the decision-maker's number: budget ÷ (detectable lift × baseline sales). If the vendor's realistic iCPA is better (lower) than this, the test should see the effect; if worse, expect "inconclusive". Levers: more budget, longer test, bigger cells / holdout, more history, metro areas.
 - **Budget split** between vendors can be uneven; iCPA and iROAS always use actual spend.
 
+## Small advertisers
+At a few hundred orders a day, day-to-day chance is larger than 10% in a small group, so a daily fit score would reject every design. The planner then judges fit on weekly totals automatically (`plan --fit-period auto`, the default) and says so in `designs.md`; the plan locks that choice. Estimates and ranges stay daily, and placebo calibration keeps them honest. Expect larger detectable lifts: on synthetic data at 400 orders a day, about 24–28% for a 4-week test at $50k per vendor. More budget relative to sales, or a longer test, is the main lever. Don't hold out half the country just to pass a daily fit score.
+
 ## Exclusions
 Leave out markets with something unusual during the test (a local promotion, store opening, a market a vendor can't reach): `--exclude ID:reason`. Excluded markets are dropped from the analysis entirely.
 

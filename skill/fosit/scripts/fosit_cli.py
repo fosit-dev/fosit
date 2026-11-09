@@ -250,6 +250,7 @@ def _design_cfg(a, summary: dict) -> dict:
         "share_min": a.share_min if a.share_min is not None else defaults[0],
         "share_max": a.share_max if a.share_max is not None else defaults[1],
         "excluded": list(excluded), "seed": a.seed, "permutations": "moving_block", "budgets": budgets, "alpha": 0.1,
+        "fit_period": a.fit_period,
         "_labels": labels, "_excluded": excluded, "_kind": a.design,
     }
 
@@ -282,7 +283,8 @@ def cmd_plan(a) -> None:
     write(out / "designs.json", json.dumps(work, indent=1))
     lines = [f"# Candidate designs ({cfg['_kind']})", "",
              f"Searched {found['funnel'].get('generated')} random candidates → {found['funnel'].get('passed_share_and_balance')} fair → "
-             f"{found['funnel'].get('passed_fit')} fit well. Budget {money(a.budget, a.currency)} ({', '.join(f'{l} {money(b, a.currency)}' for l, b in zip(cfg['_labels'], cfg['budgets']))}).", ""]
+             f"{found['funnel'].get('passed_fit')} fit well"
+             f"{' (fit judged on weekly totals: sales are small enough that day-to-day chance would swamp a daily score)' if found.get('fit_period') == 'week' else ''}. Budget {money(a.budget, a.currency)} ({', '.join(f'{l} {money(b, a.currency)}' for l, b in zip(cfg['_labels'], cfg['budgets']))}).", ""]
     if not found["designs"]:
         best = found["best_failing"][0]["fit"] if found["best_failing"] else None
         lines += ["**No design passed every check.** " + (f"The closest had a fit error of {pct(max(best))} (limit 10%). " if best else "") +
@@ -375,7 +377,8 @@ def build_commitment(work: dict, d: dict, a) -> tuple[dict, dict]:
                    "alpha": 0.1, "report_levels": [0.9, 0.95], "head_to_head": "joint_conformal_projection",
                    "donor_min_nonzero_share": 0.5, "seed": work["config"]["seed"]},
         "thresholds": {"pre_fit_nrmse_max": fit_by, "leakage_warn_share": 0.05, "spend_share_tolerance_pp": 5,
-                       "min_budget_delivery": 0.9, "power_target": 0.8},
+                       "min_budget_delivery": 0.9, "power_target": 0.8,
+                       **({"pre_fit_period": "week"} if work["result"].get("fit_period") == "week" else {})},
         "decision": {"primary_metric": "cell_lift" if n == 1 else ("delta_icpa" if kpis[0] == "orders" else "delta_iroas"),
                      "meaningful_effect_basis": a.basis},
         "assignment": {"method": "stratified_random_search", "candidates_searched": work["result"]["funnel"]["generated"],
@@ -633,6 +636,8 @@ def main() -> None:
     s.add_argument("--exclude", action="append", help="market to leave out, as ID or ID:reason (repeatable)")
     s.add_argument("--share-min", type=float); s.add_argument("--share-max", type=float)
     s.add_argument("--seed", type=int, default=int.from_bytes(os.urandom(3), "big"))
+    s.add_argument("--fit-period", choices=["auto", "day", "week"], default="auto",
+                   help="judge twin fit day by day or on weekly totals (auto: weekly when sales are small)")
     s.add_argument("--show", type=int, default=5); s.add_argument("--out", required=True)
     s = sub.add_parser("lock", help="lock a design into a pre-registered plan file")
     s.add_argument("workdir"); s.add_argument("--choose", type=int, default=1); s.add_argument("--weeks", type=int, required=True)

@@ -18,6 +18,23 @@ from .panel import Panel
 DONOR_MIN_NONZERO_SHARE = 0.5
 
 
+def fit_error(residuals: np.ndarray, level: float, period: int = 1) -> float:
+    """Twin fit error (§4.5): RMSE of the twin's misses, as a share of the typical level.
+
+    period=7 judges the misses on weekly totals (§9.3): residuals are summed over 7-day blocks that end on the last
+    day (a partial block at the start is dropped) and compared with 7x the daily level. Day-to-day noise that cancels
+    within a week (counting noise for small advertisers, weekday quirks) no longer counts; a twin that drifts does.
+    """
+    r = np.asarray(residuals, dtype=float)
+    if period > 1:
+        n = (len(r) // period) * period
+        if n == 0:
+            return float("inf")
+        r = r[len(r) - n:].reshape(-1, period).sum(axis=1)
+        level = level * period
+    return float(np.sqrt(np.mean(r ** 2)) / level) if level > 0 else float("inf")
+
+
 @dataclass
 class CellSeries:
     """Inputs to the estimator for one cell and one KPI."""
@@ -101,6 +118,11 @@ class CellEstimate:
     def lift_interval(self, level: float) -> tuple[float, float]:
         lo, hi = self.incremental_interval(level)
         return lo / self.counterfactual_total, hi / self.counterfactual_total
+
+    def pre_fit(self, period: int = 1) -> float:
+        """Pre-period fit error, judged per day (1) or on weekly totals (7), §9.3."""
+        r = (self.observed - self.counterfactual)[: self.n_pre]
+        return fit_error(r, float(np.mean(self.observed[: self.n_pre])), period)
 
     def test_counterfactual(self, test_days: int) -> float:
         """Twin's total over the ads-on days, for the meaningful effect (§8)."""

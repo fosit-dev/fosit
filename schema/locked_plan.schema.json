@@ -379,6 +379,13 @@
                 }
               }
             },
+            "pre_fit_period": {
+              "enum": [
+                "day",
+                "week"
+              ],
+              "description": "How pre-period fit is judged against pre_fit_nrmse_max: day by day, or on weekly totals (small advertisers). Absent = day. METHODOLOGY.md \u00a79.3."
+            },
             "leakage_warn_share": {
               "type": "number",
               "minimum": 0,

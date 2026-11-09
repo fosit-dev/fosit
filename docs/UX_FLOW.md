@@ -96,6 +96,7 @@ Cards, first one preselected:
 
 - Test length options to compare: 3 / 4 / 6 / 8 weeks (multi-select) · Cooldown: 7 days ⓘ · Planned start date.
 - Pre-period auto-filled from the data with a gauge: <8 weeks red, 8–12 amber, 12+ green.
+- *(Built)* Advanced: "Judge how well a twin fits": automatically (weekly totals when sales are small), day by day, or on weekly totals (METHODOLOGY §9.3). When weekly is used, the search summary says why and fit chips read "Fit error (weekly)".
 
 ### P6. Find markets (compute)
 

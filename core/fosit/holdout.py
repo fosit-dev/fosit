@@ -67,6 +67,7 @@ class HoldoutEstimate:
     att = property(lambda s: s.index.att)
     p_value = property(lambda s: s.index.p_value)
     pre_fit_nrmse = property(lambda s: s.index.pre_fit_nrmse)
+    pre_fit = property(lambda s: s.index.pre_fit)
     weights = property(lambda s: s.index.weights)
     dropped_donors = property(lambda s: s.index.dropped_donors)
     dates = property(lambda s: s.index.dates)

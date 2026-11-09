@@ -151,6 +151,14 @@ export function StepTiming({ s, set }: Props) {
             <option value="iid">Random days (GeoLift's default; more power, over-confident)</option>
           </select>
         </div>
+        <div className="field">
+          <label htmlFor="fitp">Judge how well a twin fits<InfoTip term="fit" /></label>
+          <select id="fitp" value={s.fitPeriod} onChange={(e) => set({ fitPeriod: e.target.value as PlanState["fitPeriod"] })}>
+            <option value="auto">Automatically (weekly totals when sales are small)</option>
+            <option value="day">Day by day</option>
+            <option value="week">On weekly totals</option>
+          </select>
+        </div>
         <p className="small muted">Decision level: 90% intervals (95% also reported). Random seed: <code>{s.seed}</code>, recorded in the plan so anyone can re-run the market search.</p>
       </details>
     </section>

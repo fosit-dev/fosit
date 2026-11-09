@@ -316,6 +316,16 @@ Randomizing within strata gives balance by construction and means **no one hand-
 - **Fit (holdout):** for each cell, fit on the pre-period minus its final $H$ days ($H$ = shortest planned test length), forecast those $H$ days, and compute nRMSE. The holdout keeps us from rewarding designs that only *look* good in-sample. For speed this runs in two stages. Every candidate that passes the share and balance gates is screened with plain synthetic control. The best 60 are then re-scored with full ASCM (λ by cross-validation), and that score is the one reported and gated.
 - **Balance:** for each feature, the relative gap between cells, $|f_a - f_b| / \text{mean}(f_a, f_b)$ (for $K>2$, max over pairs). Balance score = the largest gap. Default gate: ≤ 10%.
 - **Gates:** share bounds, control share, fit ≤ threshold (default holdout nRMSE ≤ 10%), balance ≤ 10%.
+- **Small advertisers: fit judged on weekly totals.** A daily fit score can't tell a bad twin from small numbers. A group selling 80 orders a day swings about 11% from day to day by chance alone ($1/\sqrt{80}$), so even a perfect twin fails a 10% daily gate. Those swings cancel over a test of several weeks, which is the scale results are read at. So when the smallest group a design may have would sell fewer than 400 orders a day (the share minimum × national orders over the last 12 weeks; below that, chance alone is over 5% a day), fit is judged on **weekly totals**: the twin's daily misses are summed over 7-day blocks ending on the last day and compared with seven days of sales. A twin that drifts away still fails; day-to-day chance no longer does. The planner chooses automatically (`fit_period: auto`), or the user can force day or week. The choice is locked in the plan (`thresholds.pre_fit_period`), and the Read module's pre-period check uses the same rule. **Only the gate changes: the estimate, the ranges and the power simulation stay daily.** We first tried running the whole analysis on weekly totals; with about 20 weekly points the conformal test lost most of its power (many designs couldn't detect even a 50% lift), so it was dropped.
+
+  Evidence (`validation/calibration_study.py --orders-per-day 400`, 200 synthetic state panels at about 400 orders a day nationally, placebo calibration on): judged day by day, **no** vendor-split design passed the gate in any of 50 panels. Judged weekly, every panel got a design, and the reads stayed honest:
+
+  | Design (400 orders/day) | Covers zero, no effect | "Positive", no effect | Planned MDE detected | Median planned MDE (4 weeks) |
+  |---|---|---|---|---|
+  | Vendor split, 2 vendors | 89.0% | 6.2% | 88.5% | 28.1% |
+  | National holdout | 94.0% | 2.0% | 85.5% | 23.8% |
+
+  At 1,500 orders a day (vendor split, 100 panels): 87.0% coverage, 3.5% false positives, MDE detected 79%. Placebo calibration (§5.6) is what keeps a looser gate safe: a weaker twin gets wider ranges, not false wins; the cost shows up as a larger MDE, which the planner reports.
 - **The Read check's limit.** For the shortlisted designs we also compute the **in-sample** fit over the whole pre-period, which is exactly what the Read module's pre-period fit check recomputes (§11). The plan locks a limit of 1.5 × the worse of the two fits, capped at 15%. Using the holdout fit alone set limits that a perfectly good design could miss at read time, because the two measure different things (on state-level holdouts the in-sample fit over 18–26 weeks ran higher than the 4-week forecast fit); with the in-sample fit included, the check fires when the data or the markets' behaviour really changed.
 
 ### 9.4 Ranking
@@ -547,7 +557,7 @@ Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.
 | Head-to-head | Joint conformal region, projected | ✓ |
 | Cell share of national KPI | 3%–15% | ✓ |
 | Min control share | 50% | ✓ |
-| Fit gate (holdout nRMSE) | ≤ 10% | ✓ (read threshold = 1.5 × the worse of the achieved holdout fit and the in-sample pre-period fit, capped at 15%) |
+| Fit gate (holdout nRMSE) | ≤ 10%, day by day; on weekly totals when the smallest group would sell < 400 orders/day (§9.3) | ✓ (read threshold = 1.5 × the worse of the achieved holdout fit and the in-sample pre-period fit, capped at 15%; `pre_fit_period`) |
 | Balance gate | ≤ 10% relative gap | ✓ |
 | Power target | 80% | ✓ |
 | Leakage warn | > 5% of impressions | ✓ |

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import ascm
-from .estimate import DONOR_MIN_NONZERO_SHARE
+from .estimate import DONOR_MIN_NONZERO_SHARE, fit_error
 from .holdout import index_rows
 from .panel import Panel
 
@@ -46,6 +46,9 @@ class SelectionConfig:
     # National holdout (§13): share_min/share_max bound the holdout's share. With n_cells = 1 the one cell is
     # every market that isn't held out or excluded; with more, those markets are split between the cells (§13.7).
     holdout: bool = False
+    # Days per block when judging fit (§9.3): 1 = day by day, 7 = on weekly totals (small advertisers, where
+    # day-to-day counting noise swamps a daily score). test_days should be a multiple of it.
+    fit_period: int = 1
     min_holdout_geos: int = 10          # a twin built from a handful of markets leans on one or two of them (§13.2)
 
 
@@ -254,15 +257,14 @@ class MarketSelector:
                 y1, Y0 = index_rows(self.Y, held, rows[self.donor_ok[rows]], n_fit)
                 fit = ascm.fit(y1, Y0, n_fit, augment=augment)
                 r = (y1 - fit.counterfactual)[n_fit:] if h else (y1 - fit.counterfactual)
-                out.append(float(np.sqrt(np.mean(r**2)) / y1[:n_fit].mean()))
+                out.append(fit_error(r, float(y1[:n_fit].mean()), self.cfg.fit_period))
             return out
         out = []
         for rows in cell_rows:
             y1 = self.Y[rows].mean(axis=0)
             fit = ascm.fit(y1, self.Y[donors], n_fit, augment=augment)
             r = (y1 - fit.counterfactual)[n_fit:] if h else (y1 - fit.counterfactual)
-            level = y1[:n_fit].mean()
-            out.append(float(np.sqrt(np.mean(r**2)) / level) if level > 0 else float("inf"))
+            out.append(fit_error(r, float(y1[:n_fit].mean()), self.cfg.fit_period))
         return out
 
     def run(self, progress=None) -> dict:

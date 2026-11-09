@@ -59,6 +59,7 @@ function Funnel({ r, days, plannedPre, holdout }: { r: FindResult; days: number;
     <p className="small muted">
       Searched {num(f.generated)} random {holdout ? "holdouts" : "splits"} → {num(f.passed_share_and_balance)} were fair (size and balance) →
       {" "}{num(f.scored_full_fit)} scored in detail → {num(f.passed_fit)} fit well.
+      {r.fit_period === "week" && <> Your sales are small enough that day-to-day chance would swamp a daily fit score, so fit was judged on weekly totals.</>}
       {simPre != null && <> For a {weeks(days)} test, sensitivity was simulated with {Math.round(simPre / 7)} weeks of history
         {simPre < plannedPre ? ` (your plan uses ${Math.round(plannedPre / 7)}; the simulation needs spare history to replay past windows, so the real test should be at least this sensitive)` : ""}.</>}
     </p>
@@ -123,7 +124,7 @@ function DesignCard({ d, rank, s, set, chosen }: { d: DesignResult; rank: number
         <p className="muted">Sensitivity not simulated for this design (only the top 5 are, to save time).</p>
       )}
       <div className="chips">
-        <span className={`chip ${Math.max(...d.fit) <= 0.1 ? "ok" : "warn"}`}>Fit error {d.fit.map((f) => pct(f)).join(" / ")}<InfoTip term="fit" /></span>
+        <span className={`chip ${Math.max(...d.fit) <= 0.1 ? "ok" : "warn"}`}>Fit error{s.result?.fit_period === "week" ? " (weekly)" : ""} {d.fit.map((f) => pct(f)).join(" / ")}<InfoTip term="fit" /></span>
         <span className={`chip ${d.balance_score <= 0.1 ? "ok" : "warn"}`}>Balance gap {pct(d.balance_score)}<InfoTip term="balance" /></span>
         {holdout ? (
           <>

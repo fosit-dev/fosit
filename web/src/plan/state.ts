@@ -46,6 +46,7 @@ export type PlanState = {
   testStart: string;
   preWeeks: number;
   permutations: "moving_block" | "iid";
+  fitPeriod: "auto" | "day" | "week";   // how the search judges twin fit (METHODOLOGY.md §9.3)
   seed: number;
   result: FindResult | null;
   resultKey: string;            // inputs the result was computed from; stale if they change
@@ -87,6 +88,7 @@ export function initialState(): PlanState {
     testStart: nextMonday(todayUtc(), 14),
     preWeeks: 26,
     permutations: "moving_block",
+    fitPeriod: "auto",
     seed: randomSeed(),
     result: null,
     resultKey: "",
@@ -139,6 +141,6 @@ export const preDays = (s: PlanState) => Math.min(s.preWeeks * 7, s.data?.summar
 /** Anything that changes the market search makes old results stale. */
 export const searchKey = (s: PlanState) =>
   JSON.stringify([s.data?.sha256, s.geoUnit, isHoldout(s), s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
-    s.durations, s.cooldown, preDays(s), s.permutations, s.seed]);
+    s.durations, s.cooldown, preDays(s), s.permutations, s.fitPeriod, s.seed]);
 
 export const STEPS = ["Template", "Your test", "Sales data", "Markets", "Timing", "Find markets", "Lock & share"] as const;

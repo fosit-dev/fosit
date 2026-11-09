@@ -4,6 +4,12 @@ All notable changes to FOSIT are documented here. Changes to methodology, defaul
 
 ## [Unreleased]
 
+### Changed: small advertisers can now get a design (METHODOLOGY §9.3)
+- **Found:** at a few hundred orders a day, the 10% daily fit gate rejected every design, because day-to-day chance alone exceeds 10% for a small group. In a real case (about 400 orders a day) a 40/40/20 vendor split scored 18% and the only passing option held out 56% of the country.
+- **Fix:** when the smallest group a design may have would sell under 400 orders a day, the planner judges twin fit on weekly totals (automatic; can be forced either way). It's locked in the plan as `thresholds.pre_fit_period` and Read checks fit the same way. Estimates, ranges and power stay daily. Plans without the field are read exactly as before.
+- **Evidence:** 200 synthetic state panels at 400 orders a day: the daily gate found no vendor-split design in 50 of 50 panels; the weekly gate found one in all of them, with 89% coverage and 6.2% false positives (vendor split) and 94% / 2.0% (national holdout); median planned MDE 28% and 24% for 4 weeks. A full weekly analysis was tried and rejected: too few points for the conformal test.
+- `validation/calibration_study.py` gains `--orders-per-day` and `--fit-period`.
+
 ### Added: vendors split the country, plus a no-CTV group (METHODOLOGY §13.7)
 - New Plan template: 2–4 vendors each run in their own part of the country (for example 40% each) and a holdout with no CTV (default 15%–25% of sales) is the yardstick. Each vendor gets its own twin of the holdout, from its own markets; vendors are compared with the joint head-to-head. Read and the PDFs say which vendor ran where. New in-app example `examples/vendor_split`.
 - Validation (200 synthetic state panels): no effect, 90.7% coverage and 3.6% false positives; planned MDE detected 86%; head-to-head held the true difference 99.5% of the time and found a planned-MDE difference half the time.

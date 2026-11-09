@@ -29,7 +29,7 @@ from fosit.read import run_read  # noqa: E402
 TEST_START, PRE, TEST_DAYS, COOLDOWN = "2026-09-07", 126, 28, 7
 
 
-def panel_for(unit: str, seed: int) -> pd.DataFrame:
+def panel_for(unit: str, seed: int, orders_per_day: float | None = None) -> pd.DataFrame:
     attrs = api.geo_attributes(unit)
     start = (pd.Timestamp(TEST_START) - pd.Timedelta(days=PRE)).strftime("%Y-%m-%d")
     n_days = PRE + TEST_DAYS + COOLDOWN
@@ -38,21 +38,22 @@ def panel_for(unit: str, seed: int) -> pd.DataFrame:
         return synthetic.sample_cbsa_history(attrs, end, n_days=n_days, seed=200 + seed)
     ids = [a["geo_id"] for a in attrs]
     pop = np.array([a["population"] for a in attrs], float)
-    sizes = pop / 1e5 * 2.0 * np.exp(np.random.default_rng(100 + seed).normal(0, 0.25, len(ids)))
+    per_100k = orders_per_day / (pop.sum() / 1e5) if orders_per_day else 2.0      # default: about 6,500 orders a day
+    sizes = pop / 1e5 * per_100k * np.exp(np.random.default_rng(100 + seed).normal(0, 0.25, len(ids)))
     return synthetic.make_panel(n_days=n_days, start=start, seed=200 + seed, geo_ids=ids, sizes=sizes)[0]
 
 
 def one_seed(args) -> list[dict]:
-    seed, design, unit, placebos = args
+    seed, design, unit, placebos, orders_per_day, fit_period = args
     holdout = design in ("holdout", "split")
-    df = panel_for(unit, seed)
+    df = panel_for(unit, seed, orders_per_day)
     api.load_history(df[df.date < TEST_START].to_csv(index=False), unit)
     n_cells = 1 if design == "holdout" else 2
     found = api.find_designs({"design": "national_holdout" if holdout else "geo_cells", "n_cells": n_cells,
                               "pre_days": PRE, "durations": [TEST_DAYS], "seed": seed, "budgets": [100000] * n_cells,
-                              "power_designs": 3, "placebos": placebos})
+                              "power_designs": 3, "placebos": placebos, "fit_period": fit_period})
     if not found["designs"]:
-        return []
+        return [{"cell": "none", "fit_period": found["fit_period"]}]
     d = found["designs"][0]
     mde = d["power"]["cells"][0]["curves"][0]["mde"] or 0.3
     start = (pd.Timestamp(TEST_START) - pd.Timedelta(days=PRE)).strftime("%Y-%m-%d")
@@ -100,13 +101,22 @@ def main() -> None:
     p.add_argument("--seeds", type=int, default=200)
     p.add_argument("--placebos", type=int, default=40)
     p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--orders-per-day", type=float, help="national orders a day for state panels (default about 6,500)")
+    p.add_argument("--fit-period", choices=["auto", "day", "week"], default="auto", help="how the planner judges twin fit (§9.3)")
     a = p.parse_args()
     with ProcessPoolExecutor(a.workers) as pool:
-        rows = [r for rs in pool.map(one_seed, [(s, a.design, a.unit, a.placebos) for s in range(a.seeds)]) for r in rs]
+        rows = [r for rs in pool.map(one_seed, [(s, a.design, a.unit, a.placebos, a.orders_per_day, a.fit_period)
+                                               for s in range(a.seeds)]) for r in rs]
     r = pd.DataFrame(rows)
+    none = int((r.cell == "none").sum())
+    r = r[r.cell != "none"]
+    if r.empty:
+        print(f"{a.design} on {a.unit}: no design passed the fit gate for any of the {a.seeds} seeds (fit judged: {a.fit_period})")
+        return
     cells = r[r.cell != "h2h"]
     null, lift = cells[cells.multiple == 0], cells[(cells.multiple > 0) & (cells.cell == 0)]
-    print(f"{a.design} on {a.unit}, {a.seeds} seeds, placebos={a.placebos}")
+    print(f"{a.design} on {a.unit}, {a.seeds} seeds, placebos={a.placebos}, orders/day={a.orders_per_day or 'default'}, "
+          f"fit judged: {a.fit_period}; no design passed for {none} seeds")
     print(f"  90% range covers zero (no effect):   {null.covered.mean():.1%}  ({len(null)} cells)")
     print(f"  'positive' with no effect:           {(null.verdict == 'positive').mean():.1%}")
     print(f"  90% range covers truth (lift = MDE): {lift.covered.mean():.1%}  ({len(lift)} cells)")

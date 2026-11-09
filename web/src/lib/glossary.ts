@@ -68,7 +68,7 @@ export const GLOSSARY = {
   },
   fit: {
     title: "Fit error",
-    text: "How far the twin was from the real markets on days it hadn't seen (as a share of daily sales). Under 10% is good.",
+    text: "How far the twin was from the real markets on days it hadn't seen, as a share of sales: per day, or per week for smaller businesses, where day-to-day chance would hide a good fit. Under 10% is good.",
     doc: ["METHODOLOGY.md", "93-scoring"],
   },
   balance: {

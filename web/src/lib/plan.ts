@@ -37,6 +37,7 @@ export type DesignResult = {
 
 export type FindResult = {
   designs: DesignResult[];
+  fit_period?: "day" | "week";      // how the search judged twin fit (§9.3)
   funnel: Record<string, number>;
   best_failing: DesignResult[];
   settings: { selection: Record<string, unknown>; power: Record<string, unknown> };
@@ -75,6 +76,7 @@ export type Commitment = {
   };
   thresholds: {
     pre_fit_nrmse_max: Record<string, Record<string, number>>;
+    pre_fit_period?: "day" | "week";    // METHODOLOGY.md §9.3; absent = day
     leakage_warn_share: number;
     spend_share_tolerance_pp: number;
     min_budget_delivery: number;
@@ -135,6 +137,7 @@ export type PlanInputs = {
   cooldownDays: number;
   preDays: number;
   design: DesignResult;
+  fitPeriod?: "day" | "week";       // from the search; locked so Read judges fit the same way
   designType?: Design;              // default geo_cells
   designRank: number;
   candidatesSearched: number;
@@ -208,6 +211,7 @@ export function buildCommitment(p: PlanInputs): Commitment {
     },
     thresholds: {
       pre_fit_nrmse_max: fitByCell,
+      ...(p.fitPeriod === "week" ? { pre_fit_period: "week" as const } : {}),
       leakage_warn_share: 0.05,
       spend_share_tolerance_pp: 5,
       min_budget_delivery: 0.9,

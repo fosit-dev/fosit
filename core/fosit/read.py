@@ -24,6 +24,11 @@ from .spend import SpendData, leakage
 H2H_GRID = 41
 
 
+def thresholds_period(c: dict) -> str:
+    """How the plan judges pre-period fit: "day" (default, and every plan before FOSIT 0.2) or "week" (§9.3)."""
+    return c.get("thresholds", {}).get("pre_fit_period", "day")
+
+
 def _num(x):
     return None if x is None or (isinstance(x, float) and not math.isfinite(x)) else float(x)
 
@@ -190,6 +195,8 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
     planned_mde = (c["decision"].get("planned_mde_lift") or
                    {by_label[m["label"]]: m["mde"] for m in (appendix or {}).get("mde", []) if m.get("mde") and m.get("label") in by_label})
 
+    # §9.3: plans can lock the pre-period fit check on weekly totals (small advertisers); older plans are day by day
+    fit_period = 7 if thresholds_period(c) == "week" else 1
     # §5.6: plans that lock placebo calibration get conformal ranges checked against placebo cells
     n_placebos = int((method.get("placebo_calibration") or {}).get("n", 0))
     cells_out, work = [], {}
@@ -229,9 +236,12 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
             est = w["est"]
             m = business_metrics(est, kpi, w["spend"], levels)
             limit = thresholds["pre_fit_nrmse_max"].get(cid, {}).get(kpi)
+            m["pre_fit_nrmse"] = est.pre_fit(fit_period)
+            m["pre_fit_period"] = "week" if fit_period == 7 else "day"
             m["pre_fit_limit"] = limit
-            m["pre_fit_ok"] = True if limit is None else est.pre_fit_nrmse <= limit
-            fit_checks.append({"kpi": kpi, "nrmse": est.pre_fit_nrmse, "limit": limit, "ok": m["pre_fit_ok"]})
+            m["pre_fit_ok"] = True if limit is None else m["pre_fit_nrmse"] <= limit
+            fit_checks.append({"kpi": kpi, "nrmse": m["pre_fit_nrmse"], "limit": limit, "ok": m["pre_fit_ok"],
+                               "period": m["pre_fit_period"]})
             m["series"] = {"dates": [x.strftime("%Y-%m-%d") for x in est.dates], **est.chart(),
                            "n_pre": est.n_pre, "test_days": test_days}
             top = sorted(est.weights.items(), key=lambda kv: -abs(kv[1]))[:12]
@@ -298,7 +308,7 @@ def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, 
     """§11 data-based checks. Plan match and external shocks are added by the UI (they need the user)."""
     th = c["thresholds"]
     out = []
-    fit_bad = [f"{cell['label']} ({f['kpi']}: {f['nrmse']:.1%} > {f['limit']:.1%})"
+    fit_bad = [f"{cell['label']} ({f['kpi']}{', on weekly totals' if f.get('period') == 'week' else ''}: {f['nrmse']:.1%} > {f['limit']:.1%})"
                for cell in cells_out for f in cell["fit_checks"] if not f["ok"]]
     ok_text = ("The holdout's twin tracked the holdout markets within the plan's limit before the test." if holdout
                else "Every cell's twin tracked its markets within the plan's limits before the test.")
