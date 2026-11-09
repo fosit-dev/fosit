@@ -30,7 +30,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 FOSIT_REPO = "https://github.com/fosit-dev/fosit"
-FOSIT_REF = os.environ.get("FOSIT_REF", "f4c6cef")          # pinned engine version (a commit or tag)
+FOSIT_REF = os.environ.get("FOSIT_REF", "922eca4")          # pinned engine version (a commit or tag)
 HOME = Path(os.environ.get("FOSIT_ENV", Path.home() / ".fosit"))
 VENV = HOME / f"venv-{FOSIT_REF}"
 
@@ -61,6 +61,8 @@ def _engine_ready() -> bool:
 
 def _find_python() -> list[str] | None:
     """A Python >= 3.12 to build the engine's environment with (uv can fetch one if none is installed)."""
+    if sys.version_info >= (3, 12):
+        return [sys.executable]
     if shutil.which("uv"):
         return ["uv"]
     for name in ("python3.14", "python3.13", "python3.12", "python3", "python"):
