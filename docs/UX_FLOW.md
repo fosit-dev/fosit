@@ -9,6 +9,19 @@
 3. **No reasons to distrust.** No sign-up, no email gate, no upload, no tracking inside the tool, open source, reproducible, and a clear conflict-of-interest disclosure.
 4. **Honest by default.** "Inconclusive" gets the same visual weight as a win. Warnings are never hidden behind toggles.
 5. **Vendor-neutral.** Cells are "Cell 1 / Cell 2" until the user labels them. No vendor names anywhere in the UI, code, or defaults.
+6. **The answer first, at the reader's level.** A detail switch in the header (*Brief* for leaders, *Guided* for marketers, *Full* for analysts; `lib/level.tsx`) decides how much is shown. Brief: the answer, the money, the charts, and only the checks that did not pass. Guided (default): plus tables and explanations. Full: plus "In numbers" and the details open. Warnings and failed checks show at every level.
+7. **Realistic, not fussy.** Never ask for data that would not change the answer: 8 weeks of history is enough, and 1–2 late days still read as final (METHODOLOGY §11.1).
+
+## Writing
+
+Answers, checklists and summaries follow the style of ASD-STE100 (Simplified Technical English): one idea per sentence (at most 25 words, 20 for an instruction), active voice, instructions that start with a verb, one word for one meaning (*extra orders*, *twin*, *range*, *held-out markets*), no idioms. The words that people read first (`core/fosit/explain.py`: the answer, the plan in short, who does what) are written once and shared by the web app, the PDF, the interactive pages and the agent skill. `tests/test_explain.py` checks the sentence lengths.
+
+## Interactive pages
+
+Plan, lock and read also produce one self-contained HTML file (`core/fosit/templates/page.html`, filled by `explain.render`): it works offline, makes no network requests and prints cleanly. It has the same Brief / Guided / Full switch, opening at the level the author chose.
+- **Results:** the answer and what to do; "Is it worth the money?" (a slider for the value of one extra order, with each cost range as a bar); the anatomy of the test (numbered steps the reader can open); a chart per cell with hover values, numbered notes and a running total of extra orders; every check; all numbers at Full.
+- **Plan:** the plan in short; the anatomy; a timeline (and the block schedule for a crossover); "Will the test see it?" (a slider for the expected cost of one extra order, read from the planning simulation's power curve in the appendix); "Who does what", with ticks the browser remembers; the market lists; the locked settings at Full.
+- **Options** (skill `plan` step): each candidate design's share bar and its chance to see a given cost per extra order, by test length.
 
 ## Persistent elements (every screen)
 
@@ -145,7 +158,9 @@ A row of six check tiles: Plan match · Pre-period fit · Geo leakage · Spend b
 Weights table (which control markets make up each twin), λ chosen, the placebo check (*Built:* how many placebo cells ran, whether they widened the range, and the placebo p-value; METHODOLOGY §5.6), placebo-in-time sensitivity check, permutation distribution plot, and links to the exact code.
 
 ### R6. Export
-**CFO-ready PDF** (verdicts first, checks, methods appendix, plan hash on every page) · **Results CSV** · **Analysis config** ("anyone can re-run this and get the same numbers").
+**Interactive report (HTML)** (see *Interactive pages*) · **CFO-ready PDF** (the answer first, checks, methods appendix, plan hash on every page) · **Results CSV** · **Analysis config** ("anyone can re-run this and get the same numbers").
+
+*(Built: an "The answer" card comes before everything else: one headline, one detail and one "What to do" per cell, and the vendor comparison, from `explain.summary`. The older "Bottom line" sentences show as "In numbers" at Full.)*
 
 ---
 

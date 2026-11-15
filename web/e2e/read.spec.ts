@@ -19,13 +19,24 @@ test("reads the two-vendor example: verdicts, checks, exports, and no data leave
   await expect(page.getByText("The plan is exactly the one fingerprinted before launch.")).toBeVisible();
   await expect(page.getByText("Answer the question above to see the results.")).toBeVisible();
   await page.getByLabel("No, nothing else changed differently").check();
-  await expect(page.getByRole("heading", { name: /Bottom line/ })).toBeVisible();
-  const bottom = page.locator("section", { has: page.getByRole("heading", { name: /Bottom line/ }) });
-  await expect(bottom.getByText(/Vendor A drove/)).toBeVisible();
-  await expect(bottom.locator(".verdict").first()).toHaveText(/Positive lift/);
-  await expect(bottom.getByText(/Head-to-head:/)).toBeVisible();
+  const answer = page.locator("section", { has: page.getByRole("heading", { name: "The answer" }) });
+  await expect(answer.getByText(/Vendor A caused about [\d,]+ extra orders/)).toBeVisible();
+  await expect(answer.locator(".verdict").first()).toHaveText(/Positive lift/);
+  await expect(answer.getByText(/What to do:/).first()).toBeVisible();
+  await expect(answer.getByText("The test cannot tell if Vendor A or Vendor B is better.")).toBeVisible();
+  // Brief (for leaders) hides the tables; Full (for analysts) shows the numbers section and opens the details
+  await page.getByRole("radio", { name: /For leaders/ }).click();
+  await expect(page.locator("table")).toHaveCount(0);
+  await page.getByRole("radio", { name: /For analysts/ }).click();
+  await expect(page.getByRole("heading", { name: /In numbers/ })).toBeVisible();
+  await page.getByRole("radio", { name: /For marketers/ }).click();
   await page.screenshot({ path: "test-results/r1-results.png", fullPage: true });
 
+  const [html] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download interactive report (HTML)" }).click()]);
+  const report = readFileSync((await html.path())!, "utf8");
+  expect(report).toContain('"kind":"results"');
+  expect(report).toContain("Vendor A caused about");
+  expect(report).not.toMatch(/<script[^>]+src=|<link[^>]+href=["']?http/);   // one self-contained file: no network requests
   const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download report (PDF)" }).click()]);
   await pdf.saveAs("test-results/report.pdf");
   expect(readFileSync("test-results/report.pdf").subarray(0, 5).toString()).toBe("%PDF-");
@@ -69,7 +80,7 @@ test.describe("on a phone in dark mode", () => {
     await expect(page.getByRole("button", { name: "Run the analysis" })).toBeEnabled({ timeout: 240_000 });
     await page.getByRole("button", { name: "Run the analysis" }).click();
     await page.getByLabel("No, nothing else changed differently").check({ timeout: 300_000 });
-    await expect(page.getByRole("heading", { name: /Bottom line/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The answer" })).toBeVisible();
     await page.getByRole("heading", { name: "Vendor A", exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: "test-results/r2-mobile.png" });
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);

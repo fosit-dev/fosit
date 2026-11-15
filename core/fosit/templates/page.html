@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="FOSIT (Free Open-Source Incrementality Tool)">
+<title>__FOSIT_TITLE__</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f6f4; --surface: #fcfcfb; --surface-2: #f0efec; --line: #e2e1dc; --grid: #ebeae6;
+  --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #75746f;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  --neutral: #9a9893; --twin: #75746f;
+  --good: #0ca30c; --good-ink: #006300; --warn: #fab219; --warn-ink: #8a5a00; --bad: #d03b3b; --bad-ink: #b02a2a;
+  --accent: #2a78d6; --accent-ink: #1c5cab; --band: rgba(42,120,214,.07); --band-2: rgba(117,116,111,.08);
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --line: #33332f; --grid: #2a2a27;
+    --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #9a998f;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c;
+    --neutral: #6f6e68; --twin: #a9a89f;
+    --good: #0ca30c; --good-ink: #5fd35f; --warn: #fab219; --warn-ink: #fab219; --bad: #e66767; --bad-ink: #f08a8a;
+    --accent: #3987e5; --accent-ink: #86b6ef; --band: rgba(57,135,229,.12); --band-2: rgba(169,168,159,.08);
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --line: #33332f; --grid: #2a2a27;
+  --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #9a998f;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c;
+  --neutral: #6f6e68; --twin: #a9a89f;
+  --good: #0ca30c; --good-ink: #5fd35f; --warn: #fab219; --warn-ink: #fab219; --bad: #e66767; --bad-ink: #f08a8a;
+  --accent: #3987e5; --accent-ink: #86b6ef; --band: rgba(57,135,229,.12); --band-2: rgba(169,168,159,.08);
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px 48px; }
+h1 { font-size: 1.6rem; line-height: 1.25; margin: 0; letter-spacing: -.01em; }
+h2 { font-size: 1.2rem; margin: 0 0 4px; letter-spacing: -.005em; }
+h3 { font-size: 1rem; margin: 18px 0 6px; }
+p { margin: 6px 0; }
+a { color: var(--accent-ink); }
+button { font: inherit; color: inherit; }
+.muted { color: var(--ink-2); }
+.small { font-size: .875rem; }
+.tiny { font-size: .78rem; color: var(--ink-3); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85em; word-break: break-all; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* detail levels: .g = guided and full, .f = full only, .b = brief only */
+body[data-level="brief"] .g, body:not([data-level="full"]) .f, body:not([data-level="brief"]) .b { display: none !important; }
+
+header.top { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding-top: 10px; padding-bottom: 10px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .02em; }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; }
+.levels { margin-left: auto; display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.levels button { border: 0; background: transparent; padding: 5px 12px; border-radius: 7px; cursor: pointer; font-size: .875rem; color: var(--ink-2); }
+.levels button[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+.theme { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; width: 34px; height: 32px; cursor: pointer; font-size: .95rem; color: var(--ink-2); }
+@media (max-width: 420px) { .levels button { padding: 5px 9px; } header.top .wrap { gap: 8px; } }
+
+.hero { padding: 26px 0 8px; }
+.hero .sub { color: var(--ink-2); margin-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.chip { font-size: .8rem; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px 10px; color: var(--ink-2); }
+.levelhint { font-size: .82rem; color: var(--ink-3); margin-top: 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin: 16px 0; box-shadow: var(--shadow); }
+.card > h2 + .muted { margin-top: 0; }
+.banner { border-radius: 10px; padding: 10px 14px; margin: 12px 0; border: 1px solid; }
+.banner.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+.banner.warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+
+.answer { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.answer:first-of-type { border-top: 0; }
+.answer .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 8px; }
+.answer .head { font-size: 1.15rem; font-weight: 650; line-height: 1.35; }
+.answer .todo { margin-top: 6px; padding: 8px 12px; background: var(--surface-2); border-radius: 8px; }
+.answer .todo b { color: var(--ink); }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: .78rem; font-weight: 600; border-radius: 999px; padding: 1px 9px; border: 1px solid; margin-bottom: 4px; }
+.pill.good { color: var(--good-ink); border-color: var(--good); }
+.pill.neutral { color: var(--ink-2); border-color: var(--neutral); }
+.pill.bad { color: var(--bad-ink); border-color: var(--bad); }
+.pill.warn { color: var(--warn-ink); border-color: var(--warn); }
+
+/* slider tools */
+.tool { display: grid; gap: 10px; }
+.tool label { font-weight: 600; }
+.tool .val { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+.rangerow { display: grid; grid-template-columns: minmax(110px, 180px) 1fr; gap: 6px 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.rangerow .lab { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.rangerow .say { grid-column: 2; font-size: .92rem; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.bar { position: relative; height: 22px; background: var(--surface-2); border-radius: 6px; }
+.bar .fill { position: absolute; top: 5px; height: 12px; border-radius: 4px; }
+.bar .mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.bar .pt { position: absolute; top: 3px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; border: 2px solid var(--surface); }
+.meter { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.meter > div { height: 100%; border-radius: 6px; }
+@media (max-width: 560px) { .rangerow { grid-template-columns: 1fr; } .rangerow .say { grid-column: 1; } }
+
+/* anatomy */
+.share { display: flex; height: 34px; border-radius: 8px; overflow: hidden; gap: 2px; background: var(--surface); margin: 12px 0 8px; }
+.share > div { min-width: 6px; display: grid; place-items: center; color: #fff; font-size: .78rem; font-weight: 600; white-space: nowrap; overflow: hidden; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .86rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 14px; counter-reset: step; }
+.step { position: relative; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; background: var(--surface-2); border-radius: 12px; padding: 12px; border: 1px solid transparent; text-align: left; cursor: pointer; }
+.step:hover, .step[aria-expanded="true"] { border-color: var(--accent); }
+.step .n { position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: .75rem; font-weight: 700; display: grid; place-items: center; }
+.step svg { display: block; margin-bottom: 6px; }
+.step .t { font-weight: 650; font-size: .95rem; }
+.step .x { font-size: .86rem; color: var(--ink-2); margin-top: 4px; }
+.step .more { display: none; font-size: .86rem; margin-top: 6px; }
+.step[aria-expanded="true"] .more { display: block; }
+@media (min-width: 760px) { .steps.flow .step:not(:last-child)::after { content: ""; position: absolute; right: -9px; top: 50%; width: 8px; height: 8px; border-top: 2px solid var(--neutral); border-right: 2px solid var(--neutral); transform: translateY(-50%) rotate(45deg); } }
+
+/* timeline */
+.timeline { display: flex; gap: 2px; margin: 14px 0 6px; min-height: 58px; }
+.timeline > div { border-radius: 8px; padding: 7px 9px; font-size: .8rem; min-width: 74px; overflow: hidden; }
+.timeline .t { font-weight: 650; font-size: .85rem; }
+.blocks { display: flex; gap: 2px; margin: 8px 0; }
+.blocks > div { flex: 1; border-radius: 6px; text-align: center; padding: 6px 0; color: #fff; font-weight: 700; font-size: .85rem; position: relative; overflow: hidden; }
+.blocks > div i { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(255,255,255,.35) 0 3px, transparent 3px 7px); }
+
+/* charts */
+.chartbox { position: relative; margin-top: 10px; }
+.chartbox svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chartbox .axis { fill: var(--ink-3); font-size: 11px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: .8rem; box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 150px; display: none; z-index: 3; }
+.tip b { display: block; margin-bottom: 2px; }
+.tip .r { display: flex; justify-content: space-between; gap: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 4px 10px; font-size: .8rem; cursor: pointer; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+.callouts { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+.callouts li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: .88rem; color: var(--ink-2); }
+.callouts .n { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--surface); font-size: .72rem; font-weight: 700; display: grid; place-items: center; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+
+/* checks, tables, lists */
+.checks { list-style: none; padding: 0; margin: 8px 0 0; }
+.checks li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); }
+.checks li:first-child { border-top: 0; }
+.icon { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .8rem; color: #fff; }
+.icon.pass { background: var(--good); } .icon.warn { background: var(--warn); color: #3a2a00; } .icon.fail { background: var(--bad); }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-2); }
+details > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.todo-list { list-style: none; padding: 0; margin: 4px 0 12px; }
+.todo-list li { display: grid; grid-template-columns: 24px 1fr; gap: 6px; padding: 5px 0; }
+.todo-list input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--good); }
+.todo-list input:checked + span { color: var(--ink-3); text-decoration: line-through; }
+.markets { columns: 3 180px; font-size: .86rem; color: var(--ink-2); margin: 6px 0 12px; }
+.btn { display: inline-block; background: var(--accent); color: #fff; border-radius: 9px; padding: 9px 16px; text-decoration: none; font-weight: 600; border: 0; cursor: pointer; }
+.term { border: 0; background: none; padding: 0; border-bottom: 1px dotted var(--ink-3); cursor: help; color: inherit; font: inherit; }
+.pop { position: absolute; z-index: 10; max-width: 300px; background: var(--ink); color: var(--surface); border-radius: 8px; padding: 9px 12px; font-size: .84rem; line-height: 1.45; box-shadow: 0 6px 24px rgba(0,0,0,.2); }
+footer { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--line); font-size: .8rem; color: var(--ink-3); }
+@media print {
+  header.top { position: static; }
+  .levels, .theme, .seg { display: none !important; }
+  .card { break-inside: avoid; box-shadow: none; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body data-level="guided">
+<div id="app"></div>
+<noscript><p style="padding:20px">This page needs JavaScript to draw the charts. The plan file and the results file hold the same data.</p></noscript>
+<script>
+"use strict";
+const D = /*__FOSIT_DATA__*/null;
+
+// ------------------------------------------------------------------ helpers
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k === "style" && typeof v === "object") Object.assign(n.style, v);
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) n.append(c instanceof Node ? c : String(c));
+  return n;
+}
+function sv(tag, attrs, ...kids) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) if (v != null) n.setAttribute(k, v);
+  for (const c of kids.flat()) if (c != null) n.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return n;
+}
+const SYM = { USD: "$", EUR: "€", GBP: "£", ILS: "₪", CAD: "CA$", AUD: "A$", JPY: "¥" };
+const cur = (D && D.currency) || "USD";
+const sym = SYM[cur] || cur + " ";
+const fin = (x) => x != null && isFinite(x);
+const num = (x, d = 0) => fin(x) ? (Number(x) + 0).toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }) : "–";
+const money = (x) => !fin(x) ? "–" : (x < 0 ? "-" : "") + sym + Math.abs(x).toLocaleString("en-US", Math.abs(x) >= 100 ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = (x, d = 1) => fin(x) ? (x * 100).toFixed(d) + "%" : "–";
+const ratio = (x) => fin(x) ? Number(x).toFixed(2) : "–";
+const unitOf = (kpi) => (x) => kpi === "revenue" ? money(x) : num(x);
+const kpiWord = (kpi) => kpi === "revenue" ? "revenue" : "orders";
+const day = (s) => new Date(s + "T00:00:00Z");
+const pretty = (s, year) => day(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: year ? "numeric" : undefined, timeZone: "UTC" });
+const addDays = (s, n) => { const d = day(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const joinAnd = (xs) => xs.length <= 1 ? (xs[0] || "") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+const between = (a, b) => Math.round((day(b) - day(a)) / 864e5) + 1;
+function span(iv, f) {
+  if (!iv || (iv[0] == null && iv[1] == null)) return "not defined";
+  if (iv[1] == null) return f(iv[0]) + " or more";
+  if (iv[0] == null) return "up to " + f(iv[1]);
+  return f(iv[0]) + " to " + f(iv[1]);
+}
+function nice(x) {
+  if (!fin(x) || x <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(x)));
+  const m = x / p;
+  return (m < 1.5 ? 1 : m < 2.25 ? 2 : m < 3.5 ? 2.5 : m < 7.5 ? 5 : 10) * p;
+}
+function snap(v) {
+  if (!fin(v) || v <= 0) return v;
+  const step = Math.pow(10, Math.floor(Math.log10(v)) - 1);
+  return Math.round(v / step) * step;
+}
+function interp(points, x) {
+  if (!points || !points.length) return null;
+  if (x <= points[0].effect) return points[0].power;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i];
+    if (x <= b.effect) return a.power + (b.power - a.power) * (x - a.effect) / (b.effect - a.effect || 1);
+  }
+  return points[points.length - 1].power;
+}
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
+};
+const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
+const groupColor = (g, i) => g.role === "control" || g.role === "holdout" ? "var(--neutral)" : g.role === "half" ? (i === 0 ? "var(--s1)" : "var(--s2)") : COLORS[i % COLORS.length];
+
+// ------------------------------------------------------------------ words (ASD-STE100 style: short, active, one meaning per word)
+const GLOSSARY = {
+  twin: "A mix of other markets. Before the test, its sales moved like the test markets. During the test, it shows the sales without the ads.",
+  extra: "Extra orders (incremental orders) are the orders that the ads caused. Without the ads, these orders do not occur.",
+  range: "The true number is in this range with 90% confidence. A narrow range gives a precise answer. A wide range gives a less precise answer.",
+  icpa: "Cost per extra order (iCPA) is the spend divided by the extra orders.",
+  iroas: "Return per 1 spent (iROAS) is the extra revenue divided by the spend.",
+  holdout: "Held-out markets get no ads during the test. They show the sales without the ads.",
+  control: "Control markets get no test ads. FOSIT builds the twins from these markets.",
+  cooldown: "The cooldown is a period after the ads stop. FOSIT counts the orders that come late.",
+  fingerprint: "FOSIT makes this code from the plan. If one detail of the plan changes, the code changes. The code in the first email proves that the plan came first.",
+  fit: "Fit shows how closely the twin followed the real sales before the test. A small fit error is good.",
+  block: "A block is a period of 2 or 4 weeks. In each block, one half of the country has the ads.",
+  washout: "FOSIT does not use the first days of each block. Ads from the last block can still work on those days.",
+  chance: "This is how often a test of this size finds an effect of this size. FOSIT simulated the test on your past sales.",
+  pvalue: "The p-value shows how often chance alone gives a result this large. A small p-value shows that the result is not chance.",
+  lift: "Lift is the extra sales as a percent of the sales without the ads.",
+};
+let pop = null;
+function closePop() { if (pop) { pop.remove(); pop = null; } }
+function term(word, key) {
+  const b = el("button", { class: "term", type: "button", "aria-label": word + ": show the meaning" }, word);
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const same = pop && pop.dataset.key === key;
+    closePop();
+    if (same) return;
+    pop = el("div", { class: "pop", role: "tooltip" }, GLOSSARY[key]);
+    pop.dataset.key = key;
+    document.body.append(pop);
+    const r = b.getBoundingClientRect();
+    const w = Math.min(300, window.innerWidth - 24);
+    pop.style.maxWidth = w + "px";
+    pop.style.left = Math.max(12, Math.min(window.scrollX + r.left, window.scrollX + window.innerWidth - w - 12)) + "px";
+    pop.style.top = (window.scrollY + r.bottom + 6) + "px";
+  });
+  return b;
+}
+document.addEventListener("click", closePop);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePop(); });
+
+const DESIGN_NAME = { cells: "Geo test: each vendor in its own markets", holdout: "National campaign with a no-ads holdout",
+  split: "Vendors split the country, with a no-CTV holdout", crossover: "Two halves take turns with the ads" };
+const VERDICT = {
+  positive: { icon: "✓", label: "The ads worked", tone: "good" },
+  no_detectable_lift: { icon: "–", label: "Not enough effect to pay off", tone: "neutral" },
+  inconclusive: { icon: "?", label: "The test cannot tell", tone: "neutral" },
+  negative: { icon: "!", label: "Sales were lower: check", tone: "bad" },
+};
+
+// ------------------------------------------------------------------ shell
+function setLevel(level) {
+  document.body.dataset.level = level;
+  document.querySelectorAll(".levels button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.level === level)));
+  const hint = document.getElementById("levelhint");
+  if (hint) hint.textContent = { brief: "Brief: the answer and the money. For leaders.", guided: "Guided: the answer, how the test works, and what to do. For marketers.", full: "Full: every number, check and setting. For analysts." }[level];
+  store.set("fosit-level", level);
+}
+function header() {
+  const levels = el("div", { class: "levels", role: "radiogroup", "aria-label": "How much detail" },
+    ...[["brief", "Brief"], ["guided", "Guided"], ["full", "Full"]].map(([k, t]) =>
+      el("button", { type: "button", role: "radio", "data-level": k, "aria-checked": "false", onclick: () => setLevel(k) }, t)));
+  const themes = ["auto", "light", "dark"];
+  let theme = store.get("fosit-page-theme") || "auto";
+  const apply = () => {
+    if (theme === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", theme);
+    tb.textContent = { auto: "◐", light: "☀", dark: "☾" }[theme];
+    tb.setAttribute("aria-label", "Theme: " + theme + ". Select to change.");
+    tb.title = "Theme: " + theme;
+  };
+  const tb = el("button", { class: "theme", type: "button", onclick: () => { theme = themes[(themes.indexOf(theme) + 1) % 3]; store.set("fosit-page-theme", theme); apply(); } });
+  apply();
+  return el("header", { class: "top" }, el("div", { class: "wrap" },
+    el("div", { class: "brand" }, el("span", { class: "brand-mark", "aria-hidden": "true" }, mark()), "FOSIT"),
+    levels, tb));
+}
+function mark() {
+  return sv("svg", { width: 16, height: 16, viewBox: "0 0 32 32" }, sv("path", { d: "M6 23l6-8 5 4 9-11", stroke: "#fff", "stroke-width": 3.5, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" }));
+}
+function hero(kicker, sub, chips) {
+  return el("section", { class: "hero" },
+    el("div", { class: "tiny" }, kicker),
+    el("h1", {}, D.title),
+    sub ? el("p", { class: "sub" }, sub) : null,
+    chips && chips.length ? el("div", { class: "chips" }, chips.map((c) => el("span", { class: "chip" }, c))) : null,
+    el("p", { id: "levelhint", class: "levelhint" }));
+}
+function card(title, intro, ...body) {
+  return el("section", { class: "card" }, el("h2", {}, title), intro ? el("p", { class: "muted small" }, intro) : null, ...body);
+}
+function footer() {
+  return el("footer", {},
+    el("p", {}, "Made with FOSIT, the free open-source incrementality tool. This file works offline and sends no data. ",
+      el("a", { href: "https://github.com/fosit-dev/fosit/blob/main/docs/METHODOLOGY.md", target: "_blank", rel: "noreferrer" }, "How FOSIT works"), "."),
+    D.fingerprint ? el("p", {}, "Plan fingerprint: ", el("span", { class: "mono" }, D.fingerprint)) : null,
+    D.engine ? el("p", { class: "f" }, "Engine fingerprint: ", el("span", { class: "mono" }, D.engine)) : null);
+}
+
+// ------------------------------------------------------------------ icons for the anatomy steps
+function icon(kind) {
+  const s = sv("svg", { width: 40, height: 28, viewBox: "0 0 40 28", "aria-hidden": "true" });
+  const ink = "var(--ink-2)";
+  const add = (...n) => n.forEach((x) => s.append(x));
+  if (kind === "map") { for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) add(sv("rect", { x: 2 + i * 9, y: 2 + j * 8, width: 7, height: 6, rx: 1.5, fill: i < 1 ? "var(--s1)" : i < 2 ? "var(--s2)" : "var(--neutral)" })); }
+  if (kind === "tv") { add(sv("rect", { x: 6, y: 3, width: 28, height: 18, rx: 3, fill: "none", stroke: ink, "stroke-width": 2 }), sv("path", { d: "M14 26h12", stroke: ink, "stroke-width": 2, "stroke-linecap": "round" }), sv("path", { d: "M17 8l8 4-8 4z", fill: "var(--s1)" })); }
+  if (kind === "twin") { add(sv("path", { d: "M2 20 C10 8, 16 18, 22 10 S34 6, 38 8", stroke: "var(--s1)", "stroke-width": 2.5, fill: "none" }), sv("path", { d: "M2 22 C10 10, 16 20, 22 12 S34 8, 38 10", stroke: "var(--twin)", "stroke-width": 2, fill: "none", "stroke-dasharray": "4 3" })); }
+  if (kind === "compare") { add(sv("path", { d: "M2 22 L14 18 L20 19", stroke: "var(--s1)", "stroke-width": 2.5, fill: "none" }), sv("path", { d: "M20 19 L38 6", stroke: "var(--s1)", "stroke-width": 2.5, fill: "none" }), sv("path", { d: "M20 19 L38 17", stroke: "var(--twin)", "stroke-width": 2, fill: "none", "stroke-dasharray": "4 3" }), sv("path", { d: "M20 19 L38 6 L38 17 Z", fill: "var(--s1)", opacity: .18 })); }
+  if (kind === "gap") { add(sv("rect", { x: 4, y: 14, width: 9, height: 12, rx: 2, fill: "var(--neutral)" }), sv("rect", { x: 16, y: 6, width: 9, height: 20, rx: 2, fill: "var(--s1)" }), sv("path", { d: "M29 6v8 M27 6h4 M27 14h4", stroke: ink, "stroke-width": 2 })); }
+  if (kind === "swap") { add(sv("path", { d: "M6 9h26l-5-5 M34 19H8l5 5", stroke: ink, "stroke-width": 2.2, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" })); }
+  if (kind === "clock") { add(sv("circle", { cx: 20, cy: 14, r: 11, fill: "none", stroke: ink, "stroke-width": 2 }), sv("path", { d: "M20 8v6l4 3", stroke: ink, "stroke-width": 2, fill: "none", "stroke-linecap": "round" })); }
+  if (kind === "scale") { add(sv("path", { d: "M20 4v20 M8 24h24 M6 10h28", stroke: ink, "stroke-width": 2, "stroke-linecap": "round" }), sv("path", { d: "M6 10l-4 8h8z M34 10l-4 8h8z", fill: "var(--s1)", opacity: .6 })); }
+  if (kind === "halves") { add(sv("rect", { x: 3, y: 4, width: 16, height: 20, rx: 3, fill: "var(--s1)" }), sv("rect", { x: 21, y: 4, width: 16, height: 20, rx: 3, fill: "var(--s2)" })); }
+  return s;
+}
+
+// ------------------------------------------------------------------ anatomy of the design
+function anatomySteps() {
+  const g = D.groups || [];
+  const ads = g.filter((x) => x.role === "ads");
+  const rest = g.find((x) => x.role === "control" || x.role === "holdout");
+  const sh = (x) => fin(x && x.share) ? ` (${pct(x.share, 0)} of sales)` : "";
+  const d = D.dates || {};
+  const when = d.test_start ? `from ${pretty(d.test_start)} to ${pretty(d.test_end)}` : "during the test";
+  const word = kpiWord(D.kpi);
+  if (D.design === "crossover") {
+    const weeks = Math.round((D.block_days || 14) / 7);
+    return [
+      { icon: "halves", t: "Two halves", x: `FOSIT split the country into two halves with almost the same sales.`, m: `Half A has ${g[0] ? g[0].n : "–"} markets${sh(g[0])}. Half B has ${g[1] ? g[1].n : "–"} markets. Each market gets the ads for half of the test.` },
+      { icon: "swap", t: "Take turns", x: `Every ${weeks} weeks, the ads move to the other half.`, m: `A fair random draw set the order when the plan was locked. Each half has the ads in the same number of blocks.` },
+      { icon: "clock", t: "Skip the fade", x: `FOSIT skips the first ${D.washout_days || 3} days of each block.`, m: `Ads from the last block can still work on these days. FOSIT does not count them, so the halves do not mix.` },
+      { icon: "compare", t: "Compare halves", x: `In each block, FOSIT compares the half with ads to the half without ads.`, m: `Both halves have the same season, weather and news at the same time. So the gap shows what the ads did.` },
+      { icon: "scale", t: "Average and test", x: `FOSIT averages the gap over all blocks.`, m: `A test against every other fair schedule gives the range. Chance alone seldom gives a large gap in every block.` },
+    ];
+  }
+  if (D.design === "holdout" || D.design === "split") {
+    const split = D.design === "split";
+    return [
+      { icon: "map", t: split ? "Split the country" : "Hold out markets", x: split ? `${joinAnd(ads.map((a) => a.label))} split the markets. ${rest ? rest.n : "Some"} markets${sh(rest)} get no CTV.` : `${rest ? rest.n : "Some"} markets${sh(rest)} get no ads. The campaign runs everywhere else.`, m: "FOSIT picked the held-out markets at random, and checked that they are like the rest of the country." },
+      { icon: "tv", t: "Run the ads", x: `The ads run ${when}. The held-out markets stay dark.`, m: "The held-out markets stay dark until the cooldown ends, so late effects do not leak in." },
+      { icon: "twin", t: split ? "A twin per vendor" : "Build a twin", x: split ? "For each vendor, FOSIT builds a twin of the held-out markets from that vendor's markets." : "FOSIT mixes markets with ads into a twin of the held-out markets.", m: "Before the test, the twin's sales moved like the held-out markets. FOSIT compares each market to its own normal level." },
+      { icon: "compare", t: "Compare", x: "During the test, the twin shows the held-out markets with the ads. The real held-out sales show them without the ads.", m: "The gap between the two lines is the share of sales that the ads drove." },
+      { icon: "gap", t: split ? "Compare vendors" : "Scale up", x: split ? `Each vendor's share gives its extra ${word}. Then FOSIT compares the vendors.` : `FOSIT applies the share to the sales in the markets with ads. This gives the extra ${word}.`, m: "Each number comes with a range. If the range includes zero, the test cannot tell." },
+    ];
+  }
+  return [
+    { icon: "map", t: "Split the markets", x: `${joinAnd(ads.map((a) => a.label))} ${ads.length > 1 ? "each get their own markets" : "gets its own markets"}. ${rest ? rest.n : "The other"} markets${sh(rest)} get no test ads.`, m: "FOSIT tried many random splits. It kept the splits where the groups were alike in sales, trend and size." },
+    { icon: "tv", t: "Run the ads", x: `Each vendor runs ads only in its own markets, ${when}.`, m: "The control markets get no test ads. Other media continue the same in all markets." },
+    { icon: "twin", t: "Build a twin", x: "For each vendor, FOSIT mixes control markets into a twin.", m: "Before the test, the twin's sales moved like the vendor's markets. The mix is fixed before the test starts." },
+    { icon: "compare", t: "Compare", x: "During the test, FOSIT compares the real sales with the twin.", m: "The twin shows the sales without the ads. Season, weather and news affect both lines in the same way." },
+    { icon: "gap", t: "Count the gap", x: `The gap is the extra ${word} that the ads caused.`, m: "Each number comes with a range. If the range includes zero, the test cannot tell." },
+  ];
+}
+function shareBar() {
+  const g = D.groups || [];
+  if (!g.length) return null;
+  const known = g.every((x) => fin(x.share));
+  const tot = known ? g.reduce((a, x) => a + x.share, 0) : g.reduce((a, x) => a + x.n, 0);
+  const bar = el("div", { class: "share", role: "img", "aria-label": g.map((x) => `${x.label}: ${known ? pct(x.share, 0) + " of sales" : x.n + " markets"}`).join("; ") },
+    g.map((x, i) => {
+      const w = (known ? x.share : x.n) / tot;
+      return el("div", { style: { flex: String(Math.max(w, 0.02)), background: groupColor(x, i) }, title: x.label }, w > 0.07 ? (known ? pct(x.share, 0) : x.n) : "");
+    }));
+  const legend = el("div", { class: "legend" }, g.map((x, i) =>
+    el("span", {}, el("i", { class: "swatch", style: { background: groupColor(x, i) } }), `${x.label}: ${x.n} markets${known ? ", " + pct(x.share, 0) + " of sales" : ""}`)));
+  return el("div", {}, bar, legend);
+}
+function anatomy(title) {
+  const steps = anatomySteps();
+  const grid = el("div", { class: "steps flow" }, steps.map((s, i) => {
+    const b = el("button", { class: "step", type: "button", "aria-expanded": "false" },
+      el("span", { class: "n" }, i + 1), icon(s.icon), el("div", { class: "t" }, s.t), el("div", { class: "x" }, s.x), el("div", { class: "more" }, s.m));
+    b.addEventListener("click", () => b.setAttribute("aria-expanded", String(b.getAttribute("aria-expanded") !== "true")));
+    return b;
+  }));
+  const body = [shareBar(), D.design === "crossover" && D.schedule && D.schedule.length ? blockStrip() : null, grid,
+    el("p", { class: "tiny" }, "Select a step to read more.")];
+  const sec = card(title || "How this test works", null, ...body);
+  const brief = el("section", { class: "card b" }, el("details", {}, el("summary", {}, title || "How this test works"), ...[shareBar(), anatomyCopy()]));
+  sec.classList.add("g");
+  return [brief, sec];
+}
+function anatomyCopy() {
+  const steps = anatomySteps();
+  const grid = el("div", { class: "steps" }, steps.map((s, i) => el("div", { class: "step", style: { cursor: "default" } }, el("span", { class: "n" }, i + 1), el("div", { class: "t" }, s.t), el("div", { class: "x" }, s.x))));
+  return grid;
+}
+function blockStrip() {
+  const W = D.washout_days || 0, L = D.block_days || 14;
+  return el("div", {},
+    el("div", { class: "blocks", role: "img", "aria-label": "Schedule: " + D.schedule.map((b) => `block ${b.block} half ${b.on}`).join(", ") },
+      D.schedule.map((b) => el("div", { style: { background: b.on === "A" ? "var(--s1)" : "var(--s2)" }, title: `${pretty(b.start)} to ${pretty(b.end)}: ads in half ${b.on}` },
+        el("i", { style: { width: (100 * W / L) + "%" } }), b.on))),
+    el("p", { class: "tiny" }, `Each box is one block of ${L / 7} weeks. The letter shows the half with the ads. The striped part is the `, term("washout", "washout"), "."));
+}
+
+// ------------------------------------------------------------------ results: the answer
+function answerCard() {
+  const s = D.summary || { cells: [] };
+  const color = {};
+  (D.groups || []).forEach((g, i) => { color[g.id] = groupColor(g, i); });
+  const body = [];
+  if (D.plan_ok === false) body.push(el("div", { class: "banner bad", role: "alert" }, el("b", {}, "This is not the pre-registered analysis. "), "The plan does not match the fingerprint from before the test. Do not use these numbers to decide."));
+  (s.notes || []).forEach((n) => body.push(el("div", { class: "banner warn" }, n)));
+  s.cells.forEach((c) => {
+    const v = VERDICT[c.verdict] || VERDICT.inconclusive;
+    body.push(el("div", { class: "answer" },
+      el("span", { class: "dot", style: { background: color[c.id] || "var(--s1)" }, "aria-hidden": "true" }),
+      el("div", {},
+        el("span", { class: "pill " + v.tone }, el("span", { "aria-hidden": "true" }, v.icon), v.label),
+        el("div", { class: "head" }, c.headline),
+        el("p", { class: "muted" }, c.detail),
+        c.action ? el("div", { class: "todo" }, el("b", {}, "What to do: "), c.action) : null)));
+  });
+  if (s.head_to_head) body.push(el("div", { class: "answer" }, el("span", { class: "dot", style: { background: "var(--ink)" } }),
+    el("div", {}, el("div", { class: "head" }, s.head_to_head.headline), el("p", { class: "muted" }, s.head_to_head.detail))));
+  body.push(el("p", { class: "tiny g" }, "Words with a dotted line have a short meaning. Select them. Examples: ", term("twin", "twin"), ", ", term("range", "range"), ", ", term("extra orders", "extra"), "."));
+  return card("The answer", null, ...body);
+}
+
+// ------------------------------------------------------------------ results: is it worth it?
+function worthCard() {
+  const kpi = D.kpi;
+  const key = String(D.decision_level);
+  const cells = D.cells.filter((c) => c.spend > 0 && c.kpis[kpi]);
+  if (!cells.length) return card("Is it worth the money?", null, el("p", { class: "muted" }, "Add the spend file to see the cost of one extra order and if the ads pay off."));
+  const orders = kpi === "orders";
+  const ivOf = (c) => (c.kpis[kpi].intervals[key] || {})[orders ? "icpa" : "iroas"] || [null, null];
+  const real = (c) => ((c.kpis[kpi].intervals[key] || {}).incremental || [0])[0] > 0;   // a point cost only means something when the effect is clear of zero
+  const pts = cells.filter(real).map((c) => c.kpis[kpi][orders ? "icpa" : "iroas"]).filter(fin);
+  const target = orders ? D.decision.target_icpa : D.decision.breakeven_iroas;
+  const ends0 = cells.flatMap((c) => ivOf(c)).filter((x) => fin(x) && x > 0);
+  const base = fin(target) ? target : pts.length ? Math.max(...pts) : ends0.length ? Math.min(...ends0) : orders ? cells[0].spend / Math.max(1, cells[0].kpis[kpi].counterfactual * 0.05) : 1;
+  const ends = cells.flatMap((c) => ivOf(c)).filter((x) => fin(x) && x > 0);
+  const lo = Math.min(base, ...ends) / 3, hi = Math.max(base, ...ends.filter((x) => x < base * 20)) * 2;
+  const toV = (t) => snap(lo * Math.pow(hi / lo, t / 1000));
+  const toT = (v) => Math.round(1000 * Math.log(v / lo) / Math.log(hi / lo));
+  const start = fin(target) ? target : nice(base * 1.2);
+  const input = el("input", { type: "range", min: 0, max: 1000, value: toT(start), id: "worth", "aria-describedby": "worth-val" });
+  const val = el("div", { class: "val", id: "worth-val" });
+  const rows = el("div", {});
+  const axisMax = Math.max(hi, ...cells.map((c) => ivOf(c)[1] || 0).filter(fin));
+  const pos = (x) => Math.max(0, Math.min(100, 100 * Math.log(Math.max(x, lo) / lo) / Math.log(axisMax / lo)));
+  function draw() {
+    const v = toV(Number(input.value));
+    val.textContent = orders ? money(v) + " per extra order" : ratio(v) + " " + cur + " back per 1 " + cur + " spent";
+    rows.replaceChildren(...cells.map((c, i) => {
+      const [a, b] = ivOf(c);
+      const m = c.kpis[kpi];
+      let say, tone;
+      const fitBad = c.verdict === "inconclusive" && m.pre_fit_limit != null && m.pre_fit_nrmse > m.pre_fit_limit;
+      if (fitBad) { say = "The fit check failed, so the test gives no answer."; tone = "neutral"; }
+      else if (orders) {
+        if (b != null && b <= v) { say = `Even the high end (${money(b)}) is below ${money(v)}.`; tone = "good"; }
+        else if (a != null && a > v) { say = `Even the low end (${money(a)}) is above ${money(v)}.`; tone = "bad"; }
+        else { say = `One extra order costs ${span([a, b], money)}. Your value is inside this range.`; tone = "neutral"; }
+      } else {
+        if (a != null && a >= v) { say = `Even the low end (${ratio(a)}) is above ${ratio(v)}.`; tone = "good"; }
+        else if (b != null && b < v) { say = `Even the high end (${ratio(b)}) is below ${ratio(v)}.`; tone = "bad"; }
+        else { say = `The return is ${span([a, b], ratio)} per 1 ${cur}. Your value is inside this range.`; tone = "neutral"; }
+      }
+      const g = (D.groups || []).findIndex((x) => x.id === c.id);
+      const colr = g >= 0 ? groupColor(D.groups[g], g) : COLORS[i];
+      const left = a != null ? pos(a) : 0, right = b != null ? pos(b) : 100;
+      const bar = el("div", { class: "bar", role: "img", "aria-label": `${c.label}: ${orders ? "cost per extra order" : "return"} ${span([a, b], orders ? money : ratio)}, your value ${orders ? money(v) : ratio(v)}` },
+        el("div", { class: "fill", style: { left: left + "%", width: Math.max(1, right - left) + "%", background: colr, opacity: .35 } }),
+        fin(m[orders ? "icpa" : "iroas"]) && real(c) ? el("div", { class: "pt", style: { left: pos(m[orders ? "icpa" : "iroas"]) + "%", background: colr } }) : null,
+        el("div", { class: "mark", style: { left: pos(v) + "%" } }));
+      return el("div", { class: "rangerow" },
+        el("div", { class: "lab" }, el("i", { class: "swatch", style: { background: colr } }), c.label), bar,
+        el("div", { class: "say" }, el("span", { class: "pill " + tone }, tone === "good" ? "✓ Pays off" : tone === "bad" ? "✗ Does not pay off" : "? Cannot tell"), " ", say));
+    }));
+  }
+  input.addEventListener("input", draw);
+  draw();
+  return card("Is it worth the money?",
+    orders ? "Move the slider to the most that you can pay for one extra order. The bars show each cost range." : "Move the slider to the return that you need to break even. The bars show each return range.",
+    el("div", { class: "tool" }, el("label", { for: "worth" }, orders ? "The most you can pay for one extra order" : "The return you need per 1 " + cur), val, input), rows,
+    el("p", { class: "tiny g" }, "The bar is the ", term("90% range", "range"), ". The dot is the best estimate. The black line is your value. ",
+      fin(target) ? "The slider starts at the target in the plan. " : "", "The decision rule in the plan does not change when you move the slider."));
+}
+
+// ------------------------------------------------------------------ results: what happened (chart)
+function chart(c) {
+  const s = c.series;
+  const role = s.role;
+  const holdout = role === "holdout";
+  const n = s.dates.length;
+  const from = Math.max(0, s.n_pre - 56);
+  const end = s.n_pre + s.test_days;
+  const idx = [];
+  for (let i = from; i < n; i++) idx.push(i);
+  const W = 720, H = 270, ml = 58, mr = 14, mt = 34, mb = 30;
+  const box = el("div", { class: "chartbox" });
+  const tip = el("div", { class: "tip", role: "status" });
+  let mode = "daily";
+  const seg = holdout ? null : el("div", { class: "seg g", role: "group", "aria-label": "Chart view" },
+    ...[["daily", "Daily sales"], ["total", "Running total of extra " + kpiWord(D.kpi)]].map(([k, t]) =>
+      el("button", { type: "button", "aria-pressed": String(k === mode), onclick: (e) => { mode = k; seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b === e.currentTarget))); draw(); } }, t)));
+  const realName = holdout ? "Held-out markets (no ads)" : role === "crossover" ? "Real sales, both halves" : "Real sales";
+  const twinName = holdout ? "Twin: the same markets with the ads" : role === "crossover" ? "Without the ads (estimate)" : "Twin: sales without the ads";
+  const u = unitOf(D.kpi);
+  function draw() {
+    const total = mode === "total";
+    let cum = 0;
+    const gapAt = {};
+    for (let i = s.n_pre; i < n; i++) { cum += (s.observed[i] - s.counterfactual[i]); gapAt[i] = cum; }
+    const ys = total ? idx.map((i) => i < s.n_pre ? 0 : gapAt[i]) : idx.flatMap((i) => [s.observed[i], s.counterfactual[i]]);
+    const yMax = Math.max(1, ...ys.filter(fin)) * 1.1;
+    const yMin = total ? Math.min(0, ...ys.filter(fin)) * 1.1 : 0;
+    const x = (i) => ml + (W - ml - mr) * (i - from) / Math.max(1, n - 1 - from);
+    const y = (v) => mt + (H - mt - mb) * (1 - (v - yMin) / (yMax - yMin || 1));
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${c.label}: ${total ? "running total of extra " + kpiWord(D.kpi) : realName + " and " + twinName}, by day` });
+    // periods
+    svg.append(sv("rect", { x: x(s.n_pre) - 0.5, y: mt - 6, width: Math.max(0, x(Math.min(end, n) - 1) - x(s.n_pre) + 1), height: H - mt - mb + 6, fill: "var(--band)" }));
+    if (end < n) svg.append(sv("rect", { x: x(end) - 0.5, y: mt - 6, width: Math.max(0, x(n - 1) - x(end) + 1), height: H - mt - mb + 6, fill: "var(--band-2)" }));
+    // grid + y axis
+    const step = nice((yMax - yMin) / 4);
+    for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) {
+      svg.append(sv("line", { x1: ml, x2: W - mr, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--ink-3)" : "var(--grid)", "stroke-width": 1 }));
+      svg.append(sv("text", { x: ml - 8, y: y(v) + 4, "text-anchor": "end", class: "axis" }, D.kpi === "revenue" ? money(v) : num(v)));
+    }
+    // x labels: start of each period
+    [[from, pretty(s.dates[from])], [s.n_pre, pretty(s.dates[s.n_pre])], [Math.min(end, n - 1), pretty(s.dates[Math.min(end, n - 1)])]].forEach(([i, t], k) => {
+      if (k === 2 && end >= n) return;
+      svg.append(sv("text", { x: x(i), y: H - 8, "text-anchor": k === 0 ? "start" : "middle", class: "axis" }, t));
+    });
+    const path = (vals) => idx.map((i, k) => (k ? "L" : "M") + x(i).toFixed(1) + " " + y(vals(i)).toFixed(1)).join("");
+    if (total) {
+      const post = idx.filter((i) => i >= s.n_pre);
+      svg.append(sv("path", { d: `M${x(post[0])} ${y(0)}` + post.map((i) => `L${x(i).toFixed(1)} ${y(gapAt[i]).toFixed(1)}`).join("") + `L${x(post[post.length - 1])} ${y(0)}Z`, fill: "var(--s1)", opacity: .15 }));
+      svg.append(sv("path", { d: post.map((i, k) => (k ? "L" : "M") + x(i).toFixed(1) + " " + y(gapAt[i]).toFixed(1)).join(""), stroke: "var(--s1)", "stroke-width": 2.5, fill: "none" }));
+    } else {
+      const post = idx.filter((i) => i >= s.n_pre);
+      const area = post.map((i, k) => (k ? "L" : "M") + x(i).toFixed(1) + " " + y(s.observed[i]).toFixed(1)).join("") +
+        post.slice().reverse().map((i) => "L" + x(i).toFixed(1) + " " + y(s.counterfactual[i]).toFixed(1)).join("") + "Z";
+      svg.append(sv("path", { d: area, fill: "var(--s1)", opacity: .14 }));
+      svg.append(sv("path", { d: path((i) => s.counterfactual[i]), stroke: "var(--twin)", "stroke-width": 2, fill: "none", "stroke-dasharray": "5 4" }));
+      svg.append(sv("path", { d: path((i) => s.observed[i]), stroke: "var(--s1)", "stroke-width": 2, fill: "none" }));
+    }
+    // numbered callouts (guided and full)
+    const marks = [[(from + s.n_pre) / 2, 1], [(s.n_pre + Math.min(end, n)) / 2, 2]];
+    if (end < n - 1) marks.push([(end + n - 1) / 2, 3]);
+    marks.forEach(([i, k]) => {
+      const g = sv("g", { class: "g" }, sv("circle", { cx: x(i), cy: mt - 18, r: 10, fill: "var(--ink)" }), sv("text", { x: x(i), y: mt - 14, "text-anchor": "middle", fill: "var(--surface)", "font-size": 11, "font-weight": 700 }, k));
+      svg.append(g);
+    });
+    // hover layer
+    const cross = sv("line", { y1: mt - 6, y2: H - mb, stroke: "var(--ink-3)", "stroke-width": 1, visibility: "hidden" });
+    const dot1 = sv("circle", { r: 4, fill: "var(--s1)", stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+    const dot2 = sv("circle", { r: 4, fill: "var(--twin)", stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+    svg.append(cross, dot1, dot2);
+    const hit = sv("rect", { x: ml, y: mt - 6, width: W - ml - mr, height: H - mt - mb + 6, fill: "transparent" });
+    const show = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const px = (ev.clientX - r.left) * W / r.width;
+      const i = Math.max(from, Math.min(n - 1, Math.round(from + (px - ml) / (W - ml - mr) * (n - 1 - from))));
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+      const phase = i < s.n_pre ? "Before the test" : i < end ? "Test" : "Cooldown";
+      if (total) {
+        const v = i < s.n_pre ? 0 : gapAt[i];
+        dot1.setAttribute("cx", x(i)); dot1.setAttribute("cy", y(v)); dot1.setAttribute("visibility", "visible"); dot2.setAttribute("visibility", "hidden");
+        tip.replaceChildren(el("b", {}, `${pretty(s.dates[i], true)} · ${phase}`), el("div", { class: "r" }, el("span", {}, "Extra " + kpiWord(D.kpi) + " so far"), el("span", { class: "num" }, u(v))));
+      } else {
+        dot1.setAttribute("cx", x(i)); dot1.setAttribute("cy", y(s.observed[i])); dot1.setAttribute("visibility", "visible");
+        dot2.setAttribute("cx", x(i)); dot2.setAttribute("cy", y(s.counterfactual[i])); dot2.setAttribute("visibility", "visible");
+        tip.replaceChildren(el("b", {}, `${pretty(s.dates[i], true)} · ${phase}`),
+          el("div", { class: "r" }, el("span", {}, realName), el("span", { class: "num" }, u(s.observed[i]))),
+          el("div", { class: "r" }, el("span", {}, twinName), el("span", { class: "num" }, u(s.counterfactual[i]))),
+          el("div", { class: "r" }, el("span", {}, "Gap"), el("span", { class: "num" }, u(s.observed[i] - s.counterfactual[i]))));
+      }
+      tip.style.display = "block";
+      const bx = box.getBoundingClientRect();
+      const left = ev.clientX - bx.left;
+      tip.style.left = Math.min(Math.max(0, left + 12), bx.width - tip.offsetWidth) + "px";
+      tip.style.top = Math.max(0, ev.clientY - bx.top - tip.offsetHeight - 12) + "px";
+    };
+    const hide = () => { tip.style.display = "none"; [cross, dot1, dot2].forEach((n_) => n_.setAttribute("visibility", "hidden")); };
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("pointerdown", show);
+    hit.addEventListener("pointerleave", hide);
+    svg.append(hit);
+    box.replaceChildren(svg, tip);
+    drawLegend();
+  }
+  const legend = el("div", { class: "legend" });
+  const drawLegend = () => legend.replaceChildren(...(mode === "total"
+    ? [el("span", {}, sv("svg", { width: 22, height: 8 }, sv("path", { d: "M1 4h20", stroke: "var(--s1)", "stroke-width": 2.5 })), "Extra " + kpiWord(D.kpi) + " so far")]
+    : [el("span", {}, sv("svg", { width: 22, height: 8 }, sv("path", { d: "M1 4h20", stroke: "var(--s1)", "stroke-width": 2.5 })), realName),
+       el("span", {}, sv("svg", { width: 22, height: 8 }, sv("path", { d: "M1 4h20", stroke: "var(--twin)", "stroke-width": 2, "stroke-dasharray": "5 4" })), twinName)]),
+    el("span", {}, el("i", { class: "swatch", style: { background: "var(--band)", border: "1px solid var(--line)" } }), "Test period"));
+  draw();
+  const notes = holdout
+    ? ["Before the test, the two lines move together. This shows that the twin is good.",
+       "During the test, the held-out markets sell less than their twin. The gap is the share of sales that the ads drove.",
+       "During the cooldown, the held-out markets stay dark. FOSIT counts late orders."]
+    : ["Before the test, the two lines move together. This shows that the twin is good.",
+       "During the test, the gap between the lines is the effect of the ads.",
+       "During the cooldown, the ads are off. FOSIT counts the orders that come late."];
+  const call = el("ol", { class: "callouts g" }, notes.slice(0, end < n - 1 ? 3 : 2).map((t, k) => el("li", {}, el("span", { class: "n" }, k + 1), el("span", {}, t))));
+  return [el("div", { class: "row" }, legend, seg), box, call];
+}
+function cellCards() {
+  const kpi = D.kpi;
+  const key = String(D.decision_level);
+  return D.cells.map((c, i) => {
+    const m = c.kpis[kpi];
+    const v = VERDICT[c.verdict] || VERDICT.inconclusive;
+    const gi = (D.groups || []).findIndex((g) => g.id === c.id);
+    const colr = gi >= 0 ? groupColor(D.groups[gi], gi) : COLORS[i];
+    const lines = [
+      el("div", { class: "row" }, el("h2", {}, el("i", { class: "swatch", style: { background: colr, display: "inline-block", marginRight: "8px" } }), c.label), el("span", { class: "pill " + v.tone }, v.icon + " " + v.label)),
+      el("p", { class: "muted small" }, `${num(c.n)} markets · ${c.spend ? "spend " + money(c.spend) + " of " + money(c.budget) + " planned" : "budget " + money(c.budget)}`),
+      el("div", { class: "chips" },
+        el("span", { class: "chip" }, "Extra " + kpiWord(kpi) + ": " + unitOf(kpi)(m.incremental)),
+        el("span", { class: "chip" }, "Range: " + span(m.intervals[key].incremental, unitOf(kpi))),
+        el("span", { class: "chip" }, "Lift: " + pct(m.lift)),
+        fin(m.icpa) && (m.intervals[key].incremental || [0])[0] > 0 ? el("span", { class: "chip" }, "Cost per extra order: " + money(m.icpa)) : null,
+        fin(m.iroas) ? el("span", { class: "chip" }, "Return per 1 " + cur + ": " + ratio(m.iroas)) : null),
+      ...chart(c),
+      el("p", { class: "tiny f" }, c.reason),
+    ];
+    return card("", null, ...lines);
+  });
+}
+
+// ------------------------------------------------------------------ results: checks and numbers
+function checksCard() {
+  const cs = D.checks || [];
+  const bad = cs.filter((c) => c.status !== "pass");
+  const ico = (st) => el("span", { class: "icon " + st, "aria-label": st === "pass" ? "passed" : st === "warn" ? "warning" : "failed" }, st === "pass" ? "✓" : st === "warn" ? "!" : "✗");
+  const item = (c) => el("li", {}, ico(c.status), el("div", {}, el("b", {}, c.title), el("div", { class: "small muted" }, c.detail)));
+  return card("Can you trust it?", null,
+    el("p", { class: "b" }, `${cs.length - bad.length} of ${cs.length} checks passed.` + (bad.length ? " Read these:" : " Nothing needs your attention.")),
+    el("ul", { class: "checks b" }, bad.map(item)),
+    el("p", { class: "g small muted" }, "FOSIT checks the data and the delivery before you trust the numbers."),
+    el("ul", { class: "checks g" }, cs.map(item)));
+}
+function numbersCard() {
+  const key = String(D.decision_level);
+  const levels = (D.levels || [0.9, 0.95]).map(String);
+  const sections = D.cells.map((c) => {
+    const rows = [];
+    for (const [kpi, m] of Object.entries(c.kpis)) {
+      const u = unitOf(kpi);
+      rows.push([`Extra ${kpiWord(kpi)}`, u(m.incremental), ...levels.map((l) => span((m.intervals[l] || {}).incremental, u))]);
+      rows.push([`Lift in ${kpiWord(kpi)}`, pct(m.lift), ...levels.map((l) => span((m.intervals[l] || {}).lift, (x) => pct(x))) ]);
+      if (kpi === "orders" && m.spend) rows.push(["Cost per extra order (iCPA)", m.incremental > 0 ? money(m.icpa) : "not defined", ...levels.map((l) => span((m.intervals[l] || {}).icpa, money))]);
+      if (kpi === "revenue" && m.spend) rows.push(["Return per 1 spent (iROAS)", ratio(m.iroas), ...levels.map((l) => span((m.intervals[l] || {}).iroas, ratio))]);
+      rows.push([`p-value (${kpiWord(kpi)})`, fin(m.p_value) ? m.p_value.toFixed(3) : "–", ...levels.map(() => "")]);
+      rows.push([`Fit error before the test (${kpiWord(kpi)})`, pct(m.pre_fit_nrmse) + (m.pre_fit_period === "week" ? " (weekly)" : m.pre_fit_period === "block" ? " (by block)" : ""), "limit " + (fin(m.pre_fit_limit) ? pct(m.pre_fit_limit) : "–"), ...levels.slice(1).map(() => "")]);
+    }
+    return el("div", {}, el("h3", {}, c.label),
+      el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Measure"), el("th", {}, "Estimate"), ...levels.map((l) => el("th", {}, pct(Number(l), 0) + " range")))),
+        el("tbody", {}, rows.map((r) => el("tr", {}, r.map((x) => el("td", {}, x))))))));
+  });
+  const h2h = (D.head_to_head || []).map((h) => el("div", {}, el("h3", {}, `${h.a_label} compared with ${h.b_label} (${kpiWord(h.kpi)})`),
+    el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Comparison"), el("th", {}, "Estimate"), ...levels.map((l) => el("th", {}, pct(Number(l), 0) + " range")), el("th", {}, "Clear difference?"))),
+      el("tbody", {}, Object.entries(h.metrics).map(([name, m]) => el("tr", {},
+        el("td", {}, { delta_icpa: "Difference in cost per extra order", ratio_icpa: "Ratio of cost per extra order", delta_iroas: "Difference in return per 1 spent", delta_incremental_per_1000: "Difference in extra sales per 1,000 spent", delta_incremental: "Difference in extra sales" }[name] || name),
+        el("td", {}, fin(m.estimate) ? num(m.estimate, 2) : "–"),
+        ...levels.map((l) => el("td", {}, m.intervals[l] ? span(m.intervals[l], (x) => num(x, 2)) : "not defined")),
+        el("td", {}, m.distinguishable == null ? "–" : m.distinguishable ? "Yes" : "No"))))))));
+  const w = D.window || {};
+  const method = D.design === "crossover"
+    ? `Two halves took turns with the ads on a random schedule. FOSIT compared log sales by half and by block, after each block's washout. An exact randomization test against every balanced schedule (${num((D.permutations || {}).n)}) gives the ranges.`
+    : `Ridge-augmented synthetic control with market fixed effects. Conformal inference with ${(D.method.permutations || {}).kind === "iid" ? "random permutations" : "moving-block permutations"}${(D.method.placebo_calibration || {}).n ? `, checked against ${D.method.placebo_calibration.n} placebo cells` : ""}.`;
+  return card("All numbers", "Every setting below was locked in the plan before the test.",
+    ...sections, ...h2h,
+    el("h3", {}, "Method"), el("p", { class: "small" }, method),
+    el("p", { class: "small" }, `Decision level ${pct(D.decision_level, 0)}. History ${w.pre_start} to ${w.pre_end}. Measured ${w.start} to ${w.end} (${w.days} days, ${w.test_days} with ads).`));
+}
+
+// ------------------------------------------------------------------ plan: timeline, sensitivity, checklist
+function timelineCard() {
+  const d = D.dates;
+  const cross = D.design === "crossover";
+  const parts = [
+    { t: "History", s: d.pre_start, e: d.pre_end, bg: "var(--surface-2)", say: "FOSIT learns from these sales." },
+    { t: cross ? "Test: halves take turns" : "Ads run", s: d.test_start, e: d.test_end, bg: "color-mix(in srgb, var(--s1) 22%, transparent)", say: cross ? "The ads move between the halves." : "Vendors run ads in their markets." },
+  ];
+  if (!cross && d.cooldown_end > d.test_end) parts.push({ t: "Cooldown", s: addDays(d.test_end, 1), e: d.cooldown_end, bg: "var(--band-2)", say: "No ads. FOSIT counts late orders." });
+  const readOn = addDays(cross ? d.test_end : d.cooldown_end, 1);
+  const total = parts.reduce((a, p) => a + between(p.s, p.e), 0);
+  const row = el("div", { class: "timeline" }, parts.map((p) => el("div", { style: { flex: String(Math.max(0.14, between(p.s, p.e) / total)), background: p.bg } },
+    el("div", { class: "t" }, p.t), el("div", {}, `${pretty(p.s)} – ${pretty(p.e)}`), el("div", { class: "tiny g" }, p.say))),
+    el("div", { style: { flex: "0 0 auto", background: "var(--accent)", color: "#fff" } }, el("div", { class: "t" }, "Read"), el("div", {}, "from " + pretty(readOn))));
+  return card("When things happen", null, row, cross && D.schedule ? blockStrip() : null,
+    cross && D.schedule ? el("details", { class: "g" }, el("summary", {}, "The dated schedule"),
+      el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, el("th", {}, "Block"), el("th", {}, "Dates"), el("th", {}, "Ads run in"))),
+        el("tbody", {}, D.schedule.map((b) => el("tr", {}, el("td", {}, b.block), el("td", {}, `${pretty(b.start, true)} to ${pretty(b.end, true)}`), el("td", {}, "Half " + b.on + " only"))))))) : null);
+}
+function sensitivityCard() {
+  const S = (D.sensitivity || []).filter((s) => fin(s.mde) || fin(s.detectable_icpa));
+  if (!S.length) return null;
+  const orders = D.kpi === "orders";
+  const live = S.filter((s) => s.points && s.points.length && fin(s.baseline_test_total) && s.baseline_test_total > 0);
+  const lines = S.map((s) => {
+    const parts = [`${s.label}: the test sees a lift of ${fin(s.mde) ? pct(s.mde) : "more than 50%"} or more`];
+    if (orders && fin(s.detectable_icpa)) parts.push(`(one extra order for ${money(s.detectable_icpa)} or less)`);
+    return el("li", {}, parts.join(" ") + ", 4 times out of 5.");
+  });
+  if (!live.length) return card("What can the test see?", null, el("ul", {}, lines));
+  const ref = live.map((s) => orders ? s.detectable_icpa || s.budget / (s.mde * s.baseline_test_total) : s.mde * s.baseline_test_total / s.budget).filter(fin);
+  const base = fin(D.decision.target_icpa) && orders ? D.decision.target_icpa : ref.length ? ref[0] : 50;
+  const lo = Math.min(base, ...ref) / 4, hi = Math.max(base, ...ref) * 4;
+  const toV = (t) => snap(lo * Math.pow(hi / lo, t / 1000));
+  const toT = (v) => Math.round(1000 * Math.log(v / lo) / Math.log(hi / lo));
+  const input = el("input", { type: "range", min: 0, max: 1000, value: toT(nice(base)), id: "see", "aria-describedby": "see-val" });
+  const val = el("div", { class: "val", id: "see-val" });
+  const rows = el("div", {});
+  function draw() {
+    const v = toV(Number(input.value));
+    val.textContent = orders ? money(v) + " per extra order" : ratio(v) + " " + cur + " back per 1 " + cur;
+    rows.replaceChildren(...live.map((s, i) => {
+      const effect = orders ? (s.budget / v) / s.baseline_test_total : (s.budget * v) / s.baseline_test_total;
+      const p = Math.max(0, Math.min(1, interp(s.points, effect)));
+      const tone = p >= 0.8 ? "var(--good)" : p >= 0.5 ? "var(--warn)" : "var(--bad)";
+      const g = (D.groups || []).findIndex((x) => x.label === s.label);
+      return el("div", { class: "rangerow" },
+        el("div", { class: "lab" }, el("i", { class: "swatch", style: { background: g >= 0 ? groupColor(D.groups[g], g) : COLORS[i] } }), s.label),
+        el("div", { class: "meter", role: "img", "aria-label": `${s.label}: ${pct(p, 0)} chance to see it` }, el("div", { style: { width: (100 * p) + "%", background: tone } })),
+        el("div", { class: "say" }, `A lift of ${pct(effect)} in these markets. ` +
+          (p >= 0.8 ? `The test sees it ${pct(p, 0)} of the time. Good.` : p >= 0.5 ? `The test sees it ${pct(p, 0)} of the time. It can miss it.`
+            : p >= 0.05 ? `The test sees it only ${pct(p, 0)} of the time. It will probably miss it.` : "The test will not see a lift this small.")));
+    }));
+  }
+  input.addEventListener("input", draw);
+  draw();
+  return card("Will the test see it?", orders ? "Move the slider to the cost of one extra order that you expect from the vendor." : "Move the slider to the return that you expect per 1 " + cur + " spent.",
+    el("div", { class: "tool" }, el("label", { for: "see" }, orders ? "Expected cost per extra order" : "Expected return per 1 " + cur), val, input), rows,
+    el("p", { class: "tiny g" }, "FOSIT replayed this test many times on your past sales to find this ", term("chance", "chance"), ". Aim for 80% or more."),
+    el("ul", { class: "small f" }, lines));
+}
+function checklistCard() {
+  const key = "fosit-todo-" + (D.fingerprint || "").slice(0, 16);
+  let done = {};
+  try { done = JSON.parse(store.get(key) || "{}"); } catch (e) { done = {}; }
+  const blocks = (D.checklist || []).map((grp, gi) => el("div", {}, el("h3", {}, grp.who),
+    el("ul", { class: "todo-list" }, grp.items.map((t, k) => {
+      const id = `todo-${gi}-${k}`;
+      const box = el("input", { type: "checkbox", id });
+      box.checked = !!done[id];
+      box.addEventListener("change", () => { done[id] = box.checked; store.set(key, JSON.stringify(done)); });
+      return el("li", {}, box, el("label", { for: id }, el("span", {}, t)));
+    }))));
+  return card("Who does what", "Tick each step when it is done. This page remembers the ticks in this browser.", ...blocks,
+    D.read_url ? el("p", {}, el("a", { class: "btn", href: D.read_url, target: "_blank", rel: "noreferrer" }, "Open the Read page")) : null);
+}
+function marketsCard() {
+  return el("section", { class: "card g" }, el("h2", {}, "Markets"),
+    el("p", { class: "muted small" }, "Each vendor must target exactly these markets."),
+    ...(D.groups || []).map((g, i) => el("details", {}, el("summary", {}, el("i", { class: "swatch", style: { background: groupColor(g, i), display: "inline-block", marginRight: "8px" } }), `${g.label} (${g.n} markets)`),
+      el("div", { class: "markets" }, g.markets.map((m) => el("div", {}, m))))));
+}
+function settingsCard() {
+  const m = D.method || {}, t = D.thresholds || {}, dec = D.decision || {};
+  const rows = [
+    ["Design", DESIGN_NAME[D.design]],
+    ["Estimator", D.design === "crossover" ? "Two-way comparison of the halves (log sales by half and block)" : "Ridge-augmented synthetic control with market fixed effects"],
+    ["Ranges", D.design === "crossover" ? "Exact randomization test over balanced schedules" : `Conformal inference, ${(m.permutations || {}).kind === "iid" ? "random" : "moving-block"} permutations${(m.placebo_calibration || {}).n ? `, ${m.placebo_calibration.n} placebo cells` : ""}`],
+    ["Decision level", pct(1 - m.alpha, 0) + " (95% also reported)"],
+    ["Worthwhile effect", { planned_mde: "the detectable lift from planning", target_icpa: "the target cost per extra order " + money(dec.target_icpa), breakeven_iroas: "the break-even return " + ratio(dec.breakeven_iroas) }[dec.meaningful_effect_basis] || "–"],
+    ["Leakage warning", "above " + pct(t.leakage_warn_share, 0) + " of impressions outside the planned markets"],
+    D.ads_before ? ["Campaign before the test", D.ads_before === "off" ? "Off everywhere" : "On everywhere"] : null,
+    ["Markets left out", String(D.excluded || 0)],
+    ["Random seed", String(m.seed)],
+  ].filter(Boolean);
+  return el("section", { class: "card f" }, el("h2", {}, "Locked settings"),
+    el("div", { class: "table-wrap" }, el("table", {}, el("tbody", {}, rows.map((r) => el("tr", {}, el("th", {}, r[0]), el("td", {}, r[1])))))));
+}
+
+// ------------------------------------------------------------------ designs (planning options)
+function designsPage() {
+  const orders = D.kpi === "orders";
+  const all = D.designs || [];
+  const live = all.flatMap((d) => d.sensitivity.flatMap((s) => s.curves)).map((c) => c.detectable_icpa).filter(fin);
+  const base = live.length ? live.sort((a, b) => a - b)[Math.floor(live.length / 2)] : 50;
+  const lo = Math.min(base, ...live) / 4, hi = Math.max(base, ...live) * 4;
+  const toV = (t) => snap(lo * Math.pow(hi / lo, t / 1000));
+  const input = el("input", { type: "range", min: 0, max: 1000, value: Math.round(1000 * Math.log(base / lo) / Math.log(hi / lo)), id: "exp" });
+  const val = el("div", { class: "val" });
+  const holder = el("div", {});
+  function draw() {
+    const v = toV(Number(input.value));
+    val.textContent = orders ? money(v) + " per extra order" : ratio(v);
+    holder.replaceChildren(...all.map((d, k) => {
+      const groups = [...d.shares.map((s, i) => ({ label: D.design === "crossover" ? "Half A" : D.labels[i] || "Cell " + (i + 1), share: s, n: d.n_cells[i], role: D.design === "crossover" ? "half" : "ads" })),
+        { label: D.design === "crossover" ? "Half B" : D.design === "cells" ? "Control" : "No-ads holdout", share: fin(d.control_share) ? d.control_share : Math.max(0, 1 - d.shares.reduce((a, b) => a + b, 0)), n: d.n_control, role: D.design === "crossover" ? "half" : D.design === "cells" ? "control" : "holdout" }];
+      const bar = el("div", { class: "share" }, groups.map((g, i) => el("div", { style: { flex: String(Math.max(g.share, 0.02)), background: groupColor(g, i) }, title: g.label }, g.share > 0.12 ? pct(g.share, 0) : "")));
+      const legend = el("div", { class: "legend" }, groups.map((g, i) => el("span", {}, el("i", { class: "swatch", style: { background: groupColor(g, i) } }), `${g.label}: ${g.n} markets, ${pct(g.share, 0)}`)));
+      const lengths = d.sensitivity.length ? d.sensitivity[0].curves.map((c) => c.test_days) : [];
+      const table = d.sensitivity.length ? el("div", { class: "table-wrap" }, el("table", {},
+        el("thead", {}, el("tr", {}, el("th", {}, "Test length"), ...d.sensitivity.map((s) => el("th", {}, s.label)))),
+        el("tbody", {}, lengths.map((days, li) => el("tr", {}, el("td", {}, `${days / 7} weeks`), ...d.sensitivity.map((s) => {
+          const c = s.curves[li];
+          const effect = c.baseline_test_total ? (orders ? (s.budget / v) / c.baseline_test_total : (s.budget * v) / c.baseline_test_total) : null;
+          const p = effect != null ? interp(c.points, effect) : null;
+          return el("td", {}, `lift ${fin(c.mde) ? pct(c.mde) : "> 50%"}`, el("br"),
+            p != null ? el("span", { class: "pill " + (p >= 0.8 ? "good" : p >= 0.5 ? "warn" : "bad") }, `${pct(p, 0)} chance`) : el("span", { class: "tiny" }, "not simulated"));
+        })))))) : el("p", { class: "tiny" }, "Not simulated. FOSIT simulates only the top designs.");
+      return card(`Design ${k + 1}${k === 0 ? " (best fit)" : ""}`, `Fit error ${d.fit.map((f) => pct(f)).join(", ")} · balance gap ${pct(d.balance_score)}`, bar, legend, table);
+    }));
+  }
+  input.addEventListener("input", draw);
+  draw();
+  return [
+    hero("Test options", `FOSIT found ${all.length} fair designs${D.fit_period === "week" ? ". Sales are small, so FOSIT judged fit on weekly totals" : ""}. Design 1 has the best fit.`, [DESIGN_NAME[D.design] || ""]),
+    card("Will the test see it?", "Move the slider to the cost of one extra order that you expect. Each cell shows the chance that the test sees it. Aim for 80% or more.",
+      el("div", { class: "tool" }, el("label", { for: "exp" }, orders ? "Expected cost per extra order" : "Expected return per 1 " + cur), val, input)),
+    holder,
+  ];
+}
+
+// ------------------------------------------------------------------ pages
+function resultsPage() {
+  const d = D.dates;
+  return [
+    hero("Test results", `${DESIGN_NAME[D.design] || ""}. Ads ran from ${pretty(d.test_start, true)} to ${pretty(d.test_end, true)}.`,
+      [D.advertiser, D.interim ? "Early read" : "Final read", "Code " + (D.fingerprint || "").slice(0, 8).toUpperCase()].filter(Boolean)),
+    answerCard(), worthCard(), ...anatomy("How this test works"), ...cellCards(), checksCard(), el("div", { class: "f" }, numbersCard()),
+  ];
+}
+function planPage() {
+  return [
+    hero("Locked test plan", null, [D.advertiser, DESIGN_NAME[D.design], "Code " + (D.fingerprint || "").slice(0, 8).toUpperCase()].filter(Boolean)),
+    el("section", { class: "card" }, el("h2", {}, "The plan in short"), el("p", {}, D.one_line),
+      el("p", { class: "small muted" }, "The ", term("fingerprint", "fingerprint"), " ", el("span", { class: "mono" }, (D.fingerprint || "").slice(0, 8).toUpperCase()), " locks this plan. Send it to everyone before the test starts.")),
+    ...anatomy("How this test works"), timelineCard(), sensitivityCard(), checklistCard(), marketsCard(), settingsCard(),
+  ].filter(Boolean);
+}
+function main() {
+  const app = document.getElementById("app");
+  if (!D) { app.textContent = "No data in this file."; return; }
+  const body = D.kind === "results" ? resultsPage() : D.kind === "designs" ? designsPage() : planPage();
+  app.replaceChildren(header(), el("main", { class: "wrap" }, ...body, footer()));
+  const saved = store.get("fosit-level");
+  setLevel(["brief", "guided", "full"].includes(saved) ? saved : D.level || "guided");
+}
+main();
+</script>
+</body>
+</html>

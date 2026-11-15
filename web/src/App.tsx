@@ -8,6 +8,7 @@ import { initEngine } from "./worker/client";
 import { INITIAL_THEME, OPEN_READ, scrollToTop } from "./embed";
 import { ConsultButton } from "./components/Consult";
 import type { LockedPlan } from "./lib/plan";
+import { LevelProvider, LevelSwitch } from "./lib/level";
 
 type Screen = "why" | "plan" | "read";
 type Theme = "system" | "light" | "dark";
@@ -54,7 +55,7 @@ export function App() {
   };
 
   return (
-    <>
+    <LevelProvider>
       <a className="sr-only" href="#main">Skip to content</a>
       <div className="banner" role="note">
         <div className="banner-inner">
@@ -74,6 +75,7 @@ export function App() {
           <div className="row">
             <button className={`btn-ghost small ${screen === "plan" ? "" : ""}`} onClick={() => go("plan")} aria-current={screen === "plan" ? "page" : undefined}>Plan</button>
             <button className="btn-ghost small" onClick={() => go("read")} aria-current={screen === "read" ? "page" : undefined}>Read</button>
+            <LevelSwitch />
             <ConsultButton className="small hide-narrow" label={CONSULT_SHORT} />
             <label className="sr-only" htmlFor="theme">Theme</label>
             <select id="theme" value={theme} onChange={(e) => setTheme(e.target.value as Theme)} style={{ width: "auto" }}>
@@ -99,6 +101,6 @@ export function App() {
           {DISCLOSURE && <p className="disclosure">{DISCLOSURE}</p>}
         </div>
       </footer>
-    </>
+    </LevelProvider>
   );
 }

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: read-for-busy-cmo
+expected_outcome: |
+  A short answer a CMO can act on in two minutes: keep Vendor A (about 14,100 extra orders, about $14 per extra order), Vendor B did not bring enough extra sales to pay off, and Vendor A did better. The sales file ends one day before the planned end; the read treats it as final and the reply does not ask for a newer file. The reply is a few short, active sentences without method jargon, and points to the interactive report.html to open or forward.
+context:
+  scaffold_script: place-files.sh

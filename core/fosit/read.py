@@ -22,6 +22,50 @@ from .panel import Panel
 from .spend import SpendData, leakage
 
 H2H_GRID = 41
+LATE_DAYS_OK = 2    # §11.1: a read that misses at most this many days at the end of the window still counts as final
+MIN_PRE_DAYS = 56   # §11.1: history may start late if at least 8 weeks remain before the test
+
+
+def history_start(first: pd.Timestamp, d: dict) -> tuple[pd.Timestamp | None, int]:
+    """§11.1: the first history day to use, and how many planned history days the file is missing.
+
+    None when the file has less than MIN_PRE_DAYS of the plan's history. A file that starts a few days late is common
+    (an export with a fixed look-back); refusing it would only send people back for data that changes nothing."""
+    planned = pd.Timestamp(d["pre_start"])
+    start = max(planned, first)
+    have = (pd.Timestamp(d["pre_end"]) - start).days + 1
+    return (start if have >= MIN_PRE_DAYS else None), max(0, (start - planned).days)
+
+
+def is_interim(planned_end: pd.Timestamp, data_end: pd.Timestamp, today: str) -> tuple[bool, int]:
+    """§11.1: an early read, and how many planned days the read misses. Data that lags by LATE_DAYS_OK days or fewer
+    (sales exports often arrive a day or two late) still counts as final: those days sit at the end of the window."""
+    seen = min(data_end, pd.Timestamp(today))
+    missing = max(0, (planned_end - seen).days)
+    return missing > LATE_DAYS_OK, missing
+
+
+def history_check(d: dict, start: pd.Timestamp, missing: int) -> dict | None:
+    if not missing:
+        return None
+    have = (pd.Timestamp(d["pre_end"]) - start).days + 1
+    return {"id": "history", "title": "History", "status": "warn", "blocking": False,
+            "detail": (f"The sales file starts on {start:%Y-%m-%d}, {missing} days after the plan's history start "
+                       f"({d['pre_start']}). FOSIT used the {have} days that the file has. That is more than the 8 weeks "
+                       "that FOSIT needs, so you do not need more data.")}
+
+
+def timing_check(planned_end: str, data_end: pd.Timestamp, interim: bool, missing: int) -> dict:
+    if interim:
+        detail = (f"This is an early read. The plan ends on {planned_end} and the data ends on {data_end:%Y-%m-%d}. "
+                  f"The numbers can change. Read again after {planned_end}.")
+    elif missing:
+        detail = (f"The data ends {missing} day{'s' if missing > 1 else ''} before the planned end ({planned_end}). "
+                  "Sales data often arrives 1 or 2 days late. These days are at the end of the window, so FOSIT "
+                  "uses this result as final.")
+    else:
+        detail = "The data covers the full plan, to its planned end."
+    return {"id": "timing", "title": "Timing", "status": "warn" if interim else "pass", "blocking": False, "detail": detail}
 
 
 def thresholds_period(c: dict) -> str:
@@ -165,9 +209,11 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
 
     errors = []
     first, last = panel.dates[0], panel.dates[-1]
-    if pd.Timestamp(d["pre_start"]) < first or pd.Timestamp(d["pre_end"]) > last:
-        errors.append(f"The sales file must cover the plan's history period {d['pre_start']} to {d['pre_end']}; "
-                      f"it runs {first:%Y-%m-%d} to {last:%Y-%m-%d}.")
+    pre_start, pre_missing = history_start(first, d)
+    if pre_start is None or pd.Timestamp(d["pre_end"]) > last:
+        need = pd.Timestamp(d["pre_end"]) - pd.Timedelta(days=MIN_PRE_DAYS - 1)
+        errors.append(f"The sales file runs from {first:%Y-%m-%d} to {last:%Y-%m-%d}. FOSIT needs at least the last 8 weeks "
+                      f"of the plan's history, from {need:%Y-%m-%d} to {d['pre_end']}. Add these days to the file.")
     if pd.Timestamp(d["test_start"]) > last:
         errors.append(f"The sales file ends {last:%Y-%m-%d}, before the test started on {d['test_start']}.")
     holdout = c.get("design", {}).get("type") == "national_holdout"
@@ -185,8 +231,10 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
         return {"ok": False, "errors": errors}
 
     end = min(pd.Timestamp(d["cooldown_end"]), last)
-    interim = end < pd.Timestamp(d["cooldown_end"]) or pd.Timestamp(today) < pd.Timestamp(d["cooldown_end"])
-    pre_cols = np.arange(panel.day(d["pre_start"]), panel.day(d["pre_end"]) + 1)
+    interim, late_days = is_interim(pd.Timestamp(d["cooldown_end"]), end, today)
+    if not interim and end < pd.Timestamp(d["test_end"]):
+        interim = True      # the grace covers cooldown days only, never days with ads
+    pre_cols = np.arange(panel.day(pre_start), panel.day(d["pre_end"]) + 1)
     post_cols = np.arange(panel.day(d["test_start"]), panel.day(end) + 1)
     test_days = min(len(post_cols), (pd.Timestamp(d["test_end"]) - pd.Timestamp(d["test_start"])).days + 1)
     control = [g for g in c["control"]["geo_ids"] if g in present]
@@ -293,10 +341,13 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
                 h2h.append(h)
 
     checks = _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, holdout,
-                     missing_cells if holdout else [])
+                     missing_cells if holdout else [], late_days)
+    hist = history_check(d, pre_start, pre_missing)
+    if hist:
+        checks.append(hist)
     result = {
         "ok": True, "interim": interim, "design": "national_holdout" if holdout else "geo_cells",
-        "window": {"pre_start": d["pre_start"], "pre_end": d["pre_end"], "start": d["test_start"],
+        "window": {"pre_start": pre_start.strftime("%Y-%m-%d"), "pre_end": d["pre_end"], "start": d["test_start"],
                    "end": end.strftime("%Y-%m-%d"), "planned_end": d["cooldown_end"], "days": len(post_cols), "test_days": test_days},
         "alpha": alpha, "decision_level": decision_level, "levels": list(levels),
         "permutations": {"kind": perms.kind, "n": perms.n if perms.kind == "iid" else len(pre_cols) + len(post_cols)},
@@ -307,7 +358,8 @@ def run_read(panel: Panel, commitment: dict, spend: SpendData | None, today: str
     return _clean(result)
 
 
-def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, holdout=False, missing_campaign=()) -> list[dict]:
+def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, holdout=False, missing_campaign=(),
+            late_days=0) -> list[dict]:
     """§11 data-based checks. Plan match and external shocks are added by the UI (they need the user)."""
     th = c["thresholds"]
     out = []
@@ -352,9 +404,7 @@ def _checks(c, cells_out, spend, budgets, interim, end, today, missing_control, 
         out.append({"id": "spend_balance", "title": "Spend balance", "status": "warn" if problems else "pass", "blocking": False,
                     "detail": ("; ".join(problems) + ". iCPA and iROAS use actual spend, so they stay correct.") if problems
                     else "Spend matched the planned split and budgets."})
-    out.append({"id": "timing", "title": "Timing", "status": "warn" if interim else "pass", "blocking": False,
-                "detail": (f"Read before the planned end ({c['dates']['cooldown_end']}): data runs to {end:%Y-%m-%d}. This is an INTERIM result."
-                           if interim else "Read after the test and cooldown ended, with data through the planned end.")})
+    out.append(timing_check(c["dates"]["cooldown_end"], end, interim, late_days))
     if missing_control:
         out.append({"id": "control_coverage", "title": "Holdout markets" if holdout else "Control markets", "status": "warn",
                     "blocking": False,

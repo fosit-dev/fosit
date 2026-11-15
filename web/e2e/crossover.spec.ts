@@ -40,6 +40,11 @@ test("plans a crossover and locks a random balanced schedule", async ({ page }) 
   expect(plan.commitment.method.inference).toBe("randomization");
   const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download plan PDF" }).click()]);
   expect(readFileSync((await pdf.path())!).subarray(0, 5).toString()).toBe("%PDF-");
+  const [html] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download interactive plan (HTML)" }).click()]);
+  const page_ = readFileSync((await html.path())!, "utf8");
+  expect(page_).toContain('"kind":"plan"');
+  expect(page_).toContain(`"fingerprint":"${plan.hash.value}"`);
+  expect(page_).toMatch(/"schedule":\[\{"block":1/);
 });
 
 test("reads the small-business crossover example", async ({ page }) => {
@@ -54,9 +59,9 @@ test("reads the small-business crossover example", async ({ page }) => {
   await expect(page.getByText("The plan is exactly the one fingerprinted before launch.")).toBeVisible();
   await expect(page.getByText("NOT THE PRE-REGISTERED ANALYSIS")).toHaveCount(0);
   await page.getByLabel("No, nothing else changed differently").check();
-  const bottom = page.locator("section", { has: page.getByRole("heading", { name: /Bottom line/ }) });
-  await expect(bottom.getByText(/CTV campaign drove .* incremental orders while each half had the ads/)).toBeVisible();
-  await expect(bottom.locator(".verdict").first()).toHaveText(/Positive lift/);
+  const answer = page.locator("section", { has: page.getByRole("heading", { name: "The answer" }) });
+  await expect(answer.getByText(/CTV campaign caused about [\d,]+ extra orders/)).toBeVisible();
+  await expect(answer.locator(".verdict").first()).toHaveText(/Positive lift/);
   await expect(page.getByText("Without the ads (estimated)")).toBeVisible();
   await page.getByText("Under the hood").click();
   await expect(page.getByRole("heading", { name: "Block by block" })).toBeVisible();

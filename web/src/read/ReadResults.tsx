@@ -1,8 +1,9 @@
 import { InfoTip } from "../components/InfoTip";
+import { useLevel } from "../lib/level";
 import { ImpactChart } from "../components/Charts";
 import { money, num, pct } from "../lib/format";
 import type { LockedPlan } from "../lib/plan";
-import type { CellResult, KpiResult, ReadResult } from "./types";
+import type { CellResult, KpiResult, ReadResult, Summary } from "./types";
 import { VERDICT, h2hLabel, cellSentence, h2hSentence, h2hValue, icpaText, levelKey, primaryH2H, rangeText } from "./text";
 
 type Props = { r: ReadResult; plan: LockedPlan; names: Record<string, string> };
@@ -53,16 +54,48 @@ function PlaceboNote({ pl, level }: { pl: KpiResult["placebo"]; level: string })
   );
 }
 
+const DOT = ["var(--c1, #2a78d6)", "var(--c2, #eb6834)", "var(--c3, #1baf7a)", "var(--c4, #eda100)", "var(--c5, #e87ba4)", "var(--c6, #008300)"];
+
+/** The answer first (core/fosit/explain.py): one headline, one detail and one action per cell, in plain words. */
+function AnswerCard({ s, r }: { s: Summary; r: ReadResult }) {
+  return (
+    <section className="card" aria-labelledby="the-answer">
+      <h2 id="the-answer">The answer</h2>
+      {s.notes.map((n) => <div key={n} className="callout warn">{n}</div>)}
+      {s.cells.map((a, i) => (
+        <div key={a.id} className="answer-row">
+          <span aria-hidden style={{ width: 12, height: 12, borderRadius: "50%", marginTop: 7, background: DOT[i % DOT.length] }} />
+          <div>
+            <VerdictBadge v={a.verdict} />
+            <div className="head">{a.headline}</div>
+            <p className="muted" style={{ margin: "4px 0" }}>{a.detail}</p>
+            {a.action && <div className="todo"><strong>What to do:</strong> {a.action}</div>}
+          </div>
+        </div>
+      ))}
+      {s.head_to_head && (
+        <div className="answer-row">
+          <span aria-hidden style={{ width: 12, height: 12, borderRadius: "50%", marginTop: 7, background: "var(--text)" }} />
+          <div><div className="head">{s.head_to_head.headline}</div><p className="muted" style={{ margin: "4px 0" }}>{s.head_to_head.detail}</p></div>
+        </div>
+      )}
+      {r.cells.length > 0 && <p className="small muted" style={{ marginBottom: 0 }}>Download the interactive report below: it has a slider to test the value of an extra order, and charts to explore.</p>}
+    </section>
+  );
+}
+
 export function ReadResults({ r, plan, names }: Props) {
+  const { level } = useLevel();
   const c = plan.commitment;
   const currency = c.currency;
   const holdout = r.design === "national_holdout";
   const cross = r.design === "crossover";
   return (
     <>
-      <section className="card" aria-labelledby="bottom-line">
-        <h2 id="bottom-line">Bottom line<InfoTip term="verdict" /></h2>
-        {r.interim && <div className="callout warn"><strong>INTERIM.</strong> Read before the planned end ({r.window.planned_end}). Results can still move.</div>}
+      {r.summary && <AnswerCard s={r.summary} r={r} />}
+      {(!r.summary || level === "full") && <section className="card" aria-labelledby="bottom-line">
+        <h2 id="bottom-line">{r.summary ? "In numbers" : "Bottom line"}<InfoTip term="verdict" /></h2>
+        {r.interim && !r.summary && <div className="callout warn"><strong>Early read.</strong> The test ends on {r.window.planned_end}. The numbers can change.</div>}
         {r.cells.map((cell) => (
           <p key={cell.id}><VerdictBadge v={cell.verdict} /> {cellSentence(cell, r, currency)}</p>
         ))}
@@ -70,7 +103,7 @@ export function ReadResults({ r, plan, names }: Props) {
           const p = primaryH2H(h, r);
           return p ? <p key={h.a + h.b}><strong>Head-to-head:</strong> {h2hSentence(h, p[0], p[1], r, currency)}</p> : null;
         })}
-      </section>
+      </section>}
 
       {r.cells.map((cell) => {
         const m = cell.kpis[r.primary_kpi];
@@ -85,12 +118,12 @@ export function ReadResults({ r, plan, names }: Props) {
               extra sales taken out of whichever half had the ads).<InfoTip term="crossover" /></p>}
             <ImpactChart crossover={m.series.role === "crossover"} title={holdout ? "Held-out markets" : cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
               counterfactual={m.series.counterfactual} nPre={m.series.n_pre} testDays={m.series.test_days} holdout={m.series.role === "holdout"} />
-            <StatsTable cell={cell} r={r} currency={currency} />
+            {level !== "brief" && <StatsTable cell={cell} r={r} currency={currency} />}
           </section>
         );
       })}
 
-      {r.head_to_head.length > 0 && (
+      {r.head_to_head.length > 0 && level !== "brief" && (
         <section className="card" aria-labelledby="h2h">
           <h2 id="h2h">Head-to-head<InfoTip term="headToHead" /></h2>
           {r.head_to_head.map((h) => (
@@ -113,8 +146,8 @@ export function ReadResults({ r, plan, names }: Props) {
         </section>
       )}
 
-      <section className="card">
-        <details>
+      {level !== "brief" && <section className="card">
+        <details open={level === "full"}>
           <summary>Under the hood</summary>
           {cross
             ? <p className="small">Method (locked in the plan): two halves took turns having the ads on a random schedule; a two-way comparison (half and block) of log sales after each block's washout; an exact randomization test against every balanced schedule ({r.permutations.n}); decisions at {pct(r.decision_level, 0)}. Test {r.window.start} to {r.window.end} ({r.window.days} days).</p>
@@ -143,7 +176,7 @@ export function ReadResults({ r, plan, names }: Props) {
             );
           })}
         </details>
-      </section>
+      </section>}
     </>
   );
 }

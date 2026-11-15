@@ -382,7 +382,9 @@ def estimate_crossover(panel: Panel, kpi: str, half_a, half_b, c: dict, levels, 
     L, W = int(design["block_days"]), int(design["washout_days"])
     schedule = design["schedule"]
     start = panel.day(d_["test_start"])
-    complete = min(len(schedule), (panel.day(end) - start + 1) // L)
+    from .read import LATE_DAYS_OK
+    have = panel.day(end) - start + 1
+    complete = min(len(schedule), (have + LATE_DAYS_OK) // L)   # §11.1: a block missing its last day or two still counts
     if complete < 2:
         raise ValueError("At least two complete blocks are needed to read a crossover.")
     schedule = schedule[:complete]
@@ -411,7 +413,7 @@ def estimate_crossover(panel: Panel, kpi: str, half_a, half_b, c: dict, levels, 
     return CrossoverEstimate(
         kpi=kpi, tau=tau, p_value=p0, tau_intervals=ints, on_sales=float(on_daily.sum()),
         pre_noise=noise(pre_d) if len(pre_d) > 1 else math.nan, block_table=blocks, dates=panel.dates[view],
-        observed_daily=(ya + yb)[view], on_daily=on_daily[view], n_pre=start - view.start, test_days=complete * L,
+        observed_daily=(ya + yb)[view], on_daily=on_daily[view], n_pre=start - view.start, test_days=min(complete * L, have),
         schedules_tested=len(scheds))
 
 
@@ -432,7 +434,7 @@ def leakage(spend, half_a: set, half_b: set, schedule: str, test_start: str, blo
 
 def run_read_crossover(panel: Panel, c: dict, spend, today: str, plan_hash: str = "") -> dict:
     """The Read module for a crossover plan: same result shape as a geo read (one cell, no head-to-head)."""
-    from .read import _clean, business_metrics, results_csv, verdict
+    from .read import MIN_PRE_DAYS, _clean, business_metrics, history_check, history_start, is_interim, results_csv, verdict
 
     d = c["dates"]
     method = c["method"]
@@ -446,8 +448,11 @@ def run_read_crossover(panel: Panel, c: dict, spend, today: str, plan_hash: str 
     half_b = [g for g in c["control"]["geo_ids"] if g in present]
     first, last = panel.dates[0], panel.dates[-1]
     errors = []
-    if pd.Timestamp(d["pre_start"]) < first:
-        errors.append(f"The sales file must start by {d['pre_start']} (the plan's history period); it starts {first:%Y-%m-%d}.")
+    pre_start, pre_missing = history_start(first, d)
+    if pre_start is None:
+        need = pd.Timestamp(d["pre_end"]) - pd.Timedelta(days=MIN_PRE_DAYS - 1)
+        errors.append(f"The sales file starts on {first:%Y-%m-%d}. FOSIT needs at least the last 8 weeks of the plan's "
+                      f"history, from {need:%Y-%m-%d} to {d['pre_end']}. Add these days to the file.")
     if pd.Timestamp(d["test_start"]) > last:
         errors.append(f"The sales file ends {last:%Y-%m-%d}, before the test started on {d['test_start']}.")
     if not half_a or not half_b:
@@ -455,7 +460,9 @@ def run_read_crossover(panel: Panel, c: dict, spend, today: str, plan_hash: str 
     if errors:
         return {"ok": False, "errors": errors}
     end = min(pd.Timestamp(d["test_end"]), last)
-    interim = end < pd.Timestamp(d["test_end"]) or pd.Timestamp(today) < pd.Timestamp(d["test_end"])
+    interim, late_days = is_interim(pd.Timestamp(d["test_end"]), end, today)
+    if pre_missing:
+        c = {**c, "dates": {**d, "pre_start": pre_start.strftime("%Y-%m-%d")}}
     kpis = [k for k in [c["kpi"]["primary"], *c["kpi"].get("secondary", [])] if k in panel.kpis]
     spend_total = spend.spend_by_cell().get(cell["id"]) if spend else None
     kpi_out, ests = {}, {}
@@ -498,9 +505,12 @@ def run_read_crossover(panel: Panel, c: dict, spend, today: str, plan_hash: str 
                   "fit_checks": [{"kpi": k, "nrmse": e.pre_noise, "limit": kpi_out[k]["pre_fit_limit"], "ok": kpi_out[k]["pre_fit_ok"],
                                   "period": "block"} for k, e in ests.items()],
                   "leakage": leak}]
-    checks = _checks(c, cells_out, spend, interim, end, pest, thresholds)
+    checks = _checks(c, cells_out, spend, interim, end, pest, thresholds, late_days)
+    hist = history_check(d, pre_start, pre_missing)
+    if hist:
+        checks.append(hist)
     result = {"ok": True, "interim": interim, "design": "crossover",
-              "window": {"pre_start": d["pre_start"], "pre_end": d["pre_end"], "start": d["test_start"],
+              "window": {"pre_start": pre_start.strftime("%Y-%m-%d"), "pre_end": d["pre_end"], "start": d["test_start"],
                          "end": end.strftime("%Y-%m-%d"), "planned_end": d["test_end"], "days": pest.test_days,
                          "test_days": pest.test_days},
               "alpha": alpha, "decision_level": decision_level, "levels": list(levels),
@@ -511,7 +521,7 @@ def run_read_crossover(panel: Panel, c: dict, spend, today: str, plan_hash: str 
     return _clean(result)
 
 
-def _checks(c, cells_out, spend, interim, end, pest, th) -> list[dict]:
+def _checks(c, cells_out, spend, interim, end, pest, th, late_days=0) -> list[dict]:
     cell = cells_out[0]
     out = []
     bad = [f for f in cell["fit_checks"] if not f["ok"]]
@@ -537,7 +547,6 @@ def _checks(c, cells_out, spend, interim, end, pest, th) -> list[dict]:
         low = s < float(th["min_budget_delivery"]) * cell["budget"]
         out.append({"id": "spend_balance", "title": "Spend", "status": "warn" if low else "pass", "blocking": False,
                     "detail": f"Spent {s:,.0f} of the {cell['budget']:,.0f} budget." + (" iCPA uses actual spend, so it stays correct." if low else "")})
-    out.append({"id": "timing", "title": "Timing", "status": "warn" if interim else "pass", "blocking": False,
-                "detail": (f"Read before the last block ended ({c['dates']['test_end']}): data covers whole blocks to "
-                           f"{end:%Y-%m-%d}. This is an INTERIM result.") if interim else "Read after the last block ended."})
+    from .read import timing_check
+    out.append(timing_check(c["dates"]["test_end"], end, interim, late_days))
     return out

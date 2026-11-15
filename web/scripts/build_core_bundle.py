@@ -21,7 +21,7 @@ def files():
     for root, dirs, names in os.walk(os.path.join(CORE, "fosit")):
         dirs[:] = sorted(d for d in dirs if d != "__pycache__")
         for name in sorted(names):
-            if name.endswith((".py", ".csv", ".json", ".md")):
+            if name.endswith((".py", ".csv", ".json", ".md", ".html")):
                 path = os.path.join(root, name)
                 yield path, os.path.relpath(path, CORE).replace(os.sep, "/")
 

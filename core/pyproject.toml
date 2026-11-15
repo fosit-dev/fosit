@@ -15,4 +15,4 @@ build-backend = "setuptools.build_meta"
 include = ["fosit*"]
 
 [tool.setuptools.package-data]
-fosit = ["geo_data/*.csv", "geo_data/*.json", "geo_data/*.md"]
+fosit = ["geo_data/*.csv", "geo_data/*.json", "geo_data/*.md", "templates/*.html"]

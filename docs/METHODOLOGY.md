@@ -385,10 +385,20 @@ The total is about (shortlisted designs × cells × durations × effects × wind
 | **Pre-period fit** | Each cell's pre-period nRMSE ≤ the plan's threshold | Above threshold | Cell verdict → **Inconclusive** |
 | **Geo leakage** | ≤ 5% of a cell's impressions outside its assigned geos | > 5%. Shown split into: in control geos, in another cell's geos, outside the study, unknown geo (`*`) | No (warn). Leakage into control biases lift **toward zero**. Leakage into another cell contaminates the comparison. Both are explained. |
 | **Spend balance** | Realized spend share within ±5 points of planned share, and each cell ≥ 90% of planned budget | Outside either bound | No (warn). iCPA/iROAS already use actual spend. |
-| **Early read** | Data covers through `cooldown_end` and read date ≥ `cooldown_end` | Earlier | No. Report labelled **INTERIM** and conformal windows truncated to available days. |
+| **Early read** | The read misses at most 2 days of the planned window (data and read date), and every day with ads is in the data (§11.1) | Earlier | No. Report labelled **early read** and conformal windows truncated to available days. |
+| **History** | The sales file covers the plan's history period | The file starts late, but at least 8 weeks of the history remain (§11.1) | No (warn). The read uses the history the file has. |
 | **External shocks** | User confirms no other channel, promotion, pricing, or stock change differed across cells or vs. control | Not confirmed, or user describes a change (free text goes into the report) | No (warn) |
 
 Unknown-geo impressions (`geo_id = *`) count as **unverifiable**, not as leakage, and are shown separately.
+
+### 11.1 Late or short data: realistic rules
+
+> **In plain English:** Sales exports often arrive a day or two late, and many tools export a fixed look-back. FOSIT does not send people back for data that would not change the answer.
+
+- **Late data.** A read is final when it misses at most `LATE_DAYS_OK = 2` days at the end of the planned window, counted from the earlier of the data's last day and the read date. The missing days must be cooldown days: a read that misses a day with ads is always early. For a crossover (§14) the last block counts when it misses at most 2 days; its washout is at its start, so it keeps most of its measured days. The Timing check says how many days were missing.
+- **History that starts late.** If the sales file starts after the plan's `pre_start`, Read uses the history the file has, as long as at least `MIN_PRE_DAYS = 56` days (8 weeks) remain before the test. The History check reports it as a warning. With less, the read stops and names the exact dates to add.
+- **Why this is still the pre-registered analysis.** Nothing here is the analyst's choice: the data decides, the rule is fixed in code, and the check reports it. The estimator, the method settings, the markets and the dates stay as locked. Fewer history days only make the ranges a little wider.
+- **Planning.** 8 weeks of history is enough; the planner does not ask for more. It uses up to 26 weeks when the file has them.
 
 ---
 

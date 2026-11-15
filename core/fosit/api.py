@@ -13,7 +13,7 @@ from importlib import resources
 
 import numpy as np
 
-from . import __version__, ascm, conformal, crossover, holdout, orders, placebo, power, selection, synthetic
+from . import __version__, ascm, conformal, crossover, explain, holdout, orders, placebo, power, selection, synthetic
 from .panel import Panel, load_kpi_history
 
 _state: dict = {}
@@ -272,4 +272,18 @@ def run_read(commitment: dict, plan_hash: str, today: str, appendix: dict | None
     """Per-cell results, head-to-head and data-based honesty checks, using only the plan's settings."""
     from .read import run_read as _run
 
-    return _run(_panel(), commitment, _state.get("spend"), today, appendix, plan_hash, progress)
+    out = _run(_panel(), commitment, _state.get("spend"), today, appendix, plan_hash, progress)
+    if out.get("ok"):
+        out["summary"] = explain.summary(out, commitment)
+    return out
+
+
+def plan_html(plan: dict, names: dict | None = None, read_url: str | None = None, level: str = "guided") -> str:
+    """The locked plan as one interactive HTML file: the design's anatomy, timeline, checklist and sensitivity."""
+    return explain.render(explain.plan_payload(plan, names, read_url, level))
+
+
+def results_html(plan: dict, result: dict, names: dict | None = None, checks: list | None = None,
+                 level: str = "guided", plan_ok: bool | None = None) -> str:
+    """The results as one interactive HTML file: the answer, a value slider, annotated charts and every check."""
+    return explain.render(explain.results_payload(plan, result, names, checks, level, plan_ok))

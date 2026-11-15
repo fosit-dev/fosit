@@ -1,0 +1,219 @@
+{
+  "fosit_plan_version": "1.0",
+  "commitment": {
+    "tool": {
+      "name": "FOSIT",
+      "version": "0.1.0",
+      "core_sha256": "0d4d0218d74d9c43343721f7a8f0b17076ea576f3ef0070d3e611a53cd9b37d0"
+    },
+    "created_at": "2026-09-01T09:00:00Z",
+    "test_name": "Example: two vendors split the country, with a no-CTV holdout",
+    "advertiser_label": "Synthetic example (not real data)",
+    "currency": "USD",
+    "geo": {
+      "unit": "state",
+      "mapping_name": "Census 2020 ZCTA-county relationship, by state (FOSIT geo_data)",
+      "mapping_sha256": "cd8ffdd946055406cb74acd28e43507fdacd12077aa9038df882581f26225d75"
+    },
+    "kpi": {
+      "primary": "orders",
+      "secondary": [
+        "revenue"
+      ],
+      "aggregation": "daily"
+    },
+    "dates": {
+      "pre_start": "2026-03-09",
+      "pre_end": "2026-09-06",
+      "test_start": "2026-09-07",
+      "test_end": "2026-10-04",
+      "cooldown_end": "2026-10-11"
+    },
+    "design": {
+      "type": "national_holdout",
+      "ads_before_test": "off"
+    },
+    "cells": [
+      {
+        "id": "cell_1",
+        "label": "Vendor A",
+        "geo_ids": [
+          "GA",
+          "IN",
+          "KS",
+          "KY",
+          "LA",
+          "MD",
+          "MT",
+          "ND",
+          "NE",
+          "NV",
+          "NY",
+          "OH",
+          "OK",
+          "TX",
+          "VT",
+          "WA",
+          "WI"
+        ],
+        "budget": 200000
+      },
+      {
+        "id": "cell_2",
+        "label": "Vendor B",
+        "geo_ids": [
+          "AK",
+          "AZ",
+          "CA",
+          "CO",
+          "CT",
+          "FL",
+          "IA",
+          "MA",
+          "ME",
+          "MI",
+          "MS",
+          "NJ",
+          "PA",
+          "RI",
+          "WV",
+          "WY"
+        ],
+        "budget": 200000
+      }
+    ],
+    "control": {
+      "geo_ids": [
+        "AL",
+        "AR",
+        "DC",
+        "DE",
+        "HI",
+        "ID",
+        "IL",
+        "MN",
+        "MO",
+        "NC",
+        "NH",
+        "NM",
+        "OR",
+        "SC",
+        "SD",
+        "TN",
+        "UT",
+        "VA"
+      ]
+    },
+    "excluded": {
+      "geo_ids": []
+    },
+    "method": {
+      "estimator": "ridge_ascm",
+      "fixed_effects": true,
+      "lambda_selection": "cv_1se",
+      "inference": "conformal",
+      "permutations": {
+        "kind": "moving_block"
+      },
+      "placebo_calibration": {
+        "n": 40
+      },
+      "test_statistic": "abs_sum",
+      "alpha": 0.1,
+      "report_levels": [
+        0.9,
+        0.95
+      ],
+      "head_to_head": "joint_conformal_projection",
+      "donor_min_nonzero_share": 0.5,
+      "seed": 2026
+    },
+    "thresholds": {
+      "pre_fit_nrmse_max": {
+        "cell_1": {
+          "orders": 0.1311,
+          "revenue": 0.1311
+        },
+        "cell_2": {
+          "orders": 0.1175,
+          "revenue": 0.1175
+        }
+      },
+      "leakage_warn_share": 0.05,
+      "spend_share_tolerance_pp": 5,
+      "min_budget_delivery": 0.9,
+      "power_target": 0.8
+    },
+    "decision": {
+      "primary_metric": "delta_icpa",
+      "meaningful_effect_basis": "planned_mde",
+      "planned_mde_lift": {
+        "cell_1": 0.0875,
+        "cell_2": 0.0812
+      }
+    },
+    "assignment": {
+      "method": "stratified_random_search",
+      "candidates_searched": 2000,
+      "design_rank": 1,
+      "label_assignment": "user"
+    },
+    "vendor_targeting_confirmed": [
+      {
+        "cell_id": "cell_1",
+        "confirmed": true
+      },
+      {
+        "cell_id": "cell_2",
+        "confirmed": true
+      }
+    ],
+    "data_fingerprint": {
+      "kpi_history_sha256": "7d359617eb710079fc676350e972fbabe08a19d0450c772199741f99c5d5754c",
+      "rows": 9282,
+      "geos": 51,
+      "first_date": "2026-03-09",
+      "last_date": "2026-09-06"
+    }
+  },
+  "hash": {
+    "algorithm": "SHA-256",
+    "canonicalization": "RFC8785",
+    "value": "18092cba4a9b2c20b3761432157702590a20848958a9e2a6816f446dab5d0f82"
+  },
+  "appendix": {
+    "note": "Design diagnostics. Not part of the fingerprint.",
+    "design": {
+      "fit": [
+        0.053924458865367335,
+        0.06207812522427201
+      ],
+      "shares": [
+        0.38774332030302383,
+        0.37465722506609833
+      ],
+      "balance": {
+        "share": 0.034328661794410874,
+        "trend": 0.08655579652159077,
+        "aov": 0.001329248793187945,
+        "per_capita": 0.07693569904379179,
+        "holdout_trend": 0.052555727540961404,
+        "holdout_aov": 0.09583096561639491,
+        "holdout_per_capita": 0.03818493154555913
+      },
+      "holdout_share": 0.23759945463087784
+    },
+    "mde": [
+      {
+        "label": "Vendor A",
+        "test_days": 28,
+        "mde": 0.0875
+      },
+      {
+        "label": "Vendor B",
+        "test_days": 28,
+        "mde": 0.0812
+      }
+    ]
+  }
+}

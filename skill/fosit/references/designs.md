@@ -1,6 +1,8 @@
 # Choosing a FOSIT design
 
-Read this when recommending a design or answering "how should we test this?". Source of truth: `docs/METHODOLOGY.md` in the FOSIT repository.
+Read this when recommending a design or answering "how should we test this?". Source of truth: `docs/METHODOLOGY.md` in the FOSIT repository. To show the person how a design works, use the pictures in `anatomy.md`.
+
+Recommend **one** design for the decision they need. Show alternatives only when they ask, when the first choice cannot work, or when you talk with an analyst.
 
 ## The three designs
 
@@ -38,8 +40,8 @@ Two balanced halves of the country take turns having the ads, every 2 weeks (or 
 ## Sizing
 - **Test length:** compare 3/4/6/8 weeks (`--weeks`). Longer usually detects smaller lifts, but each extra week needs history to simulate, so on short histories longer tests can look *less* sensitive. Trust the table.
 - **Cooldown:** 7 days by default (measured, no ads) to catch delayed purchases; 0 or 14 possible.
-- **History:** 8 weeks minimum, 12+ recommended, up to 26 used (`--pre-weeks`).
-- **Detectable iCPA** is the decision-maker's number: budget ÷ (detectable lift × baseline sales). If the vendor's realistic iCPA is better (lower) than this, the test should see the effect; if worse, expect "inconclusive". Levers: more budget, longer test, bigger cells / holdout, more history, metro areas.
+- **History:** 8 weeks is enough; FOSIT uses up to 26 (`--pre-weeks`). Do not ask for more history when they have 8 weeks or more.
+- **Detectable iCPA** is the decision-maker's number: budget ÷ (detectable lift × baseline sales). If the vendor's realistic iCPA is better (lower) than this, the test should see the effect; if worse, expect "inconclusive". Levers, in order: more budget, a longer test, bigger cells or holdout, metro areas instead of states. More history helps only when they have less than 12 weeks.
 - **Budget split** between vendors can be uneven; iCPA and iROAS always use actual spend.
 
 ## Small advertisers

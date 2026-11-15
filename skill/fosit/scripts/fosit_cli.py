@@ -9,9 +9,14 @@
     python fosit_cli.py lock    plan_work/ --choose 1 --weeks 4 --name "Q1 CTV test" --confirm-targeting [...]
     python fosit_cli.py verify  PLAN.fosit-plan.json [--fingerprint HASH]
     python fosit_cli.py read    PLAN.fosit-plan.json --sales SALES.csv [--spend SPEND.csv] --out results/ [...]
+    python fosit_cli.py anatomy PLAN.fosit-plan.json [--results results/results.json] [--level brief|guided|full]
 
 Every command prints a short Markdown summary (aggregates only, never raw rows) and writes its
-full output to files. The engine is FOSIT's own Python core (github.com/fosit-dev/fosit), pinned
+full output to files. plan, lock and read also write an interactive HTML page (designs.html,
+plan.html, report.html): one self-contained file with the answer, schematics of how the test works,
+charts to explore and a detail switch (brief for leaders, guided for marketers, full for analysts).
+
+The engine is FOSIT's own Python core (github.com/fosit-dev/fosit), pinned
 below so results are reproducible; the plan records the exact code fingerprint it ran with.
 """
 
@@ -297,9 +302,11 @@ def cmd_plan(a) -> None:
              f"{' (fit judged on weekly totals: sales are small enough that day-to-day chance would swamp a daily score)' if found.get('fit_period') == 'week' else ''}. Budget {money(a.budget, a.currency)} ({', '.join(f'{l} {money(b, a.currency)}' for l, b in zip(cfg['_labels'], cfg['budgets']))}).", ""]
     if not found["designs"]:
         best = found["best_failing"][0]["fit"] if found["best_failing"] else None
+        short = s["days"] < 84      # only ask for more history when there is little: 12+ weeks is plenty
         lines += ["**No design passed every check.** " + (f"The closest had a fit error of {pct(max(best))} (limit 10%). " if best else "") +
-                  ("Try a wider holdout share, " if cfg["_kind"] != "cells" else "Try bigger cells (--share-max), ") +
-                  "more history, or fewer exclusions."]
+                  ("Try a wider holdout share" if cfg["_kind"] != "cells" else "Try bigger cells (--share-max)") +
+                  (", more history" if short else "") + ", or fewer exclusions" +
+                  ("" if cfg["_kind"] == "crossover" or cfg.get("fit_period") == "week" else ", or `--fit-period week` for small sales") + "."]
     for i, d in enumerate(found["designs"][:a.show]):
         lines.append(f"## Design {i + 1}{' (best)' if i == 0 else ''}")
         if cfg["_kind"] == "crossover":
@@ -332,7 +339,11 @@ def cmd_plan(a) -> None:
               "cost per extra order is worse than this, the test probably won't see it.", "",
               f"Next: `lock {out} --choose N --weeks W ...` after every vendor confirms it can target its markets."]
     write(out / "designs.md", "\n".join(lines) + "\n")
+    from fosit import explain
+    write(out / "designs.html", explain.render(explain.designs_payload(
+        found, cfg["_labels"], cfg["budgets"], a.currency, a.kpi, title="Test options", kind=a.design, level=a.level)))
     print("\n".join(lines))
+    print(f"\nInteractive comparison: {out / 'designs.html'}")
 
 
 def build_commitment(work: dict, d: dict, a) -> tuple[dict, dict]:
@@ -428,7 +439,9 @@ def build_commitment(work: dict, d: dict, a) -> tuple[dict, dict]:
                            "balance_score": d["balance_score"], "share_in_test": d["share_in_test"],
                            **({"holdout_share": d["control_share"]} if holdout else {})},
                 "mde": [{"label": cells[k]["label"], "test_days": days, "mde": mde[order.index(k)],
-                         "detectable_icpa": (curves[order.index(k)] or {}).get("money", {}).get("detectable_icpa")} for k in range(n)],
+                         "detectable_icpa": (curves[order.index(k)] or {}).get("money", {}).get("detectable_icpa"),
+                         "baseline_test_total": (curves[order.index(k)] or {}).get("baseline_test_total"),
+                         "points": (curves[order.index(k)] or {}).get("points") or []} for k in range(n)],
                 "search_settings": work["result"].get("settings"), "made_with": f"FOSIT skill CLI, engine {FOSIT_REF}"}
     return c, appendix
 
@@ -511,15 +524,18 @@ def cmd_lock(a) -> None:
                  f"listed for it; {who} until {dd['cooldown_end']}.\n\nPlan fingerprint (SHA-256):\n{h}\n\nPlease confirm you can target "
                  f"exactly your markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n"
                  + (f"\nAfter the cooldown ends ({dd['cooldown_end']}), read the results here: {a.read_url}\n" if a.read_url else ""))
+    email += "\nOpen plan.html (attached) for the plan on one page: how the test works, the dates and a checklist for each team.\n"
     write(out / "email.txt", email)
+    from fosit import api
+    write(out / "plan.html", api.plan_html(plan, names, a.read_url, a.level))
     print("\n".join(lines[:7]))
     if commitment["assignment"]["label_assignment"] == "coin_flip":
         flips = ", ".join(f"{commitment['cells'][int(k.split('_')[1]) - 1]['label']} got market set {s.split('_')[2]}"
                           for s, k in commitment["assignment"]["coin_flip_result"].items())
         print(f"\nCoin flip: {flips}. The market lists in plan-summary.md are the final ones; the cell names in designs.md "
               "are from before the flip.")
-    print(f"\nWrote {plan_path}, {out / 'plan-summary.md'} and {out / 'email.txt'}.")
-    print("Send the plan file, the summary and the fingerprint to the advertiser and every vendor BEFORE launch: that email is the proof the plan came first.")
+    print(f"\nWrote {plan_path}, {out / 'plan-summary.md'}, {out / 'plan.html'} and {out / 'email.txt'}.")
+    print("Send the plan file, plan.html and the fingerprint to the advertiser and every vendor BEFORE launch: that email is the proof the plan came first.")
 
 
 def cmd_verify(a) -> None:
@@ -602,26 +618,15 @@ def cmd_read(a) -> None:
 
     lines = [f"# Results: {c['test_name']}", ""]
     if r["interim"]:
-        lines += [f"**INTERIM:** read before the planned end ({r['window']['planned_end']}). Results can still move.", ""]
-    if any(s == "FAIL" and t == "Plan match" for s, t, _ in checks):
-        lines += ["**NOT THE PRE-REGISTERED ANALYSIS.**", ""]
-    lines += ["## Bottom line", ""]
-    for cell in r["cells"]:
-        m = cell["kpis"][r["primary_kpi"]]
-        f = unit_of(r["primary_kpi"])
-        where = f" in its {cell['n_geos']} markets" if r.get("design") == "national_holdout" else ""
-        s = (f"**{VERDICT[cell['verdict']]}.** {cell['label']} drove {f(m['incremental'])} incremental {r['primary_kpi']}{where} "
-             f"({pct(r['decision_level'], 0)} range: {rng(m['intervals'][lv]['incremental'], f)})")
-        if r["primary_kpi"] == "orders" and m.get("spend"):
-            ic = m["intervals"][lv].get("icpa")
-            if m.get("icpa") and m["intervals"][lv]["incremental"][0] and m["intervals"][lv]["incremental"][0] > 0:
-                s += f" at an iCPA of {money(m['icpa'], cur)} (range {rng(ic, lambda x: money(x, cur))})"
-            elif ic and ic[0]:
-                s += f"; iCPA at least {money(ic[0], cur)} (no upper limit: zero extra orders can't be ruled out)"
-        if r["primary_kpi"] == "revenue" and m.get("spend") and m.get("iroas") is not None:
-            s += f" for an iROAS of {m['iroas']:.2f} (range {rng(m['intervals'][lv].get('iroas'), lambda x: f'{x:.2f}')})"
-        lines.append(s + ".")
-        lines.append(f"  _{cell['verdict_reason']}_")
+        lines += [f"**Early read.** The test ends on {r['window']['planned_end']}. The numbers can change.", ""]
+    plan_ok = not any(s_ == "FAIL" and t == "Plan match" for s_, t, _ in checks)
+    if not plan_ok:
+        lines += ["**NOT THE PRE-REGISTERED ANALYSIS.** The plan does not match the fingerprint from before the test.", ""]
+    lines += ["## The answer", ""]
+    for ans in r["summary"]["cells"]:
+        lines += [f"**{VERDICT[ans['verdict']]}. {ans['headline']}** {ans['detail']}", f"- What to do: {ans['action']}", ""]
+    if r["summary"].get("head_to_head"):
+        lines += [f"**{r['summary']['head_to_head']['headline']}** {r['summary']['head_to_head']['detail']}", ""]
     for hh in r["head_to_head"]:
         if hh["kpi"] != r["primary_kpi"]:
             continue
@@ -631,7 +636,7 @@ def cmd_read(a) -> None:
             label = {"delta_icpa": "Difference in iCPA", "delta_iroas": "Difference in iROAS",
                      "delta_incremental_per_1000": f"Difference in incremental {hh['kpi']} per 1,000 spent"}.get(name, name)
             est = "–" if m["estimate"] is None else "{:,.2f}".format(m["estimate"])
-            lines.append(f"\n**Head-to-head:** {label} ({hh['a_label']} minus {hh['b_label']}): "
+            lines.append(f"**Head-to-head in numbers:** {label} ({hh['a_label']} minus {hh['b_label']}): "
                          f"{est} ({pct(r['decision_level'], 0)} range: "
                          f"{rng(m['intervals'].get(lv), lambda x: f'{x:,.2f}')}). "
                          f"{'Distinguishable from zero' if m['distinguishable'] else 'Not distinguishable on this evidence'}.")
@@ -661,8 +666,42 @@ def cmd_read(a) -> None:
               f"(fingerprint `{h}`), engine fingerprint `{c['tool']['core_sha256'][:16]}…`. Method: "
               f"{FOSIT_REPO}/blob/main/docs/METHODOLOGY.md. Window {r['window']['start']} to {r['window']['end']} ({r['window']['days']} days)."]
     write(out / "report.md", "\n".join(lines) + "\n")
+    r["all_checks"] = [{"status": s_.lower(), "title": t, "detail": d_} for s_, t, d_ in checks]
+    write(out / "results.json", json.dumps(r, indent=1))
+    write(out / "report.html", api.results_html(plan, r, geo_names(c["geo"]["unit"]), r["all_checks"], a.level, plan_ok))
     print("\n".join(lines[: lines.index("## Per cell")]))
-    print(f"\nWrote {out / 'report.md'}, {out / 'results.csv'} and {out / 'results.json'}.")
+    print(f"\nWrote {out / 'report.md'}, {out / 'report.html'} (interactive), {out / 'results.csv'} and {out / 'results.json'}.")
+
+
+def geo_names(unit: str) -> dict:
+    from fosit import api
+    return {g["geo_id"]: g["geo_name"] for g in api.geo_attributes(unit)} if unit in ("cbsa", "state") else {}
+
+
+def cmd_anatomy(a) -> None:
+    """One interactive HTML page: schematics of how the test works, charts and a detail switch."""
+    from fosit import explain
+    src = Path(a.source)
+    if src.is_dir():
+        work = json.loads((src / "designs.json").read_text())
+        cfg = work["config"]
+        kind = {"geo_cells": "cells", "crossover": "crossover"}.get(cfg["design"]) or ("split" if cfg["n_cells"] > 1 else "holdout")
+        payload = explain.designs_payload(work["result"], work["labels"], work["budgets"], work["currency"], cfg["kpi"],
+                                          title="Test options", kind=kind, level=a.level)
+        out = Path(a.out or src / "designs.html")
+    else:
+        plan = json.loads(src.read_text())
+        names = geo_names(plan["commitment"]["geo"]["unit"])
+        if a.results:
+            r = json.loads(Path(a.results).read_text())
+            ok = plan_hash(plan["commitment"]) == plan["hash"]["value"]
+            payload = explain.results_payload(plan, r, names, r.get("all_checks"), a.level, ok)
+            out = Path(a.out or Path(a.results).parent / "report.html")
+        else:
+            payload = explain.plan_payload(plan, names, a.read_url, a.level)
+            out = Path(a.out or src.parent / "plan.html")
+    write(out, explain.render(payload))
+    print(f"Wrote {out}. Open it in a browser: it works offline and sends no data.")
 
 
 def main() -> None:
@@ -698,6 +737,7 @@ def main() -> None:
     s.add_argument("--fit-period", choices=["auto", "day", "week"], default="auto",
                    help="judge twin fit day by day or on weekly totals (auto: weekly when sales are small)")
     s.add_argument("--show", type=int, default=5); s.add_argument("--out", required=True)
+    s.add_argument("--level", choices=["brief", "guided", "full"], default="guided", help="detail shown first in designs.html")
     s = sub.add_parser("lock", help="lock a design into a pre-registered plan file")
     s.add_argument("workdir"); s.add_argument("--choose", type=int, default=1); s.add_argument("--weeks", type=int, required=True)
     s.add_argument("--name", required=True); s.add_argument("--advertiser")
@@ -707,6 +747,7 @@ def main() -> None:
     s.add_argument("--coin-flip", action="store_true", help="let a fair coin decide which cell gets which market set")
     s.add_argument("--confirm-targeting", action="store_true", help="every vendor confirmed it can target its markets")
     s.add_argument("--read-url", help="link people should use to read results later (goes into the email)")
+    s.add_argument("--level", choices=["brief", "guided", "full"], default="guided", help="detail shown first in plan.html")
     s.add_argument("--out")
     s = sub.add_parser("verify", help="recompute a plan's fingerprint")
     s.add_argument("plan"); s.add_argument("--fingerprint")
@@ -715,10 +756,17 @@ def main() -> None:
     s.add_argument("--fingerprint", help="the fingerprint from the pre-launch email")
     s.add_argument("--other-changes", help="'none', or what changed differently across markets during the test")
     s.add_argument("--today"); s.add_argument("--out", required=True)
+    s.add_argument("--level", choices=["brief", "guided", "full"], default="guided",
+                   help="detail shown first in report.html: brief (leaders), guided (marketers), full (analysts)")
+    s = sub.add_parser("anatomy", help="write the interactive HTML page for a plan work folder, a plan, or a plan + results")
+    s.add_argument("source", help="a plan work folder (from plan), or a .fosit-plan.json file")
+    s.add_argument("--results", help="results.json from read: makes the results page")
+    s.add_argument("--level", choices=["brief", "guided", "full"], default="guided")
+    s.add_argument("--read-url"); s.add_argument("--out")
     a = p.parse_args()
     ensure_engine()
     {"setup": cmd_setup, "check": cmd_check, "orders": cmd_orders, "sample": cmd_sample, "plan": cmd_plan,
-     "lock": cmd_lock, "verify": cmd_verify, "read": cmd_read}[a.cmd](a)
+     "lock": cmd_lock, "verify": cmd_verify, "read": cmd_read, "anatomy": cmd_anatomy}[a.cmd](a)
 
 
 if __name__ == "__main__":

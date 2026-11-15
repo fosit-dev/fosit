@@ -3,6 +3,8 @@ import { InfoTip } from "../components/InfoTip";
 import { APP_VERSION } from "../config";
 import { addDays, pretty } from "../lib/dates";
 import { downloadBlob, downloadText, slug } from "../lib/download";
+import { useLevel } from "../lib/level";
+import { callPython } from "../worker/client";
 import { money, pct, weeks } from "../lib/format";
 import { groupHash, sha256Hex, shortCode } from "../lib/hash";
 import { buildCommitment, lockPlan, randomSchedule, scheduleRows, type LockedPlan } from "../lib/plan";
@@ -32,6 +34,7 @@ function shuffle(n: number): number[] {
 export function StepLock({ s, set, onRead }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { level } = useLevel();
   const d = s.result && s.chosen != null ? s.result.designs[s.chosen] : null;
   if (!d || !s.data) return <section className="card"><p>Choose a design in the previous step first.</p></section>;
   const b = budgets(s);
@@ -77,7 +80,8 @@ export function StepLock({ s, set, onRead }: Props) {
           ...(holdout ? { holdout_share: d.control_share } : {}) },
         mde: commitment.cells.map((cell, k) => {
           const cv = curveFor(d, setFor(k), s.duration);
-          return { label: cell.label, test_days: s.duration, mde: cv?.mde ?? null, detectable_icpa: detectableIcpa(cv, cell.budget), windows: cv?.windows ?? 0, false_positive_rate: cv?.false_positive_rate ?? null };
+          return { label: cell.label, test_days: s.duration, mde: cv?.mde ?? null, detectable_icpa: detectableIcpa(cv, cell.budget), windows: cv?.windows ?? 0, false_positive_rate: cv?.false_positive_rate ?? null,
+            baseline_test_total: cv?.baseline_test_total ?? null, points: cv?.points ?? [] };
         }),
         search_settings: s.result!.settings,
       };
@@ -93,17 +97,17 @@ export function StepLock({ s, set, onRead }: Props) {
   const scheduleText = rows.map((r) => `  ${pretty(r.start)} – ${pretty(r.end)}: ads in half ${r.on} only`).join("\n");
   const email = s.locked && cross
     ? `Subject: Locked test plan: ${s.testName} (fingerprint ${shortCode(s.locked.hash.value)})\n\n` +
-      `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). The country is split into two halves (lists in the plan) that take turns having the ads, on this schedule:\n\n${scheduleText}\n\n` +
+      `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF, JSON and an interactive HTML page). The country is split into two halves (lists in the plan) that take turns having the ads, on this schedule:\n\n${scheduleText}\n\n` +
       `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can switch the ads between the halves on exactly these dates. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the last block ends (${pretty(testEnd)}), read the results here: ${readLink()}\n`
     : s.locked
     ? `Subject: Locked test plan: ${s.testName} (fingerprint ${shortCode(s.locked.hash.value)})\n\n` +
       (holdout && !one
-        ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)}, each vendor only in the markets listed for its cell. The ${d.control.length} held-out markets must get no CTV from anyone until ${pretty(addDays(testEnd, s.cooldown))}.\n\n` +
+        ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF, JSON and an interactive HTML page). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)}, each vendor only in the markets listed for its cell. The ${d.control.length} held-out markets must get no CTV from anyone until ${pretty(addDays(testEnd, s.cooldown))}.\n\n` +
           `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the cooldown ends (${pretty(addDays(testEnd, s.cooldown))}), read the results here: ${readLink()}\n`
         : holdout
-        ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). From ${pretty(s.testStart)} to ${pretty(addDays(testEnd, s.cooldown))} the campaign runs everywhere except the ${d.control.length} held-out markets listed in the plan, which must get no ads at all.\n\n` +
+        ? `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF, JSON and an interactive HTML page). From ${pretty(s.testStart)} to ${pretty(addDays(testEnd, s.cooldown))} the campaign runs everywhere except the ${d.control.length} held-out markets listed in the plan, which must get no ads at all.\n\n` +
           `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can keep every held-out market dark for those dates. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the cooldown ends (${pretty(addDays(testEnd, s.cooldown))}), read the results here: ${readLink()}\n`
-        : `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF and JSON). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)} in the markets listed for each cell; control markets get no test ads.\n\n` +
+        : `Hi all,\n\nAttached is the locked plan for "${s.testName}" (PDF, JSON and an interactive HTML page). Ads run ${pretty(s.testStart)} to ${pretty(testEnd)} in the markets listed for each cell; control markets get no test ads.\n\n` +
           `Plan fingerprint (SHA-256):\n${s.locked.hash.value}\n\nPlease confirm you can target exactly your cell's markets. When we read the results, this fingerprint is checked to show the plan wasn't changed.\n\nAfter the cooldown ends (${pretty(addDays(testEnd, s.cooldown))}), read the results here: ${readLink()}\n`)
     : "";
 
@@ -124,7 +128,7 @@ export function StepLock({ s, set, onRead }: Props) {
           </div>
         )}
         <div className="callout ok" style={{ marginTop: 16 }}>
-          <strong>Now email the PDF, the JSON and this fingerprint to the advertiser and every vendor, before {pretty(s.testStart)}.</strong>{" "}
+          <strong>Now email the PDF, the JSON, the interactive plan and this fingerprint to the advertiser and every vendor, before {pretty(s.testStart)}.</strong>{" "}
           That email is your proof the plan was set in advance. FOSIT has no server, so it can't be your witness, and that's on purpose.
         </div>
         <label className="check"><input type="checkbox" checked={s.includeDiagnostics} onChange={(e) => set({ includeDiagnostics: e.target.checked })} />
@@ -135,6 +139,10 @@ export function StepLock({ s, set, onRead }: Props) {
             downloadBlob(planPdf(planForDownload(s.locked!), names, s.includeDiagnostics, readLink()), `${fileBase}.pdf`);
           }}>Download plan PDF</button>
           <button onClick={() => downloadText(JSON.stringify(planForDownload(s.locked!), null, 2), `${fileBase}.fosit-plan.json`)}>Download plan JSON</button>
+          <button data-testid="plan-html" onClick={async () => {
+            const html = await callPython<string>("plan_html", { plan: planForDownload(s.locked!), names, read_url: readLink(), level });
+            downloadText(html, `${fileBase}.html`, "text/html");
+          }}>Download interactive plan (HTML)</button>
           <button onClick={async () => { try { await navigator.clipboard.writeText(email); setCopied(true); } catch { setCopied(false); } }}>{copied ? "✓ Copied" : "Copy email text"}</button>
         </div>
         <details><summary>Email text</summary><pre className="small" style={{ whiteSpace: "pre-wrap" }}>{email}</pre></details>

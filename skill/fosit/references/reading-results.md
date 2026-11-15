@@ -2,6 +2,8 @@
 
 Read this before explaining a `read` report. The aim is a summary a CFO can act on and nobody can accuse of spin.
 
+Start with the answer. `report.md` begins with "The answer": one headline, one detail and one action per vendor, already in Simplified Technical English (`writing.md`). Use it, at the person's level. Then point to `report.html`: its "Is it worth the money?" slider lets them test their own value of one order.
+
 ## Verdicts (per vendor/cell, at the plan's 90% level)
 
 | Verdict | Means | Say it like |
@@ -29,7 +31,8 @@ Always give the range with the number. The point estimate alone overstates certa
 | **Pre-period fit** | The twin didn't track the markets well before the test; affected cells are inconclusive by rule. |
 | **Geo leakage** | Ads ran outside assigned markets (>5% of impressions): lift is biased toward zero, comparisons blurred. Name the vendor. |
 | **Spend balance** | Actual split or delivery differed from plan; iCPA/iROAS use actual spend so they stay right, but sensitivity was lower than planned. |
-| **Timing** | Read before the cooldown ended: INTERIM, numbers can still move. |
+| **Timing** | An early read: the data or the calendar ends more than 2 days before the planned end, so the numbers can change. Data that ends 1–2 days early is normal (exports lag) and FOSIT reads it as final: do not ask for a new file. |
+| **History** | The sales file starts after the plan's history start, but at least 8 weeks remain, so FOSIT used what it has. Nothing to do. |
 | **Other changes** | A promotion, price change, stock-out or other channel differed across markets: the ad effect is mixed with it. Never mark this as passed unless the person confirmed it. |
 
 ## For national holdouts and vendor splits

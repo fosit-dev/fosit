@@ -73,9 +73,9 @@ test("reads the national-holdout example", async ({ page, baseURL }) => {
   await page.getByRole("button", { name: "Run the analysis" }).click();
   await expect(page.getByRole("heading", { name: "3 · Honesty checks" })).toBeVisible({ timeout: 300_000 });
   await page.getByLabel("No, nothing else changed differently").check();
-  const bottom = page.locator("section", { has: page.getByRole("heading", { name: /Bottom line/ }) });
-  await expect(bottom.getByText(/CTV campaign drove .* incremental orders in its \d+ markets/)).toBeVisible();
-  await expect(bottom.locator(".verdict").first()).toHaveText(/Positive lift/);
+  const answer = page.locator("section", { has: page.getByRole("heading", { name: "The answer" }) });
+  await expect(answer.getByText(/CTV campaign caused about [\d,]+ extra orders/)).toBeVisible();
+  await expect(answer.locator(".verdict").first()).toHaveText(/Positive lift/);
   await expect(page.getByText("Held-out markets (no ads)")).toBeVisible();
   await expect(page.getByText("Twin: what they'd have sold with the ads")).toBeVisible();
   await page.screenshot({ path: "test-results/h2-results.png", fullPage: true });
@@ -123,9 +123,9 @@ test("plans a vendor split with a no-CTV group, and reads the split example", as
   await page.getByRole("button", { name: "Run the analysis" }).click();
   await expect(page.getByRole("heading", { name: "3 · Honesty checks" })).toBeVisible({ timeout: 300_000 });
   await page.getByLabel("No, nothing else changed differently").check();
-  const bottom = page.locator("section", { has: page.getByRole("heading", { name: /Bottom line/ }) });
-  await expect(bottom.getByText(/Vendor A drove/)).toBeVisible();
-  await expect(bottom.getByText(/Vendor B drove/)).toBeVisible();
-  await expect(bottom.getByText(/Head-to-head:/)).toBeVisible();
+  const answer = page.locator("section", { has: page.getByRole("heading", { name: "The answer" }) });
+  await expect(answer.getByText(/Vendor A caused about/)).toBeVisible();
+  await expect(answer.getByText(/Vendor B did not cause enough extra sales to pay off/)).toBeVisible();
+  await expect(answer.getByText(/Vendor A did better than Vendor B/)).toBeVisible();
   await page.screenshot({ path: "test-results/s2-results.png", fullPage: true });
 });

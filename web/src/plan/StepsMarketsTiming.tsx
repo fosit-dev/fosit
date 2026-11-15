@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { InfoTip } from "../components/InfoTip";
 import { addDays, pretty, todayUtc, daysBetween } from "../lib/dates";
 import { pct, weeks } from "../lib/format";
+import { useLevel } from "../lib/level";
 import { DURATION_OPTIONS, crossoverSetup, isCrossover, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
@@ -97,10 +98,11 @@ export function StepMarkets({ s, set }: Props) {
 }
 
 export function StepTiming({ s, set }: Props) {
+  const { level } = useLevel();
   const historyWeeks = Math.floor((s.data?.summary.days ?? 0) / 7);
   const maxPre = Math.max(4, Math.min(26, historyWeeks));
   const pre = preDays(s);
-  const gauge = pre < 56 ? "err" : pre < 84 ? "warn" : "ok";
+  const gauge = pre < 56 ? "err" : "ok";   // 8 weeks is enough: never send people back for more data they don't need
   const leadDays = daysBetween(todayUtc(), s.testStart);
   const longest = Math.max(...s.durations, 0);
   return (
@@ -159,13 +161,12 @@ export function StepTiming({ s, set }: Props) {
         {isHoldout(s) && s.adsBeforeTest === "always_on" && <p className="small muted" style={{ margin: "0 0 6px" }}>This history should be a time the campaign ran everywhere the same way.</p>}
         <input id="pre" type="range" min={4} max={maxPre} step={1} value={Math.min(s.preWeeks, maxPre)} onChange={(e) => set({ preWeeks: Number(e.target.value) })} />
         <div className={`callout ${gauge}`} style={{ marginTop: 6 }}>
-          {gauge === "ok" && "✓ Enough history. More (up to 26 weeks) still sharpens the test."}
-          {gauge === "warn" && "Under 12 weeks: the test works, but its ranges will be wider. 12+ weeks is recommended."}
-          {gauge === "err" && "Under 8 weeks: the twins and power estimates are unreliable. Get more history if you can."}
+          {gauge === "ok" && "✓ Enough history. You do not need more."}
+          {gauge === "err" && "Under 8 weeks: FOSIT needs at least 8 weeks to build reliable twins. Add older sales if you have them."}
           <span className="small"> Your file has {historyWeeks} weeks. The plan will use the {Math.round(pre / 7)} weeks right before the test starts, so your Read data must include them.</span>
         </div>
       </div>
-      <details>
+      {level !== "brief" && <details open={level === "full"}>
         <summary>Advanced: statistics settings</summary>
         <div className="field">
           <label htmlFor="perm">How to judge chance<InfoTip term="permutations" /></label>
@@ -183,7 +184,7 @@ export function StepTiming({ s, set }: Props) {
           </select>
         </div>
         <p className="small muted">Decision level: 90% intervals (95% also reported). Random seed: <code>{s.seed}</code>, recorded in the plan so anyone can re-run the market search.</p>
-      </details>
+      </details>}
     </section>
   );
 }

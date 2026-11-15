@@ -130,7 +130,9 @@ Structure:
     "assignment": {...}, "vendor_targeting_confirmed": [...], "data_fingerprint": {...}
   },
   "hash": { "algorithm": "SHA-256", "canonicalization": "RFC8785", "value": "9f2c…" },
-  "appendix": { ... }         // ← NOT hashed. Diagnostics. Safe to delete before sending.
+  "appendix": { ... }         // ← NOT hashed. Diagnostics (design fit and shares; per cell the planned MDE, detectable
+                              //   iCPA, and the planning power curve `points` + `baseline_test_total` that the interactive
+                              //   plan's "Will the test see it?" slider reads). Safe to delete before sending.
 }
 ```
 

@@ -58,9 +58,19 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
   w.y += 26;
   w.para(latin(c.test_name + (c.advertiser_label ? ` - ${c.advertiser_label}` : "")), { size: 13 });
   w.para(`Ads ${pretty(c.dates.test_start)} - ${pretty(c.dates.test_end)}, measured through ${pretty(r.window.end)}. Read ${pretty(new Date().toISOString().slice(0, 10))} with FOSIT.`, { size: 9, color: [90, 95, 110] });
-  if (r.interim) w.para(`INTERIM: read before the planned end (${pretty(r.window.planned_end)}). Results can still move.`, { bold: true, color: [138, 83, 0] });
+  if (r.interim) w.para(`Early read: the test ends on ${pretty(r.window.planned_end)}. The numbers can change.`, { bold: true, color: [138, 83, 0] });
 
-  w.heading("Bottom line");
+  if (r.summary) {   // the answer first, in plain words (core/fosit/explain.py)
+    w.heading("The answer");
+    for (const a of r.summary.cells) {
+      w.para(latin(`[${VERDICT[a.verdict].label}] ${a.headline}`), { size: 11, bold: true });
+      w.para(latin(a.detail), { size: 10 });
+      if (a.action) w.para(latin(`What to do: ${a.action}`), { size: 10 });
+    }
+    if (r.summary.head_to_head) w.para(latin(`${r.summary.head_to_head.headline} ${r.summary.head_to_head.detail}`), { size: 10.5, bold: true });
+  }
+
+  w.heading(r.summary ? "In numbers" : "Bottom line");
   for (const cell of r.cells) w.para(latin(`[${VERDICT[cell.verdict].label}] ${cellSentence(cell, r, cur)}`), { size: 10.5 });
   for (const h of r.head_to_head.filter((x) => x.kpi === r.primary_kpi)) {
     const p = primaryH2H(h, r);
@@ -126,7 +136,7 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
       doc.text("NOT THE PRE-REGISTERED ANALYSIS", PAGE_W / 2, PAGE_H / 2, { align: "center", angle: 30 });
     }
     doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(110, 115, 130);
-    doc.text(`FOSIT report - plan ${shortCode(recomputed)}${r.interim ? " - INTERIM" : ""}${mismatch ? " - PLAN CHANGED" : ""} - page ${i} of ${pages}`, MARGIN, PAGE_H - 28);
+    doc.text(`FOSIT report - plan ${shortCode(recomputed)}${r.interim ? " - EARLY READ" : ""}${mismatch ? " - PLAN CHANGED" : ""} - page ${i} of ${pages}`, MARGIN, PAGE_H - 28);
     doc.text("Free Open-Source Incrementality Tool - Apache 2.0", PAGE_W - MARGIN, PAGE_H - 28, { align: "right" });
   }
   return doc.output("blob");

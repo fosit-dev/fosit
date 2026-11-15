@@ -8,6 +8,7 @@ import { downloadBlob, downloadText, slug } from "../lib/download";
 import { money, num } from "../lib/format";
 import { groupHash, sha256Hex, shortCode } from "../lib/hash";
 import { isHoldout, verifyPlan, type LockedPlan } from "../lib/plan";
+import { useLevel } from "../lib/level";
 import { callPython } from "../worker/client";
 import type { Progress } from "../worker/protocol";
 import { ReadResults } from "./ReadResults";
@@ -58,6 +59,7 @@ export function ReadModule({ initialPlan }: { initialPlan?: LockedPlan | null } 
   const [error, setError] = useState<string | null>(null);
   const [shocks, setShocks] = useState<Shocks>({ answer: "unanswered", note: "" });
   const [isExample, setIsExample] = useState(false);
+  const { level } = useLevel();
 
   useEffect(() => { if (plan) verify(plan, anchor).then(setV); }, [plan, anchor]);
 
@@ -251,8 +253,9 @@ export function ReadModule({ initialPlan }: { initialPlan?: LockedPlan | null } 
           {mismatch && <p className="watermark">NOT THE PRE-REGISTERED ANALYSIS</p>}
           <section className="card" aria-labelledby="checks">
             <h2 id="checks">3 · Honesty checks</h2>
+            {level === "brief" && <p>{checks.filter((ch) => ch.status === "pass").length} of {checks.length} checks passed.{checks.some((ch) => ch.status !== "pass") ? " Read these:" : ""}</p>}
             <div className="check-tiles">
-              {checks.map((ch) => (
+              {checks.filter((ch) => level !== "brief" || ch.status !== "pass").map((ch) => (
                 <div key={ch.id} className={`check-tile ${ch.status}`}>
                   <strong>{ch.status === "pass" ? "✓" : ch.status === "warn" ? "!" : "✕"} {ch.title}
                     {ch.id === "plan_match" && <InfoTip term="planMatch" />}{ch.id === "leakage" && <InfoTip term="leakage" />}{ch.id === "shocks" && <InfoTip term="shocks" />}</strong>
@@ -275,8 +278,13 @@ export function ReadModule({ initialPlan }: { initialPlan?: LockedPlan | null } 
               <ReadResults r={result} plan={plan} names={names} />
               <section className="card">
                 <h2>Export</h2>
+                <p className="small muted">The interactive report is one HTML file. It works offline and sends no data. Send it to people who did not run the test: it opens at the detail level you chose ({level}), and they can change it.</p>
                 <div className="row">
-                  <button className="btn-primary" onClick={async () => {
+                  <button className="btn-primary" data-testid="report-html" onClick={async () => {
+                    const html = await callPython<string>("results_html", { plan, result, names, checks, level, plan_ok: !mismatch });
+                    downloadText(html, `${slug(c!.test_name)}-report.html`, "text/html");
+                  }}>Download interactive report (HTML)</button>
+                  <button onClick={async () => {
                     const { reportPdf } = await import("../lib/report"); // jsPDF is large: load it only when needed
                     downloadBlob(reportPdf({ plan, result, checks, mismatch, recomputed: v!.recomputed, shocks, names }), `${slug(c!.test_name)}-report.pdf`);
                   }}>Download report (PDF)</button>

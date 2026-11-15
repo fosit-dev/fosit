@@ -75,4 +75,9 @@ export type ReadResult = {
   head_to_head: HeadToHead[];
   checks: Check[];
   csv: string;
+  summary?: Summary;
 };
+
+// core/fosit/explain.py::summary: the answer first, in Simplified Technical English
+export type Answer = { id: string; label: string; verdict: Verdict; headline: string; detail: string; action: string };
+export type Summary = { cells: Answer[]; head_to_head: { headline: string; detail: string; winner: string | null } | null; notes: string[] };
