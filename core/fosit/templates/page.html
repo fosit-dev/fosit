@@ -379,8 +379,8 @@ function anatomySteps() {
     return [
       { icon: "halves", t: "Two halves", x: `FOSIT split the country into two halves with almost the same sales.`, m: `Half A has ${g[0] ? g[0].n : "–"} markets${sh(g[0])}. Half B has ${g[1] ? g[1].n : "–"} markets. Each market gets the ads for half of the test.` },
       { icon: "swap", t: "Take turns", x: `Every ${weeks} weeks, the ads move to the other half.`, m: `A fair random draw set the order when the plan was locked. Each half has the ads in the same number of blocks.` },
-      { icon: "clock", t: "Skip the fade", x: `FOSIT skips the first ${D.washout_days || 3} days of each block.`, m: `Ads from the last block can still work on these days. FOSIT does not count them, so the halves do not mix.` },
-      { icon: "compare", t: "Compare halves", x: `In each block, FOSIT compares the half with ads to the half without ads.`, m: `Both halves have the same season, weather and news at the same time. So the gap shows what the ads did.` },
+      { icon: "clock", t: "Skip the fade", x: `FOSIT skips the first ${D.washout_days || 3} days of each block.`, m: `Ads from the last block still work on these days, so FOSIT does not count them. An effect that lasts longer than about ${D.fade_half_life || 3} days still reaches into the next block. Then the result is too low.` },
+      { icon: "compare", t: "Compare halves", x: `In each block, FOSIT compares the half with ads to the half without ads.`, m: `Both halves have the same season, weather and news at the same time. So the gap shows what the ads did, if the last block's ads stopped working.` },
       { icon: "scale", t: "Average and test", x: `FOSIT averages the gap over all blocks.`, m: `A test against every other fair schedule gives the range. Chance alone seldom gives a large gap in every block.` },
     ];
   }
@@ -714,7 +714,7 @@ function numbersCard() {
         el("td", {}, m.distinguishable == null ? "–" : m.distinguishable ? "Yes" : "No"))))))));
   const w = D.window || {};
   const method = D.design === "crossover"
-    ? `Two halves took turns with the ads on a random schedule. FOSIT compared log sales by half and by block, after each block's washout. An exact randomization test against every balanced schedule (${num((D.permutations || {}).n)}) gives the ranges.`
+    ? `Two halves took turns with the ads on a random schedule. FOSIT compared log sales by half and by block, after each block's washout. A randomization test against every balanced schedule (${num((D.permutations || {}).n)}) gives the ranges. The test is exact only for "no effect at all". The ranges assume that the ads' effect is gone after the washout (half-life about ${D.fade_half_life || 3} days); a longer effect moves them down.`
     : `Ridge-augmented synthetic control with market fixed effects. Conformal inference with ${(D.method.permutations || {}).kind === "iid" ? "random permutations" : "moving-block permutations"}${(D.method.placebo_calibration || {}).n ? `, checked against ${D.method.placebo_calibration.n} placebo cells` : ""}.`;
   return card("All numbers", "Every setting below was locked in the plan before the test.",
     ...sections, ...h2h,
@@ -815,6 +815,7 @@ function settingsCard() {
     ["Leakage warning", "above " + pct(t.leakage_warn_share, 0) + " of impressions outside the planned markets"],
     D.ads_before ? ["Campaign before the test", D.ads_before === "off" ? "Off everywhere" : "On everywhere"] : null,
     ["Markets left out", String(D.excluded || 0)],
+    D.fade_half_life ? ["Fade assumption", `the ads' effect fades by half within about ${D.fade_half_life} days (§14.3)`] : null,
     ["Random seed", String(m.seed)],
   ].filter(Boolean);
   return el("section", { class: "card f" }, el("h2", {}, "Locked settings"),

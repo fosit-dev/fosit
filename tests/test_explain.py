@@ -123,6 +123,39 @@ class Answers(unittest.TestCase):
         self.assertIn("costs more than your target", explain.summary(r, c)["cells"][0]["action"])
 
 
+class FadeAssumption(unittest.TestCase):
+    """Every crossover result says what it assumes about how fast the ads' effect fades (METHODOLOGY §14.3, §14.5)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.plan, sales, spend = example("crossover_small")
+        cls.r = read(cls.plan, sales, spend)
+
+    def test_results_state_the_assumption_in_short_sentences(self):
+        notes = " ".join(self.r["summary"]["notes"])
+        self.assertIn("fades by half within about 3 days", notes)
+        self.assertIn("about 20% too low", notes)
+        for s in sentences(notes):
+            self.assertLessEqual(len(s.split()), 25, s)
+
+    def test_pages_and_plans_carry_it(self):
+        self.assertIn('"fade_half_life":3.0', api.results_html(self.plan, self.r))
+        page = api.plan_html(self.plan)
+        self.assertIn("fades by half within about 3 days", page)
+        self.assertIn("Fade assumption", page)
+
+    def test_a_rule_out_asks_how_long_the_effect_lasts(self):
+        r = json.loads(json.dumps(self.r))
+        r["cells"][0]["verdict"] = "no_detectable_lift"
+        action = explain.summary(r, self.plan["commitment"])["cells"][0]["action"]
+        self.assertIn("find out how long its effect lasts", action)
+
+    def test_older_plans_and_other_designs(self):
+        self.assertEqual(explain.fade_days({"design": {"type": "crossover", "block_days": 28}}), 7.0)
+        self.assertIsNone(explain.fade_days({"design": {"type": "national_holdout"}}))
+        self.assertIsNone(explain.fade_note({}))
+
+
 class Pages(unittest.TestCase):
     def test_every_example_makes_a_plan_page(self):
         for name in ("two_vendor", "national_holdout", "vendor_split", "crossover_small"):

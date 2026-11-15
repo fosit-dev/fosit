@@ -1,6 +1,6 @@
 # Pre-registration: lock the plan before the money moves
 
-**Status:** v1 draft for review.
+**Status:** implemented in FOSIT 0.1.0 (pre-release); not yet independently reviewed ([REVIEW.md](REVIEW.md)).
 
 > **In plain English:** Before the campaign starts, everyone agrees in writing on which markets get which ads, what we'll measure, when, and how. FOSIT turns that agreement into a file plus a short fingerprint (a "hash"). Send the fingerprint to the advertiser and every vendor **before launch**. When results come in, FOSIT checks that the plan wasn't touched. If anyone moved a market or a date, it shows.
 

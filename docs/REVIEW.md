@@ -10,3 +10,16 @@
 4. Check the privacy claim yourself: open the app with your browser's network panel and run a plan. Only same-origin static files should load, and nothing should be sent.
 
 Open an issue with your findings. We'll link it here whether or not we agree.
+
+## Which version does a site run?
+
+Every build of the web app writes `fosit-core.json` next to the app. It holds the engine fingerprint (`sha256` of the Python core bundle that does every calculation) and the git `commit` the build came from (`dirty: true` if it had uncommitted changes). The app's footer shows both. To check a site yourself:
+
+1. Open `<site>/fosit-app/fosit-core.json` (or read the footer).
+2. Check out that commit and run `python web/scripts/build_core_bundle.py`. The bundle is built reproducibly, so it prints the same `sha256` if the site runs that code.
+
+As of 2026-11-15, the production site (adte.com) runs commit `d2c6091` (engine `1b8821fc…`), which is older than this repository's main branch. It was built before `fosit-core.json` recorded the commit, so it was matched by rebuilding. The staging site runs main.
+
+## Open questions for reviewers
+
+- The crossover (METHODOLOGY §14) assumes that the ads' effect fades within days. Its estimate is low even when that is true, and its range can miss the truth when it isn't (§14.5). Should the read correct for the locked half-life, report a sensitivity range, or refuse effects that last longer?

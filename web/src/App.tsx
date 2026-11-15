@@ -3,7 +3,8 @@ import { Why } from "./Why";
 import { PlanWizard } from "./plan/PlanWizard";
 import { ReadModule } from "./read/ReadModule";
 import { InfoTip } from "./components/InfoTip";
-import { CONSULT_SHORT, CONTACT_LABEL, CONTACT_URL, DISCLOSURE, REPO_URL, REVIEW_URL, docUrl } from "./config";
+import { CONSULT_SHORT, CONTACT_LABEL, CONTACT_URL, DISCLOSURE, REPO_URL, REVIEW_LABEL, REVIEW_URL, docUrl } from "./config";
+import { VersionNote } from "./components/VersionNote";
 import { initEngine } from "./worker/client";
 import { INITIAL_THEME, OPEN_READ, scrollToTop } from "./embed";
 import { ConsultButton } from "./components/Consult";
@@ -95,10 +96,11 @@ export function App() {
         <div className="footer-inner">
           <a href={REPO_URL} target="_blank" rel="noreferrer">GitHub repository</a>
           <a href={docUrl("METHODOLOGY.md")} target="_blank" rel="noreferrer">METHODOLOGY.md</a>
-          <a href={REVIEW_URL} target="_blank" rel="noreferrer">Independent review</a>
+          <a href={REVIEW_URL} target="_blank" rel="noreferrer">{REVIEW_LABEL}</a>
           <span className="muted">Apache 2.0</span>
           {CONTACT_URL && <a href={CONTACT_URL} target="_blank" rel="noreferrer">{CONTACT_LABEL}</a>}
           {DISCLOSURE && <p className="disclosure">{DISCLOSURE}</p>}
+          <VersionNote />
         </div>
       </footer>
     </LevelProvider>

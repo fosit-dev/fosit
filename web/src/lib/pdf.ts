@@ -2,7 +2,7 @@
 // One document for the advertiser and every vendor: what was agreed, and how to check it later.
 
 import { jsPDF } from "jspdf";
-import { isCrossoverPlan, isHoldout, scheduleRows, type LockedPlan } from "./plan";
+import { fadeHalfLife, fadeSentence, isCrossoverPlan, isHoldout, scheduleRows, type LockedPlan } from "./plan";
 import { groupHash, shortCode } from "./hash";
 import { pretty, daysBetween } from "./dates";
 import { money, pct, weeks } from "./format";
@@ -156,7 +156,8 @@ export function planPdf(plan: LockedPlan, names: Names, includeAppendix: boolean
     ? `Halves take turns (METHODOLOGY §14). For every half and block, mean daily sales after the first ${c.design?.type === "crossover" ? c.design.washout_days : 0} days ` +
       `(while the previous block's ads fade) are compared: the gap between a half with the ads and the same half without them, ` +
       `net of national swings that hit both halves at once, is the ads' lift. The result is tested against every other balanced ` +
-      `schedule the coin could have produced (an exact randomization test), and the range is every lift that test doesn't rule out. ` +
+      `schedule the coin could have produced (a randomization test, exact for "no effect at all"), and the range is every lift that test doesn't rule out. ` +
+      `${fadeSentence(fadeHalfLife(c) ?? 3)} ` +
       `Decisions use ${pct(1 - m.alpha, 0)} ranges (95% also reported).`
     : holdout
     ? `National holdout (METHODOLOGY §13). The held-out markets are compared with a statistical twin built from the markets with ads${c.cells.length > 1 ? " (one twin per vendor, from that vendor's markets only)" : ""}, ` +

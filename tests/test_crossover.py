@@ -120,5 +120,46 @@ class Example(unittest.TestCase):
         assert api.load_history(self.sales, "state")["ok"]
 
 
+class CarryoverLimits(unittest.TestCase):
+    """METHODOLOGY §14.3 and §14.5: what the design does when the ads' effect lingers. The numbers are pinned so the code and
+    the documentation can't drift apart: a change that removes the bias must update both."""
+
+    @staticmethod
+    def shortfall(L, W, B, h, e=0.10):
+        """Mean (estimate / all extra orders - 1) with no noise, over every balanced schedule."""
+        k = 0.5 ** (1 / h)
+        out = []
+        for a in crossover.schedules(B, seed=0):
+            on = np.repeat(a, L)
+            sa, sb = crossover.adstock(on, h), crossover.adstock(1 - on, h)
+            ya, yb = 100 * (1 + e * sa), 100 * (1 + e * sb)
+            tau = crossover.estimate_tau(crossover.log_ratio(crossover.block_means(ya, yb, 0, L, B, W)), a)
+            est = (1 - math.exp(-tau)) * np.where(on == 1, ya, yb).sum()
+            truth = e * 100 * (sa.sum() + sb.sum() + (sa[-1] + sb[-1]) * k / (1 - k))   # including the fade after the test
+            out.append(est / truth - 1)
+        return float(np.mean(out))
+
+    def test_design_bias_matches_the_methodology_table(self):
+        documented = {(14, 3, 8, 3): -0.186, (14, 3, 8, 7): -0.484, (14, 3, 8, 14): -0.718,
+                      (28, 5, 6, 3): -0.066, (28, 5, 6, 7): -0.270, (28, 5, 6, 14): -0.527}
+        for (L, W, B, h), value in documented.items():
+            self.assertAlmostEqual(self.shortfall(L, W, B, h), value, delta=0.005, msg=f"{B} blocks of {L} days, half-life {h}")
+
+    def test_no_effect_stays_honest_and_the_range_agrees_with_the_test(self):
+        """The test of 'no effect at all' is exact; the reported range is the set the test doesn't reject (§14.3)."""
+        rng = np.random.default_rng(11)
+        scheds = crossover.schedules(8)
+        positive = disagree = 0
+        n = 300
+        for _ in range(n):
+            d = rng.normal(0, 0.05, 8)
+            a_on = scheds[rng.integers(len(scheds))]
+            lo, hi = crossover.interval(d, a_on, scheds, 0.9)
+            positive += lo > 0
+            disagree += (lo > 0 or hi < 0) != (crossover.p_value(d, a_on, 0.0, scheds) <= 0.1)
+        self.assertLess(positive / n, 0.09)
+        self.assertLessEqual(disagree, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

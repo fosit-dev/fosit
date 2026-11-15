@@ -6,7 +6,7 @@ FOSIT helps advertisers plan and read **geo-lift experiments** for CTV and other
 
 🔒 **Your data never leaves this browser.** All computation runs on your machine (Python via Pyodide, in a Web Worker). Nothing is uploaded, and a CI test fails if the app ever sends user data over the network.
 
-> **Status:** pre-release. Plan and Read are both built and tested, end to end, on synthetic data with a known truth ([`/examples`](examples)). Validated against Meta's GeoLift in CI: identical estimates and p-values when run with the same settings (METHODOLOGY §12). Awaiting an independent review.
+> **Status:** pre-release (0.1.0), **not yet independently reviewed** ([review status](docs/REVIEW.md)). Plan and Read are implemented for four designs (geo cells, national holdout, vendor split, halves taking turns) and tested end to end on synthetic data with a known truth ([`/examples`](examples), `tests/`, `validation/`). The geo-cells estimator is cross-checked against Meta's GeoLift in CI: the same estimates and p-values with matched settings (METHODOLOGY §12). The other designs rest on FOSIT's own simulations. Known limitations: [METHODOLOGY §15](docs/METHODOLOGY.md#15-known-limitations).
 
 ## Why this exists
 
@@ -54,7 +54,7 @@ Attribution reports often work like that flyer guy. Meanwhile CTV has the opposi
 
 ## Roadmap (beyond v1)
 
-Extension points are kept in `/core` (`design.py`, `estimators/`, `inference/`).
+New designs follow the existing ones in `core/fosit/`: planning in `selection.py`, `power.py` and `crossover.py`; reading in `read.py`, `estimate.py`, `holdout.py` and `crossover.py`; one entry point for the app in `api.py`.
 
 - **Rotation designs:** swap markets between cells in a second wave so head-to-head comparisons separate vendor from market
 - Household-level holdouts (where a vendor supports them)

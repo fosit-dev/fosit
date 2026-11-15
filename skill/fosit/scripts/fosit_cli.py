@@ -248,7 +248,13 @@ def _design_cfg(a, summary: dict) -> dict:
     durations = sorted({int(w) * 7 for w in a.weeks.split(",")})
     block = 28 if a.lingering == "long" else 14
     if a.design == "crossover":   # §14: block length and test lengths follow how long the ads keep working
-        durations = [block * 6, block * 8] if block == 28 else [block * 8, block * 12]
+        offered = [block * 6, block * 8] if block == 28 else [block * 8, block * 12]
+        # Replaying a test on past sales needs at least as much history as the test (§14.4): plan only what fits.
+        durations = [d for d in offered if d <= summary["days"]] or offered[:1]
+        for d in offered:
+            if d not in durations:
+                print(f"Note: a {d // 7}-week test needs at least {d // 7} weeks of sales history to plan; the file has "
+                      f"{summary['days'] // 7}. Planning {', '.join(f'{x // 7} weeks' for x in durations)} only.", file=sys.stderr)
     excluded = {}
     for e in a.exclude or []:
         gid, _, reason = e.partition(":")
@@ -627,6 +633,9 @@ def cmd_read(a) -> None:
         lines += [f"**{VERDICT[ans['verdict']]}. {ans['headline']}** {ans['detail']}", f"- What to do: {ans['action']}", ""]
     if r["summary"].get("head_to_head"):
         lines += [f"**{r['summary']['head_to_head']['headline']}** {r['summary']['head_to_head']['detail']}", ""]
+    for note in r["summary"].get("notes", []):
+        if not note.startswith("This is an early read"):      # the early-read line is already at the top
+            lines += [f"_{note}_", ""]
     for hh in r["head_to_head"]:
         if hh["kpi"] != r["primary_kpi"]:
             continue
@@ -661,10 +670,17 @@ def cmd_read(a) -> None:
             lines.append(f"| p-value ({kpi}) | {m['p_value']:.3f} | pre-period fit error {pct(m['pre_fit_nrmse'])} | "
                          f"placebo check: {pl.get('n', 0)} fake cells{', range widened' if (pl.get('widened') or {}).get('0.9') else ''} |")
         lines.append("")
+    if r.get("design") == "crossover":
+        from fosit import explain
+        how = ("Two halves took turns with the ads on the locked random schedule; log sales by half and block after each "
+               "washout; a randomization test against every balanced schedule, exact for \"no effect at all\". "
+               + explain.fade_note(c) + " ")
+    else:
+        how = ("Ridge-augmented synthetic control with conformal inference"
+               + (" and placebo calibration" if c["method"].get("placebo_calibration") else "") + ". ")
     lines += ["## How this was computed", "",
-              f"Ridge-augmented synthetic control with conformal inference and placebo calibration, every setting fixed in the plan "
-              f"(fingerprint `{h}`), engine fingerprint `{c['tool']['core_sha256'][:16]}…`. Method: "
-              f"{FOSIT_REPO}/blob/main/docs/METHODOLOGY.md. Window {r['window']['start']} to {r['window']['end']} ({r['window']['days']} days)."]
+              how + f"Every setting was fixed in the plan (fingerprint `{h}`), engine fingerprint `{c['tool']['core_sha256'][:16]}…`. "
+              f"Method: {FOSIT_REPO}/blob/main/docs/METHODOLOGY.md. Window {r['window']['start']} to {r['window']['end']} ({r['window']['days']} days)."]
     write(out / "report.md", "\n".join(lines) + "\n")
     r["all_checks"] = [{"status": s_.lower(), "title": t, "detail": d_} for s_, t, d_ in checks]
     write(out / "results.json", json.dumps(r, indent=1))
@@ -721,7 +737,9 @@ def main() -> None:
     s.add_argument("--design", choices=["cells", "holdout", "split", "crossover"], default="cells",
                    help="crossover: halves take turns, for small advertisers (§14)")
     s.add_argument("--lingering", choices=["short", "long"], default="short",
-                   help="crossover: do the ads keep working a few days (2-week blocks) or a week or more (4-week blocks)?")
+                   help="crossover: do the ads keep working a few days (2-week blocks) or a week or more (4-week blocks)? "
+                        "If the effect lasts longer than the choice, the result is too low and its range can miss the truth "
+                        "(METHODOLOGY §14.5). If unsure, choose long: the test takes longer, but the error is smaller.")
     s.add_argument("--cells", type=int, help="number of cells (cells: 1-6, default 2; split: vendors 2-4)")
     s.add_argument("--labels", help="comma-separated cell names, e.g. 'Vendor A,Vendor B'")
     s.add_argument("--budget", type=float, required=True, help="total budget during the test")

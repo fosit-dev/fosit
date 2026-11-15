@@ -1,6 +1,6 @@
 # UX flow and copy (v1)
 
-**Status:** both modules are built in `/web`: Plan (screens 0 and P1–P7) and Read (R1–R6). Copy is editable; deviations from this draft are marked *(Built: …)*.
+**Status:** both modules are built in `/web`: Plan (screens 0 and P1–P7) and Read (R1–R6). FOSIT 0.1.0 is pre-release and not yet independently reviewed. Copy is editable; deviations from this draft are marked *(Built: …)*.
 
 ## Design principles
 
@@ -27,7 +27,7 @@ Plan, lock and read also produce one self-contained HTML file (`core/fosit/templ
 
 - **Top banner:** 🔒 **Your data never leaves this browser.** ⓘ → "FOSIT runs entirely on your computer. Your files are read by your browser, and the math runs in your browser. Nothing is uploaded. Our automated tests fail if the app ever sends your data anywhere." · [How we test this →] (links to the CI privacy test in the repo)
 - **Stepper:** `Why → Plan → Lock & share → (run your campaign) → Read`
-- **Footer:** GitHub repo · METHODOLOGY.md · Independent review (placeholder page) · Apache 2.0 · *optional, configurable:* "Questions? Contact us"
+- **Footer:** GitHub repo · METHODOLOGY.md · Review status (none yet), linking docs/REVIEW.md · Apache 2.0 · *optional, configurable:* "Questions? Contact us" · a version line: the FOSIT version, "pre-release, not yet independently reviewed", the engine fingerprint and the git commit the site was built from (from `fosit-core.json`)
 - **Disclosure line (footer):** "FOSIT was built by ADTE, a CTV platform. That's why it never knows which vendor is which, and why every line of it is public." *(Configurable. Shown when embedded on adte.com.)*
 
 ---

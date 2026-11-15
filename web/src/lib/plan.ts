@@ -109,6 +109,18 @@ export type Design =
   | { type: "crossover"; block_days: number; washout_days: number; schedule: string; planning_half_life: number };
 
 export const isHoldout = (c: Pick<Commitment, "design">) => c.design?.type === "national_holdout";
+
+/** A crossover plan's assumed half-life of the ads' effect, in days (METHODOLOGY §14.3); null for other designs.
+ * Same rule as core/fosit/explain.py::fade_days. Plans locked before the field existed get the app's value for their blocks. */
+export function fadeHalfLife(c: Pick<Commitment, "design">): number | null {
+  const d = c.design;
+  if (d?.type !== "crossover") return null;
+  return d.planning_half_life ?? (d.block_days >= 28 ? 7 : 3);
+}
+
+/** One sentence on what that assumption means for the result. */
+export const fadeSentence = (h: number) =>
+  `The test assumes that the ads' effect fades by half within about ${h} days after the ads stop. A longer effect makes the result too low, and the range can miss the true number.`;
 export const isCrossoverPlan = (c: Pick<Commitment, "design">) => c.design?.type === "crossover";
 
 /** The crossover schedule as dated blocks, for the lock screen, the email and the PDF. */

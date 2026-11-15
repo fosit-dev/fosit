@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +25,19 @@ def files():
             if name.endswith((".py", ".csv", ".json", ".md", ".html")):
                 path = os.path.join(root, name)
                 yield path, os.path.relpath(path, CORE).replace(os.sep, "/")
+
+
+def git_commit():
+    """The repository commit this bundle was built from, so a deployed site can say which version it runs.
+    'dirty' is true when the core or the web app had uncommitted changes at build time. None outside a git checkout."""
+    root = os.path.normpath(os.path.join(HERE, "..", ".."))
+    try:
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", "core", "web/src"], cwd=root, capture_output=True,
+                               text=True, check=True).stdout.strip() != ""
+        return {"commit": sha, "dirty": dirty}
+    except (OSError, subprocess.CalledProcessError):
+        return {"commit": None, "dirty": None}
 
 
 def main():
@@ -46,10 +60,10 @@ def main():
     with open(os.path.join(CORE, "fosit", "geo_data", "SOURCES.json")) as f:
         geo = json.load(f)["outputs"]
     manifest = {"version": namespace["__version__"], "sha256": digest, "files": listed,
-                "geo_mapping_sha256": geo["zcta_to_geo.csv"]["sha256"]}
+                "geo_mapping_sha256": geo["zcta_to_geo.csv"]["sha256"], **git_commit()}
     with open(os.path.join(OUT, "fosit-core.json"), "w") as f:
         json.dump(manifest, f, indent=2)
-    print(f"fosit-core.zip {digest} ({len(listed)} files)")
+    print(f"fosit-core.zip {digest} ({len(listed)} files), commit {manifest['commit'] or 'unknown'}{' + uncommitted changes' if manifest['dirty'] else ''}")
 
     # The Read module's "Try it with the example" buttons load these from the app's own origin.
     for example in ("two_vendor", "national_holdout", "vendor_split", "crossover_small"):

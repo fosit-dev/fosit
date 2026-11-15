@@ -1,6 +1,6 @@
 # FOSIT Methodology
 
-**Status:** v1 draft for review (not yet implemented). Every number FOSIT shows links back to a section of this file.
+**Status:** describes the code in this repository (FOSIT 0.1.0, pre-release). Implemented and tested on synthetic data with a known truth; **not yet independently reviewed** ([REVIEW.md](REVIEW.md)). Every number FOSIT shows links back to a section of this file, and §15 lists the known limitations.
 
 **Who this is for:** each section opens with a short **In plain English** summary for marketers and finance teams, followed by the exact method for analysts and reviewers. You never need the second part to run a test. It's there so anyone can check our work.
 
@@ -541,7 +541,7 @@ Before placebo calibration, the same study gave 83% / 7.5% / 95% / 87.5% / −0.
 
 ### 14.1 When to use it
 
-For advertisers at a few hundred orders a day or less, where geo cells or a holdout can't detect a useful lift (§9.3: below about 100 orders a day no geo design passes at all). It measures **one campaign** (one vendor, or several together). It takes longer than a geo test (16 weeks by default), and it assumes the ads' effect fades within days to a couple of weeks of them stopping.
+For advertisers at a few hundred orders a day or less, where geo cells or a holdout can't detect a useful lift (§9.3: below about 100 orders a day no geo design passes at all). It measures **one campaign** (one vendor, or several together). It takes longer than a geo test (16 weeks by default). **It assumes that the ads' effect fades within days of the ads stopping.** The planner asks how long the advertising keeps working ("a few days": 2-week blocks; "a week or more": 4-week blocks), locks the answer as a half-life (`design.planning_half_life`, 3 or 7 days), and every result states it. If the effect lasts longer than assumed, the estimate is too low and its range can miss the truth (§14.5).
 
 **Rejected alternatives**, with evidence from simulations on synthetic state data:
 - **National on/off weeks** (the whole country on, then off, at random): honest, but national week-to-week swings drown the effect. It caught a 20% lift only 58% of the time even at 400 orders a day, and sales volume barely helped.
@@ -551,7 +551,7 @@ For advertisers at a few hundred orders a day or less, where geo cells or a hold
 ### 14.2 Design
 
 - **Halves.** Every market not excluded (and that vendors can target) goes to half A or half B. Markets are dealt largest first to whichever half is smaller so far, by the larger of its share of sales and of population; near-ties are random (as in §13.7). Balance gates (§9.3, ≤ 10%) apply between the halves on share of sales, trend, sales per person and revenue per order. Of the balanced splits, the planner shows them **in balance order, not by how well the halves tracked each other in the past**: picking the luckiest history made the planned sensitivity overpromise (detection fell from a planned 80% to 62% in testing).
-- **Blocks.** 2-week blocks for ads whose effect fades within days, 4-week blocks for effects that last a week or more. Test lengths: 8 or 12 blocks of 2 weeks, 6 or 8 blocks of 4 weeks (an even number, at least 6: with 4, chance can't be ruled out at α = 0.10).
+- **Blocks.** 2-week blocks for ads whose effect fades within days, 4-week blocks for effects that last a week or more. When the advertiser is not sure, 4-week blocks are the safer choice: about as sensitive, much less biased, 8 weeks longer (§14.5). Test lengths: 8 or 12 blocks of 2 weeks, 6 or 8 blocks of 4 weeks (an even number, at least 6: with 4, chance can't be ruled out at α = 0.10).
 - **Washout.** The first 3 days of a 2-week block (5 of a 4-week one) are left out of the comparison, while the previous block's ads fade.
 - **Schedule.** Drawn at random when the plan is locked, each half on in exactly half the blocks (a balanced sequence), and fingerprinted with the plan (`design.schedule`, A = the cell's markets, B = the control list). Spend is not cut: the whole budget runs in whichever half is on.
 
@@ -561,29 +561,71 @@ For half $h$ and block $b$, $y_{hb}$ is the log of mean daily sales over the blo
 
 $$\hat\tau = \tfrac12\left(\overline{d}_{A\text{ on}} - \overline{d}_{B\text{ on}}\right), \qquad d_b = y_{Ab} - y_{Bb},$$
 
-which removes each half's level and every block's national shock. **Inference is exact** (Fisher; Bojinov, Simchi-Levi & Zhao 2023): for the sharp null "the ads change log sales by $\tau_0$", remove $\tau_0$ where the ads ran and recompute $\hat\tau$ under every other balanced schedule the randomization could have drawn (70 for 8 blocks; a seeded sample above 5,000). The p-value is the share at least as extreme as the observed; the range is every $\tau_0$ not rejected (bisection). No model of how sales move over time is needed, so the planning-time fit gates and placebo calibration (§5.6) don't apply: a noisy pair of halves makes the range wider, not wrong.
+which removes each half's level and every block's national shock. **Inference** (Fisher; Bojinov, Simchi-Levi & Zhao 2023): for the sharp null "the ads change log sales by $\tau_0$ in the blocks where they run, and not at all in the others", remove $\tau_0$ where the ads ran and recompute $\hat\tau$ under every other balanced schedule the randomization could have drawn (70 for 8 blocks; a seeded sample above 5,000). The p-value is the share at least as extreme as the observed; the range is every $\tau_0$ not rejected (bisection). **The test of "no effect at all" ($\tau_0 = 0$, in every block) is exact whatever the ads' carryover**, so false positives are controlled (§14.5). The range for $\tau_0 \neq 0$ is exact only if the effect is gone by the end of each washout: when it lingers, the half without the ads still carries part of it, and the range moves down (§14.5). No model of how sales move over time is needed, so the planning-time fit gates and placebo calibration (§5.6) don't apply: a noisy pair of halves makes the range wider.
 
-**Business metrics.** For ads whose effect builds up and fades geometrically, the total extra sales over time equal the steady lift times the ads-on days, so incremental $= (1 - e^{-\hat\tau}) \times$ sales in the ads-on half-blocks (all days). $\hat\tau$ is measured after the washout, where the effect is close to, but below, its steady level, so **the estimate errs low** (about 15% with a 3-day half-life). iCPA uses actual spend (§6).
+**Business metrics.** For ads whose effect builds up and fades geometrically, the total extra sales over time equal the steady lift times the ads-on days, so incremental $= (1 - e^{-\hat\tau}) \times$ sales in the ads-on half-blocks (all days), **if $\hat\tau$ is the steady lift**. It is not quite: after the washout the effect is still building in the half with the ads and still fading in the half without them, so $\hat\tau$ is pulled toward zero, and **the estimate is too low even when the assumed half-life is right**: with no noise at all, 19% low for 2-week blocks at a 3-day half-life and 27% low for 4-week blocks at 7 days (table in §14.5). The estimate counts all extra orders the test's ads cause, including those after the test while the last block's ads fade (there is no cooldown). iCPA uses actual spend (§6), so it is too high by the same factor. The read states the locked half-life with every result; it does not use it to correct the estimate.
 
 **Checks** (§11, all non-blocking because the test is exact): the halves' block-to-block noise before the test vs. 1.5× the planned value; impressions delivered to the half that should have been dark ("schedule followed"); spend vs. budget; whole blocks only in an interim read.
 
 ### 14.4 Planning the sensitivity
 
-The planner replays the test on past stretches of the history (up to 10, stepped by a week), each with 30 random schedules, adding a known lift to whichever half has the ads. The lift builds up and fades with a planning half-life (3 days for 2-week blocks, 7 days for 4-week blocks), so the replay measures what the washed-out days would really show. Because the replay is essentially one stretch of history, its sensitivity estimate is noisy and, on average, flattering; the planner therefore aims for 90% detection in the replay so real tests reach the 80% target (`replay_margin`).
+The planner replays the test on past stretches of the history (up to 10, stepped by a week), each with 30 random schedules, adding a known lift to whichever half has the ads. The lift builds up and fades with a planning half-life (3 days for 2-week blocks, 7 days for 4-week blocks, locked as `design.planning_half_life`), so the replay measures what the washed-out days would really show. If the real effect fades more slowly, the real test is less sensitive than planned (§14.5). A test length is offered only if the history is at least as long, because the replay needs a stretch of history that long. Because the replay is essentially one stretch of history, its sensitivity estimate is noisy and, on average, flattering; the planner therefore aims for 90% detection in the replay so real tests reach the 80% target (`replay_margin`).
 
 ### 14.5 Evidence
 
-`validation/crossover_study.py` (200 synthetic state panels per row: 51 states, 26 weeks of history, 8 blocks of 2 weeks, effects fading with a 3-day half-life; each panel read with no effect and with lift = the planned MDE):
+`validation/crossover_study.py`: 200 synthetic state panels per row (51 states, 26 weeks of history). Each panel is planned as the app plans it (with the app's planning half-life for the block length), gets a schedule from its own random stream, and is read twice: with no effect, and with lift = the planned MDE, building up and fading with a **true** half-life that can differ from the planned one. The truth is **all extra orders the test's ads cause**, including the fade after the test, which is what the estimate claims (§14.3). Python 3.13, numpy 2.5, pandas 3.1; about 1 s per panel.
 
-| Orders a day | Covers zero, no effect (90% nominal) | "Positive", no effect | Covers truth, lift = MDE | "Positive", lift = MDE (80% planned) | Mean bias | Median planned MDE (16 weeks) |
-|---|---|---|---|---|---|---|
-| 50 | 91.5% | 4.5% | 87.5% | 85.0% | −14.3% | 15.6% |
-| 100 | 91.5% | 4.0% | 85.5% | 88.0% | −15.6% | 10.6% |
-| 400 | 94.0% | 3.0% | 91.0% | 86.5% | −15.9% | 7.5% |
+**When the assumed fade is right** (2-week blocks × 8, true and planned half-life 3 days):
 
-For comparison, geo designs at 400 orders a day planned about 24–28%, and none could be planned at 50.
+| Orders a day | No effect: range covers zero (90% nominal) | No effect: "positive" (5% expected) | Lift = MDE: "positive" (80% planned) | Range covers the truth (90% nominal) | Range wholly below the truth (5% nominal) | Mean bias | Median planned MDE (16 weeks) |
+|---|---|---|---|---|---|---|---|
+| 50 | 89.0% | 4.0% | 83.0% | 76.0% | 22.5% | −21.2% | 15.6% |
+| 100 | 94.0% | 2.5% | 85.0% | 79.0% | 19.5% | −19.3% | 10.6% |
+| 400 | 93.5% | 4.5% | 88.5% | 85.0% | 14.5% | −16.3% | 7.5% |
 
-**When effects linger.** With a 7-day half-life and 2-week blocks, false positives stay at 4%, but the estimate falls 44% short and the range holds the truth only 58% of the time: ads still working in the "off" half shrink the contrast. With 4-week blocks (6 blocks, 7-day half-life): bias −21%, truth covered 84%, false positives 9.2%. Hence the planner's question about how long the advertising keeps working. Effects lasting much longer than a couple of weeks (pure brand building) are out of reach of any design this short.
+For comparison, geo designs at 400 orders a day planned about 24–28%, and none could be planned at 50. The range misses the truth more often than 10% because the estimate is too low (§14.3), not because the test is over-confident about "no effect": the range lies wholly **above** the truth only 0.5–1.5% of the time.
+
+**When the ads keep working longer than assumed** (100 orders a day unless stated):
+
+| Blocks (planned half-life) | True half-life | Lift = MDE: "positive" | Range covers the truth | Range wholly below the truth | Wrongly "no detectable lift" | Mean bias | Share of the effect after the test |
+|---|---|---|---|---|---|---|---|
+| 2 weeks × 8 (3 days) | 3 days | 85.0% | 79.0% | 19.5% | 4.0% | −19.3% | 3.5% |
+| 2 weeks × 8 (3 days) | 7 days | 42.0% | 50.5% | 49.5% | 36.0% | −49.5% | 8.7% |
+| 2 weeks × 8 (3 days), 400 a day | 7 days | 47.5% | 55.5% | 44.0% | 31.0% | −47.0% | 8.7% |
+| 2 weeks × 8 (3 days) | 14 days | 20.0% | 25.0% | 75.0% | 65.0% | −72.9% | 17.8% |
+| 2 weeks × 12 (3 days) | 3 days | 81.5% | 85.0% | 15.0% | 9.5% | −21.1% | 2.3% |
+| 2 weeks × 12 (3 days) | 7 days | 52.5% | 48.5% | 51.5% | 33.5% | −49.6% | 5.8% |
+| 4 weeks × 6 (7 days) | 3 days | 94.0% | 88.5% | 8.5% | 2.0% | −6.5% | 2.3% |
+| 4 weeks × 6 (7 days) | 7 days | 78.5% | 70.5% | 29.5% | 10.0% | −27.4% | 5.8% |
+| 4 weeks × 6 (7 days) | 14 days | 48.0% | 41.5% | 58.5% | 34.5% | −53.1% | 11.8% |
+
+With no effect, every row stays honest: "positive" 2.5–4.5%, range covers zero 89–94%. The test of "no effect" is exact whatever the carryover (§14.3).
+
+**The same bias with no noise at all** (constant sales, a 10% lift, averaged over every balanced schedule, against all extra orders; `estimate_tau` and `adstock` from `core/fosit/crossover.py`):
+
+| True half-life | 1 day | 3 days | 5 days | 7 days | 10 days | 14 days | 21 days |
+|---|---|---|---|---|---|---|---|
+| 2-week blocks × 8, washout 3 | −1.6% | −18.6% | −35.7% | −48.4% | −61.3% | −71.8% | −81.9% |
+| 4-week blocks × 6, washout 5 | −0.4% | −6.6% | −16.8% | −27.0% | −39.9% | −52.7% | −67.0% |
+
+More blocks change these by under 2 points (12 blocks of 2 weeks: −17.9% at 3 days, −46.8% at 7); longer blocks change them a lot. So the bias is a property of the design, not chance, and a longer or larger test does not remove it: it narrows the range around a number that is still too low.
+
+**What this means for a decision:**
+- "At least X extra orders" (the low end of the range) held in every row: the range lay wholly above the truth at most 3% of the time.
+- The high end is not reliable: the range lay wholly below the truth 15–23% of the time even when the assumed fade was right (5% nominal), and 44–75% of the time when the effect lasted longer. So "no detectable lift" and "does not pay off" need care, and every crossover result says so (§14.3).
+- When the advertiser is not sure, 4-week blocks cost 8 more weeks for nearly the same sensitivity (median MDE 11.2% vs 10.6% at 100 orders a day) and much less bias.
+- Effects that last two weeks or more (pure brand building) are out of reach of any design this short.
+
+**Corrections to earlier versions of this section.** The 4-week row printed before (bias −21%, truth covered 84%, false positives 9.2%) could not be reproduced: the study of that time gives −20.5%, 85.5% and 9.0% "positive" with no effect. That 9% came from the study drawing the schedule from the planner's random stream; the app draws it with a cryptographic coin, and with an independent stream the rate is 4.5%. The study now also passes the app's planning half-life (it planned 4-week tests with 3 days), reports panels it can't size instead of assuming a 30% lift, and counts the extra orders after the test. Against the test window only, its old truth, the 2-week rows above read −13% to −18% bias and 79–88% coverage.
+
+Commands (each prints its settings, versions and run time):
+
+```bash
+python validation/crossover_study.py --orders-per-day 50 --seeds 200     # and 100, 400
+python validation/crossover_study.py --orders-per-day 100 --half-life 7 --seeds 200     # and --half-life 14; 400 a day
+python validation/crossover_study.py --orders-per-day 100 --blocks 12 --seeds 200     # and --half-life 7
+python validation/crossover_study.py --orders-per-day 100 --block-days 28 --blocks 6 --half-life 3 --seeds 200     # and 7, 14
+```
 
 The shipped example `examples/crossover_small` (about 100 orders a day, lift 1.5× the planned MDE) reads as positive: 884 extra orders estimated vs. 1,064 true (90% range 481–1,261).
 
@@ -600,6 +642,8 @@ The shipped example `examples/crossover_small` (about 100 orders a day, lift 1.5
 - **Holidays and promotions inside the test window:** fine if they hit treatment and control alike, which the external-shocks check asks about.
 - **Out of scope for v1:** household-level holdouts, time-series-only reads without controls (for example, a past campaign that ran nationwide with no market held out), MMM (see README roadmap).
 - **National holdout:** the effect is measured in the holdout and applied to the campaign markets, which assumes the ads would have worked the same way there (§13.4).
+- **Crossover carryover (§14.3, §14.5).** Halves taking turns assumes that the ads' effect fades within days. Even then, its estimate of extra orders is about 20% low (2-week blocks); if the effect lasts longer than assumed, the estimate falls further, the range can miss the truth, and "no detectable lift" can be wrong. The low end of the range held in simulation. The read states the assumed half-life with every result but does not correct for it.
+- **Evidence is synthetic, and the GeoLift check is narrow.** Coverage, power and bias figures come from simulations on synthetic data with a known truth. The GeoLift comparison (§12) covers the geo-cells estimator only, with matched settings; the national holdout, vendor split, placebo calibration, weekly fit gate and crossover rest on FOSIT's own simulations (§5.6, §9.3, §13, §14.5). No independent review has been completed ([REVIEW.md](REVIEW.md)).
 - **Few markets, wider ranges.** With 51 states, twins drift more than with hundreds of metro areas. Plain conformal ranges were over-confident on such data; placebo calibration (§5.6) corrects that by widening them, so state-level tests need bigger effects to reach a verdict. Prefer metro areas (CBSAs) when vendors can target them.
 
 ---
@@ -631,6 +675,7 @@ The shipped example `examples/crossover_small` (about 100 orders a day, lift 1.5
 | National holdout: holdout share | 10%–20% of national KPI (§13.2) | ✓ (holdout markets) |
 | National holdout: min holdout markets | 10 | ✓ (holdout markets) |
 | Crossover: blocks | 2 weeks (washout 3 days) or 4 weeks (washout 5 days), 8/12 or 6/8 blocks, balanced random schedule (§14) | ✓ (`design`) |
+| Crossover: fade assumption | Planning half-life 3 days (2-week blocks) or 7 days (4-week blocks); stated with every result, not used to correct the estimate (§14.3) | ✓ (`design.planning_half_life`) |
 
 ---
 

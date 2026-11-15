@@ -163,7 +163,7 @@ export const GLOSSARY = {
   },
   crossover: {
     title: "Halves take turns (crossover)",
-    text: "The country is split into two balanced halves that take turns having the ads, in a random order fixed before launch. Both halves face the same season and news at the same time, so the gap when one has the ads is what the ads did.",
+    text: "The country is split into two balanced halves that take turns having the ads, in a random order fixed before launch. Both halves face the same season and news at the same time, so the gap when one has the ads is what the ads did, if their effect fades within days. A longer effect makes the result too low.",
     doc: ["METHODOLOGY.md", "14-geo-crossover-for-small-advertisers"],
     code: "core/fosit/crossover.py",
   },

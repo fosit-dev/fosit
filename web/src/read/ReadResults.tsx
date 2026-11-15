@@ -2,7 +2,7 @@ import { InfoTip } from "../components/InfoTip";
 import { useLevel } from "../lib/level";
 import { ImpactChart } from "../components/Charts";
 import { money, num, pct } from "../lib/format";
-import type { LockedPlan } from "../lib/plan";
+import { fadeHalfLife, fadeSentence, type LockedPlan } from "../lib/plan";
 import type { CellResult, KpiResult, ReadResult, Summary } from "./types";
 import { VERDICT, h2hLabel, cellSentence, h2hSentence, h2hValue, icpaText, levelKey, primaryH2H, rangeText } from "./text";
 
@@ -115,7 +115,7 @@ export function ReadResults({ r, plan, names }: Props) {
             {holdout && <p className="small">The chart shows the held-out markets: what they sold without the ads, and what their twin (built from the markets
               with ads) says they'd have sold with them. The gap is the share of sales the ads drove, applied to the {num(cell.n_geos)} markets {r.cells.length > 1 ? `with ${cell.label}'s ads` : "with ads"}.<InfoTip term="holdout" /></p>}
             {cross && <p className="small">The chart shows both halves together, and what they'd have sold without the ads (the estimated
-              extra sales taken out of whichever half had the ads).<InfoTip term="crossover" /></p>}
+              extra sales taken out of whichever half had the ads). {fadeSentence(fadeHalfLife(c) ?? 3)}<InfoTip term="crossover" /></p>}
             <ImpactChart crossover={m.series.role === "crossover"} title={holdout ? "Held-out markets" : cell.label} unit={r.primary_kpi} dates={m.series.dates} observed={m.series.observed}
               counterfactual={m.series.counterfactual} nPre={m.series.n_pre} testDays={m.series.test_days} holdout={m.series.role === "holdout"} />
             {level !== "brief" && <StatsTable cell={cell} r={r} currency={currency} />}
@@ -150,7 +150,7 @@ export function ReadResults({ r, plan, names }: Props) {
         <details open={level === "full"}>
           <summary>Under the hood</summary>
           {cross
-            ? <p className="small">Method (locked in the plan): two halves took turns having the ads on a random schedule; a two-way comparison (half and block) of log sales after each block's washout; an exact randomization test against every balanced schedule ({r.permutations.n}); decisions at {pct(r.decision_level, 0)}. Test {r.window.start} to {r.window.end} ({r.window.days} days).</p>
+            ? <p className="small">Method (locked in the plan): two halves took turns having the ads on a random schedule; a two-way comparison (half and block) of log sales after each block's washout; a randomization test against every balanced schedule ({r.permutations.n}), exact only for "no effect at all"; decisions at {pct(r.decision_level, 0)}. Test {r.window.start} to {r.window.end} ({r.window.days} days). The ranges assume that the ads' effect is gone after the washout (half-life about {fadeHalfLife(c) ?? 3} days); a longer effect moves them down (METHODOLOGY §14.5).</p>
             : <p className="small">Method (locked in the plan): ridge-augmented synthetic control with market fixed effects; conformal inference with {r.permutations.kind === "moving_block" ? `moving-block permutations (${r.permutations.n} time shifts)` : `${r.permutations.n} random permutations`}; decisions at {pct(r.decision_level, 0)}. Measurement window {r.window.start} to {r.window.end} ({r.window.days} days, {r.window.test_days} with ads).</p>}
           {r.cells.map((cell) => {
             const u = cell.kpis[r.primary_kpi].under_the_hood;

@@ -38,6 +38,12 @@ Always give the range with the number. The point estimate alone overstates certa
 ## For national holdouts and vendor splits
 The effect is measured in the held-out markets (no ads) against a twin of them built from the markets with ads, and applied to the markets with ads. In words: "the held-out states sold X% less than they would have with the ads; applied to the states where the ads ran, that's N extra orders." If the campaign was always on before the test, add that the number is cautious (past ads keep working for a while after they stop).
 
+## For a crossover (halves take turns)
+Every crossover result carries a note with the fade assumption the plan locked (3 days for 2-week blocks, 7 for 4-week). Read it to the person, in their words:
+- The number of extra orders is likely too low: about 20% low on average, even if the assumption is right.
+- "At least X extra orders" (the low end of the range) is the safest sentence to quote.
+- If the ads keep working longer than assumed, the true effect is larger, and "no detectable lift" or "does not pay off" can be wrong. Before anyone stops a campaign on a crossover result, ask how long its effect lasts (METHODOLOGY §14.5).
+
 ## CFO summary template
 ```
 ## What we tested

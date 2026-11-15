@@ -98,7 +98,9 @@ Draw a picture only when it explains something. Do not add one to a one-line ans
 | compare vendors, each in its own small set of markets, with a large no-ads control | geo cells | `--design cells --cells 2` |
 | keep one campaign national and hold out ~10–20% of the country | national holdout | `--design holdout` |
 | let vendors split the country (e.g. 40% / 40%) with a no-CTV group (~20%) | vendor split | `--design split --cells 2` |
-| measure one campaign for a **small business** (a few hundred orders a day or less) | halves take turns (crossover) | `--design crossover [--lingering long]` |
+| measure one campaign for a **small business** (a few hundred orders a day or less) | halves take turns (crossover) | `--design crossover --lingering short\|long` |
+
+For a crossover, ask how long the ads keep working after they stop, and choose `--lingering long` when the answer is "not sure". Tell them the design's limit in one line: if the effect lasts longer than chosen, the result is too low (`references/designs.md`).
 
 **3. Data.** They need daily sales by market for at least 8 weeks, ending near the planned start. 8 weeks is enough; more helps a little. Formats and fixes: `references/data-formats.md`.
 
@@ -138,6 +140,8 @@ Get these after the cooldown ends. Data that ends a day or two before the end is
 python3 scripts/fosit_cli.py read plan.fosit-plan.json --sales sales_through_cooldown.csv --spend spend.csv \
   --fingerprint <from the email> --other-changes none --level brief --out results/
 ```
+
+For a crossover, also say what its note says: the result rests on how fast the ads' effect fades, and a longer effect makes it too low. Do not present a crossover's "no detectable lift" as a reason to stop a campaign without that caveat (`references/reading-results.md`).
 
 Then explain `results/report.md`, **the answer first** (its "The answer" section is already in plain words), and point them to `results/report.html`. If a check failed or warned, say it first: it can change what the numbers mean. `references/reading-results.md` covers each verdict and check, how to word ranges honestly, and a summary for a CFO.
 

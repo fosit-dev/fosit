@@ -136,6 +136,16 @@ export const crossoverSetup = (lingering: PlanState["lingering"]) =>
     ? { blockDays: 28, washoutDays: 5, halfLife: 7, durations: [28 * 6, 28 * 8] }
     : { blockDays: 14, washoutDays: 3, halfLife: 3, durations: [14 * 8, 14 * 12] };
 
+/** The crossover test lengths this history can size. Replaying a test on past sales needs at least as much history as the
+ * test is long (§14.4), so a 32-week test needs 32 weeks of sales. If none fits, the shortest stays (the planner says why). */
+export function sizableCrossoverDurations(lingering: PlanState["lingering"], historyDays?: number): { durations: number[]; dropped: number[] } {
+  const all = crossoverSetup(lingering).durations;
+  if (!historyDays) return { durations: all, dropped: [] };
+  const fits = all.filter((d) => d <= historyDays);
+  const durations = fits.length ? fits : [all[0]];
+  return { durations, dropped: all.filter((d) => !durations.includes(d)) };
+}
+
 /** Switching design kind changes what the share sliders bound (each cell vs. the holdout) and resets the names. */
 export function withTemplate(s: PlanState, template: Template, cells: number): Partial<PlanState> {
   const kind = kindOf(template);
@@ -146,7 +156,7 @@ export function withTemplate(s: PlanState, template: Template, cells: number): P
     ...(changed ? { labels: kind === "campaign" || kind === "crossover" ? ["Campaign"] : Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`), ...SHARES[kind] } : {}),
     ...(changed && kind === "cells" ? { adsBeforeTest: null } : {}),
     ...(changed && kind === "crossover"
-      ? { durations: crossoverSetup(s.lingering).durations, duration: crossoverSetup(s.lingering).durations[0], cooldown: 0 }
+      ? { durations: sizableCrossoverDurations(s.lingering, s.data?.summary.days).durations, duration: crossoverSetup(s.lingering).durations[0], cooldown: 0 }
       : changed && kindOf(s.template) === "crossover" ? { durations: [21, 28, 42, 56], duration: 28, cooldown: 7 } : {}),
   };
 }

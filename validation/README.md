@@ -12,6 +12,13 @@ reference only**. No GeoLift or augsynth code is copied into FOSIT.
 
 CI: `.github/workflows/validation.yml` pins GeoLift and augsynth to exact commits.
 
+The GeoLift comparison covers the geo-cells estimator only. The other designs are checked by FOSIT's own simulations on synthetic data with a known truth:
+
+| File | What it checks |
+|---|---|
+| `calibration_study.py` | Coverage, false positives and power of geo cells, the national holdout and the vendor split, with or without placebo calibration and the weekly fit gate (METHODOLOGY §5.6, §9.3, §13) |
+| `crossover_study.py` | Halves taking turns (§14.5): honesty with no effect, power and coverage at the planned lift, and what a wrong answer to "how long do the ads keep working?" does (`--half-life` above the planning half-life) |
+
 Run locally (needs R ≥ 4.1 with GeoLift installed):
 
 ```bash

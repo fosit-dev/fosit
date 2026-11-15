@@ -12,8 +12,11 @@ balanced schedule the randomization could have produced (Fisher; Bojinov, Simchi
 range is every tau0 not rejected. No modelling assumption about how sales move over time is needed.
 
 Incremental sales: the ads' total effect over time equals the steady lift times the ads-on days, whatever their
-build-up and fade (an adstock's mass is conserved), so incremental = (1 - e^-tau) x sales in the ads-on blocks.
-tau is measured after the washout, close to the steady state; if effects build slowly it is understated (cautious).
+build-up and fade (an adstock's mass is conserved), so incremental = (1 - e^-tau) x sales in the ads-on blocks, if tau
+is the steady lift. It isn't quite: tau is measured after the washout, where the effect is still building in the half
+with the ads and still fading in the half without them, so it is pulled toward zero. With 2-week blocks the estimate
+is about 19% low at a 3-day half-life and about 48% low at 7 days (METHODOLOGY §14.5). The randomization test is exact
+for "no effect at all"; its range assumes no effect beyond the washout, so a longer effect moves the range down.
 """
 
 from __future__ import annotations

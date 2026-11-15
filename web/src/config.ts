@@ -19,8 +19,10 @@ export const CONSULT_TEXT: string = env.VITE_CONSULT_TEXT ||
   "Finding this a lot to set up? A data analyst can plan and run the test with you on a free call, no strings attached.";
 /** Optional conflict-of-interest disclosure shown in the footer when embedded by a media company. */
 export const DISCLOSURE: string = env.VITE_DISCLOSURE || "";
-/** Placeholder until an independent review page exists. */
+/** The review page (docs/REVIEW.md): every independent review, and how to check which version a site runs. */
 export const REVIEW_URL: string = env.VITE_REVIEW_URL || `${REPO_URL}/blob/${DOCS_BRANCH}/docs/REVIEW.md`;
+/** Footer label for it. Change it (or set VITE_REVIEW_LABEL) when a review is published. */
+export const REVIEW_LABEL: string = env.VITE_REVIEW_LABEL || "Review status (none yet)";
 
 export const APP_VERSION = "0.1.0";
 

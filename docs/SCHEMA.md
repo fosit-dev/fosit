@@ -1,6 +1,6 @@
 # FOSIT Data Schemas
 
-**Status:** v1 draft for review.
+**Status:** implemented in FOSIT 0.1.0 (pre-release); not yet independently reviewed ([REVIEW.md](REVIEW.md)).
 
 > **In plain English:** FOSIT needs at most three simple spreadsheets (CSV files): your sales by market and day, what each vendor spent and where, and (optionally) your own market list. Everything is checked in your browser. If something's wrong, we tell you exactly which row and how to fix it.
 

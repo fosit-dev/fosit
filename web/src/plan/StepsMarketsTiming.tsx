@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InfoTip } from "../components/InfoTip";
 import { addDays, pretty, todayUtc, daysBetween } from "../lib/dates";
 import { pct, weeks } from "../lib/format";
 import { useLevel } from "../lib/level";
-import { DURATION_OPTIONS, crossoverSetup, isCrossover, isHoldout, isOneCampaign, preDays, type PlanState } from "./state";
+import { DURATION_OPTIONS, isCrossover, isHoldout, isOneCampaign, preDays, sizableCrossoverDurations, type PlanState } from "./state";
 
 type Props = { s: PlanState; set: (p: Partial<PlanState>) => void };
 
@@ -105,6 +105,12 @@ export function StepTiming({ s, set }: Props) {
   const gauge = pre < 56 ? "err" : "ok";   // 8 weeks is enough: never send people back for more data they don't need
   const leadDays = daysBetween(todayUtc(), s.testStart);
   const longest = Math.max(...s.durations, 0);
+  const sizable = sizableCrossoverDurations(s.lingering, s.data?.summary.days);
+  // Offer only the crossover lengths this history can size (§14.4); a longer one would come back without a sensitivity.
+  useEffect(() => {
+    if (isCrossover(s) && sizable.durations.join() !== s.durations.join())
+      set({ durations: sizable.durations, duration: sizable.durations.includes(s.duration) ? s.duration : sizable.durations[0] });
+  }, [s.template, s.lingering, s.data?.summary.days]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section className="card">
       <h2>Timing</h2>
@@ -116,12 +122,20 @@ export function StepTiming({ s, set }: Props) {
                ["long", "A week or more (brand campaigns)", "the halves swap every 4 weeks, and the test runs longer"]] as const).map(([v, text, hint]) => (
               <label key={v} className="check">
                 <input type="radio" name="lingering" checked={s.lingering === v}
-                  onChange={() => { const x = crossoverSetup(v); set({ lingering: v, durations: x.durations, duration: x.durations[0] }); }} />
+                  onChange={() => { const x = sizableCrossoverDurations(v, s.data?.summary.days); set({ lingering: v, durations: x.durations, duration: x.durations[0] }); }} />
                 <span>{text} <span className="muted small">: {hint}</span></span>
               </label>
             ))}
           </fieldset>
-          <p className="small muted">We'll compare a {weeks(s.durations[0])} and a {weeks(s.durations[s.durations.length - 1])} test. Longer catches smaller lifts.</p>
+          <div className="callout warn small">
+            <strong>Choose carefully.</strong> If the ads keep working longer than your choice, the test shows too little of their effect,
+            and its range can miss the true number. For example, if the effect fades by half in a week, 2-week turns show about half of it
+            and 4-week turns about three quarters. If you are not sure, choose "A week or more". The test takes longer, but the error is smaller.
+          </div>
+          <p className="small muted">{s.durations.length > 1
+            ? `We'll compare a ${s.durations[0] / 7}-week and a ${s.durations[s.durations.length - 1] / 7}-week test. Longer catches smaller lifts.`
+            : `FOSIT plans a ${s.durations[0] / 7}-week test.`}
+            {sizable.dropped.length > 0 && ` A ${sizable.dropped[0] / 7}-week test needs at least ${weeks(sizable.dropped[0])} of sales history to plan, and your file has ${historyWeeks} weeks.`}</p>
         </>
       ) : (
       <div className="field">

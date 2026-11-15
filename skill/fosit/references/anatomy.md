@@ -67,6 +67,7 @@ The interactive page (`designs.html`, `plan.html`, `report.html`, or `fosit_cli.
  ④ in each block: half with ads vs half without ads
  ⑤ average the gaps; a test against every other fair order gives the range
 ```
+This design assumes the ads' effect fades within days. If it lasts longer, part of it reaches the half without the ads, and the result is too low (METHODOLOGY §14.5).
 
 ## The timeline (any design)
 

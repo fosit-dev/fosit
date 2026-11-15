@@ -58,6 +58,34 @@ def span(iv, f) -> str:
     return f"{f(lo)} to {f(hi)}"
 
 
+# ---------------------------------------------------------------- the crossover's fade assumption (§14.3, §14.5)
+
+# How low a crossover's estimate is even when its fade assumption holds (all extra orders, no noise; §14.5).
+OWN_ASSUMPTION_SHORTFALL = {14: 20, 28: 25}
+
+
+def fade_days(c: dict) -> float | None:
+    """A crossover plan's assumed half-life of the ads' effect, in days; None for other designs."""
+    x = c.get("design", {})
+    if x.get("type") != "crossover":
+        return None
+    h = x.get("planning_half_life")
+    if h is None:      # plans locked before the field existed: what the app assumes for this block length
+        h = 7 if int(x.get("block_days", 14)) >= 28 else 3
+    return float(h)
+
+
+def fade_note(c: dict) -> str | None:
+    """The assumption every crossover result rests on, said plainly (ASD-STE100 style)."""
+    h = fade_days(c)
+    if h is None:
+        return None
+    low = OWN_ASSUMPTION_SHORTFALL.get(int(c["design"].get("block_days", 14)), 20)
+    return (f"This test assumes that the ads' effect fades by half within about {h:g} days after the ads stop. "
+            f"Even then, the extra orders shown are about {low}% too low. "
+            "If the effect lasts longer, the true number is higher still, and the range can miss it.")
+
+
 # ---------------------------------------------------------------- the answer
 
 def _cell_answer(cell: dict, r: dict, c: dict) -> dict:
@@ -112,6 +140,9 @@ def _cell_answer(cell: dict, r: dict, c: dict) -> dict:
             detail.append(f"The test rules out {amount(kpi, cell['meaningful_effect'], cur)} or more, "
                           f"the amount needed to pay off.")
         action = f"Do not spend more on {label} in this form. Change the offer, the creative or the audience, or stop it."
+        if fade_days(c) is not None:     # a crossover misses part of any effect that outlasts its assumption (§14.5)
+            action = (f"Do not spend more on {label} in this form. Before you stop it, find out how long its effect lasts. "
+                      f"This test misses part of an effect that lasts longer than about {fade_days(c):g} days.")
     else:
         fit_failed = any(not f["ok"] for f in cell.get("fit_checks", []) if f["kpi"] == kpi)
         if fit_failed:
@@ -158,6 +189,8 @@ def summary(r: dict, c: dict) -> dict:
         out["head_to_head"] = _h2h_answer(pairs[0], r, c)
     if r.get("interim"):
         out["notes"].append(f"This is an early read. The test ends on {day(r['window']['planned_end'])}. The numbers can change.")
+    if fade_note(c):
+        out["notes"].append(fade_note(c))
     return out
 
 
@@ -257,7 +290,8 @@ def one_line(c: dict, appendix: dict | None = None) -> str:
     if kind == "crossover":
         weeks = int(c["design"]["block_days"]) // 7
         return (f"Two halves of the country take turns with the ads, every {weeks} weeks, from {day(d['test_start'])} to {day(d['test_end'])}. "
-                "Each half has the ads in half of the blocks. FOSIT compares the two halves in each block.")
+                "Each half has the ads in half of the blocks. FOSIT compares the two halves in each block. "
+                f"The test assumes that the ads' effect fades by half within about {fade_days(c):g} days.")
     if kind == "holdout":
         return (f"{who} runs everywhere except {len(c['control']['geo_ids'])} held-out markets{held}, from {day(d['test_start'])} "
                 f"to {day(d['test_end'])}. FOSIT compares the held-out markets with their twin. Read the results after {day(d['cooldown_end'])}.")
@@ -285,7 +319,8 @@ def sensitivity(c: dict, appendix: dict | None) -> list[dict]:
 def _base(c: dict, kind: str, level: str, names: dict | None) -> dict:
     return {"kind": kind, "level": level if level in LEVELS else "guided", "title": c["test_name"],
             "advertiser": c.get("advertiser_label") or "", "currency": c["currency"], "kpi": c["kpi"]["primary"],
-            "design": design_kind(c), "dates": c["dates"], "unit": c["geo"]["unit"]}
+            "design": design_kind(c), "dates": c["dates"], "unit": c["geo"]["unit"], "fade_half_life": fade_days(c),
+            "fade_note": fade_note(c)}
 
 
 def plan_payload(plan: dict, names: dict | None = None, read_url: str | None = None, level: str = "guided") -> dict:

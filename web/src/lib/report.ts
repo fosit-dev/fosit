@@ -1,6 +1,6 @@
 // "CFO-ready" results report, generated in the browser with jsPDF. Verdicts first, then the
 // evidence: honesty checks, per-cell numbers with ranges, head-to-head, and how it was computed.
-import type { LockedPlan } from "./plan";
+import { fadeHalfLife, fadeSentence, type LockedPlan } from "./plan";
 import { MARGIN, PAGE_H, PAGE_W, WIDTH, Writer } from "./pdf";
 import { pretty } from "./dates";
 import { money, num, pct } from "./format";
@@ -68,6 +68,7 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
       if (a.action) w.para(latin(`What to do: ${a.action}`), { size: 10 });
     }
     if (r.summary.head_to_head) w.para(latin(`${r.summary.head_to_head.headline} ${r.summary.head_to_head.detail}`), { size: 10.5, bold: true });
+    for (const n of r.summary.notes.filter((x) => !x.startsWith("This is an early read"))) w.para(latin(n), { size: 9.5, color: [138, 83, 0] });
   }
 
   w.heading(r.summary ? "In numbers" : "Bottom line");
@@ -116,7 +117,7 @@ export function reportPdf({ plan, result: r, checks, mismatch, recomputed, shock
 
   w.heading("How this was computed");
   w.para(latin(r.design === "crossover"
-    ? `Halves take turns (METHODOLOGY §14): two balanced halves of the country had the ads in alternate blocks, in a random order fixed in the plan. Per half and block, mean daily sales after a washout were compared; the lift is the gap between a half with and without the ads, net of national swings that hit both halves at once. Ranges and p-values come from an exact randomization test against every other balanced schedule. Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`
+    ? `Halves take turns (METHODOLOGY §14): two balanced halves of the country had the ads in alternate blocks, in a random order fixed in the plan. Per half and block, mean daily sales after a washout were compared; the lift is the gap between a half with and without the ads, net of national swings that hit both halves at once. Ranges and p-values come from a randomization test against every other balanced schedule, which is exact for "no effect at all". ${fadeSentence(fadeHalfLife(c) ?? 3)} Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`
     : r.design === "national_holdout"
     ? `National holdout: the ${c.control.geo_ids.length} held-out markets are compared with a statistical twin built from the markets with ads, each indexed to its own history (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). The gap is the share of sales the ads drove, applied to the markets with ads (METHODOLOGY §13). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. ${c.method.placebo_calibration ? `Ranges were checked against ${c.method.placebo_calibration.n} placebo cells over the same dates and widened where those drifted more (METHODOLOGY §5.6). ` : ""}Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`
     : `Each cell is compared with a statistical twin built from ${c.control.geo_ids.length} control markets (ridge-augmented synthetic control with market fixed effects, Ben-Michael, Feller & Rothstein 2021). Ranges and p-values come from conformal inference (Chernozhukov, Wuthrich & Zhu 2021) with ${r.permutations.kind === "moving_block" ? "moving-block permutations" : "random permutations"}. ${c.method.placebo_calibration ? `Ranges were checked against ${c.method.placebo_calibration.n} placebo cells over the same dates and widened where those drifted more (METHODOLOGY §5.6). ` : ""}Every setting was fixed in the locked plan before launch. Full method: docs/METHODOLOGY.md in the FOSIT repository.`), { size: 9.5 });
