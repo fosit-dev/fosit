@@ -35,7 +35,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 FOSIT_REPO = "https://github.com/fosit-dev/fosit"
-FOSIT_REF = os.environ.get("FOSIT_REF", "e64836a")          # pinned engine version (a commit or tag)
+FOSIT_REF = os.environ.get("FOSIT_REF", "b41cf48")          # pinned engine version (a commit or tag)
 HOME = Path(os.environ.get("FOSIT_ENV", Path.home() / ".fosit"))
 VENV = HOME / f"venv-{FOSIT_REF}"
 
