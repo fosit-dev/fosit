@@ -25,11 +25,11 @@ test("reads the two-vendor example: verdicts, checks, exports, and no data leave
   await expect(answer.getByText(/What to do:/).first()).toBeVisible();
   await expect(answer.getByText("The test cannot tell if Vendor A or Vendor B is better.")).toBeVisible();
   // Brief (for leaders) hides the tables; Full (for analysts) shows the numbers section and opens the details
-  await page.getByRole("radio", { name: /For leaders/ }).click();
+  await page.getByRole("radio", { name: "Brief", exact: true }).click();
   await expect(page.locator("table")).toHaveCount(0);
-  await page.getByRole("radio", { name: /For analysts/ }).click();
+  await page.getByRole("radio", { name: "Full", exact: true }).click();
   await expect(page.getByRole("heading", { name: /In numbers/ })).toBeVisible();
-  await page.getByRole("radio", { name: /For marketers/ }).click();
+  await page.getByRole("radio", { name: "Guided", exact: true }).click();
   await page.screenshot({ path: "test-results/r1-results.png", fullPage: true });
 
   const [html] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download interactive report (HTML)" }).click()]);
