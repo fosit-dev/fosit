@@ -2,6 +2,8 @@
 
 **Don't trust any vendor. Including us. Check the math.**
 
+**Try it in your browser:** [adte.com/advertisers/incrementality-tool](https://www.adte.com/advertisers/incrementality-tool) (hosted by ADTE, the CTV platform that built FOSIT; no sign-up, and your files stay on your computer).
+
 FOSIT helps advertisers plan and read **geo-lift experiments** for CTV and other media you can't click. It tells you how many orders and how much revenue each vendor *actually caused*, what each extra order cost (iCPA), and the return per dollar (iROAS), with honest uncertainty. When the data can't tell, it says **"inconclusive."**
 
 🔒 **Your data never leaves this browser.** All computation runs on your machine (Python via Pyodide, in a Web Worker). Nothing is uploaded, and a CI test fails if the app ever sends user data over the network.
@@ -16,7 +18,7 @@ Attribution reports often work like that flyer guy. Meanwhile CTV has the opposi
 
 ## How it works
 
-1. **Plan:** upload daily sales by market. FOSIT searches for fair splits of markets, one per vendor plus a shared no-ads control group. It shows how small a lift each design can detect, then **locks** the plan with a SHA-256 fingerprint you send to everyone before launch.
+1. **Plan:** answer a few questions in plain words, each with a picture (*Brief*, *Guided* or *Full* decides how many questions and how much terminology), and upload daily sales by market. FOSIT searches for fair splits of markets, one per vendor plus a shared no-ads control group. It shows how small a lift each design can detect, then **locks** the plan with a SHA-256 fingerprint you send to everyone before launch.
 2. **Run:** each vendor targets only its own markets.
 3. **Read:** upload sales through the end of the test and each vendor's spend and delivery. FOSIT builds a statistical twin of each cell from the control markets (augmented synthetic control), reports lift, iCPA, and iROAS with confidence ranges, compares the vendors head-to-head, and runs six honesty checks on every report. It starts with **the answer in plain words** and what to do, at the detail you pick (*Brief* for leaders, *Guided* for marketers, *Full* for analysts), and exports an **interactive HTML report** with pictures of how the test works and a slider for the value of one extra order, next to the PDF.
 

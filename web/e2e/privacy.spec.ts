@@ -25,7 +25,7 @@ test("Plan flow keeps user data in the browser and produces a verifiable locked 
   await page.getByLabel("Test name").fill("E2E canary test");
   await page.getByRole("button", { name: "Continue →" }).click();
 
-  await page.getByLabel(/My own market IDs/).check();
+  await page.getByLabel(/My own list of markets/).check();
   await page.getByTestId("kpi-file").setInputFiles(FIXTURE);
   await expect(page.getByText("Looks good")).toBeVisible({ timeout: 240_000 });
   await page.screenshot({ path: "test-results/02-data.png", fullPage: true });

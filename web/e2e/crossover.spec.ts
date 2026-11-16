@@ -5,7 +5,8 @@ import { expect, test } from "@playwright/test";
 test("plans a crossover and locks a random balanced schedule", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Plan a test" }).first().click();
-  await page.getByRole("button", { name: /Small business: halves take turns/ }).click();
+  await page.getByRole("button", { name: /Do my ads bring extra sales/ }).click();
+  await page.getByRole("button", { name: /Two halves take turns/ }).click();
   const next = page.getByRole("button", { name: "Continue →" });
   await next.click();
   await expect(page.getByLabel("Campaign name")).toHaveValue("Campaign");
@@ -22,7 +23,8 @@ test("plans a crossover and locks a random balanced schedule", async ({ page }) 
   await page.getByRole("button", { name: "Find balanced halves" }).click();
   const design = page.getByRole("article", { name: "Design 1" });
   await expect(design).toBeVisible({ timeout: 600_000 });
-  await expect(design.getByText(/while a half has the ads/)).toBeVisible();
+  await expect(design.getByText(/raise sales by .* while a half has the ads/)).toBeVisible();
+  await expect(design.getByRole("heading", { name: /Will the test see it/ })).toBeVisible();
   await expect(design.getByText(/Halves track each other/)).toBeVisible();
   await page.screenshot({ path: "test-results/x1-designs.png", fullPage: true });
   await next.click();

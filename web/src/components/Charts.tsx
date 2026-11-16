@@ -95,7 +95,7 @@ export function FitChart({ dates, observed, twin, fitEnd, title, index = false, 
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: real markets vs their twin before the test`}>
         {fitEnd < dates.length - 1 && <>
           <rect x={x(fitEnd)} y={T} width={x(dates.length - 1) - x(fitEnd)} height={H - T - B} fill="var(--shade)" />
-          <text x={x(fitEnd) + 4} y={T + 12} className="tick">{index ? "unseen days" : "holdout"}</text>
+          <text x={x(fitEnd) + 4} y={T + 12} className="tick">unseen days</text>
         </>}
         <path d={path(twin)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 3" />
         <path d={path(observed)} fill="none" stroke="var(--series-1)" strokeWidth="1.75" />

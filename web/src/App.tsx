@@ -40,9 +40,18 @@ export function App() {
     }
   }, [theme]);
 
-  // Start loading the Python engine in the background while people read the intro.
+  // Load the Python engine (about 28 MB) when the person first touches the tool, not on every page view.
+  // A visitor who only reads the page, and a search engine that renders it, should not pay for it.
+  // It then loads in the background while they answer the first questions. A #read link loads it at once.
   useEffect(() => {
-    initEngine().catch(() => undefined);
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    const start = () => {
+      events.forEach((e) => window.removeEventListener(e, start));
+      initEngine().catch(() => undefined);
+    };
+    if (OPEN_READ) start();
+    else events.forEach((e) => window.addEventListener(e, start, { passive: true }));
+    return () => events.forEach((e) => window.removeEventListener(e, start));
   }, []);
 
   const go = (s: Screen, withSample = false) => {

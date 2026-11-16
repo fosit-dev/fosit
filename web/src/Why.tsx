@@ -1,9 +1,22 @@
+import { useState } from "react";
 import { InfoTip } from "./components/InfoTip";
 import { docUrl, REPO_URL } from "./config";
 import { ConsultCallout } from "./components/Consult";
+import { Anatomy, ShareBar } from "./components/Visuals";
+import { anatomySteps, designInfo, exampleSegments } from "./lib/words";
+import type { Template } from "./plan/state";
+
+/** The test types shown on the intro, by the situation a newcomer recognizes. */
+const DEMOS: { id: Template; label: string }[] = [
+  { id: "two_vendor", label: "Compare two vendors" },
+  { id: "single", label: "Test one campaign" },
+  { id: "national_holdout", label: "A national campaign" },
+  { id: "crossover", label: "A small business" },
+];
 
 /** Screen 0: why this exists (docs/UX_FLOW.md). Skippable: every CTA works from here. */
 export function Why({ onPlan, onRead }: { onPlan: (sample: boolean) => void; onRead: () => void }) {
+  const [demo, setDemo] = useState<Template>("two_vendor");
   return (
     <article>
       <h1>Don't trust any vendor. Including us. Check the math.</h1>
@@ -16,6 +29,7 @@ export function Why({ onPlan, onRead }: { onPlan: (sample: boolean) => void; onR
         <button onClick={onRead}>I already have a locked plan → Read results</button>
         <button className="btn-ghost" onClick={() => onPlan(true)}>Try it with sample data</button>
       </div>
+      <p className="tiny" style={{ marginTop: 10 }}>Never ran a test like this? FOSIT explains each step in plain words, with pictures. You do not need statistics.</p>
       <ConsultCallout />
 
       <section className="card" style={{ marginTop: 28 }} aria-labelledby="story">
@@ -40,15 +54,27 @@ export function Why({ onPlan, onRead }: { onPlan: (sample: boolean) => void; onR
       <section aria-labelledby="how">
         <h2 id="how">How FOSIT answers it</h2>
         <div className="steps-3">
-          <div><h3>1 · Plan</h3><p className="small">We pick groups of markets: one per vendor, plus a group that sees no test ads. <span className="muted">Like handing out flyers on some streets and not others.</span></p></div>
-          <div><h3>2 · Run</h3><p className="small">Each vendor runs only in its own markets. Everyone gets the same locked plan before launch, so nobody can move the goalposts.</p></div>
-          <div><h3>3 · Read</h3><p className="small">We compare each group with a statistical twin built from the no-ads markets.<InfoTip term="twin" /> The gap is what the ads really did.</p></div>
+          <div><h3>1 · Plan</h3><p className="small">FOSIT picks fair groups of markets: one for each vendor, and a group that sees no test ads. <span className="muted">Like handing out flyers on some streets and not on others.</span></p></div>
+          <div><h3>2 · Run</h3><p className="small">Each vendor runs only in its own markets. Everyone gets the same locked plan before the test starts, so nobody can change the rules later.</p></div>
+          <div><h3>3 · Read</h3><p className="small">FOSIT compares each group with a twin<InfoTip term="twin" />: a mix of markets with no test ads that sells in step with the group. The gap is what the ads really did.</p></div>
+        </div>
+        <div className="card" aria-labelledby="see-how">
+          <h3 id="see-how">See how a test works</h3>
+          <div className="row" role="group" aria-label="Kind of test">
+            {DEMOS.map((d) => (
+              <button key={d.id} type="button" className={demo === d.id ? "btn-primary small" : "small"} aria-pressed={demo === d.id} onClick={() => setDemo(d.id)}>{d.label}</button>
+            ))}
+          </div>
+          <p className="small muted" style={{ margin: "10px 0 0" }}>{designInfo(demo).text} {designInfo(demo).good}</p>
+          <ShareBar segments={exampleSegments(demo, [])} approx />
+          <p className="tiny">The bar is the whole country. Color shows where the ads run. These sizes are examples.</p>
+          <Anatomy steps={anatomySteps(demo, designInfo(demo).cells)} />
         </div>
         <div className="card">
           <h3>What you walk away with</h3>
           <p style={{ marginBottom: 0 }}>
-            What each vendor <em>really</em> delivered, in incremental orders, cost per incremental order (iCPA)<InfoTip term="icpa" /> and
-            return on ad spend (iROAS)<InfoTip term="iroas" />, with honest ranges. Invest in media like an investor, and bring your
+            What each vendor <em>really</em> delivered: the extra orders that its ads caused, the cost of one extra order<InfoTip term="icpa" /> and
+            the return for each $1 of ads<InfoTip term="iroas" />, each with an honest range. Invest in media like an investor, and bring your
             CFO numbers that hold up.
           </p>
         </div>

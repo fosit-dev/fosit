@@ -18,7 +18,7 @@ Re-run `python3 scripts/build_core_bundle.py` after changing anything in `/core`
 - Pyodide and its packages are served from this site (`public/pyodide/`), never from a CDN.
 - `index.html` sets a Content-Security-Policy with `connect-src 'self'`, so the page can't send anything elsewhere even by mistake.
 - `e2e/privacy.spec.ts` runs the whole Plan flow on a file full of canary values and fails if any request leaves the origin, carries the canary, or isn't a GET.
-- No analytics, no fonts or images from elsewhere, no cookies. The only browser storage is the theme choice.
+- No analytics, no fonts or images from elsewhere, no cookies. The only browser storage is the theme and the detail level.
 
 ## Deployment settings (build-time environment variables)
 
@@ -29,6 +29,7 @@ Re-run `python3 scripts/build_core_bundle.py` after changing anything in `/core`
 | `VITE_CONTACT_URL`, `VITE_CONTACT_LABEL` | Optional footer contact link | none |
 | `VITE_DISCLOSURE` | Optional conflict-of-interest line, e.g. when a media company embeds it | none |
 | `VITE_REVIEW_URL` | Independent review page | `docs/REVIEW.md` in the repo |
+| `VITE_ROBOTS` | Robots rule for the app's own page. A site that embeds the app in its own page sets `noindex, indexifembedded`, so search engines index the tool as part of that page and not as a second page | none (no robots tag) |
 
 Defaults name no vendor and no company.
 

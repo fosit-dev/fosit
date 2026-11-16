@@ -1,6 +1,7 @@
 import type { Issue } from "../components/Issues";
 import type { FindResult, Kpi, LockedPlan } from "../lib/plan";
 import { nextMonday, todayUtc } from "../lib/dates";
+import { defaultLabel, isDefaultLabel } from "../lib/words";
 
 export type GeoRow = { geo_id: string; name: string; share: number };
 export type Summary = {
@@ -69,7 +70,7 @@ export function initialState(): PlanState {
     template: "two_vendor",
     adsBeforeTest: null,
     nCells: 2,
-    labels: ["Cell 1", "Cell 2"],
+    labels: ["Vendor A", "Vendor B"],
     totalBudget: 100000,
     split: [50, 50],
     currency: "USD",
@@ -104,11 +105,14 @@ export function initialState(): PlanState {
   };
 }
 
-export function withCells(s: PlanState, n: number): Partial<PlanState> {
-  const labels = Array.from({ length: n }, (_, i) => s.labels[i] ?? `Cell ${i + 1}`);
+/** Names typed by the person stay; names that FOSIT made up follow the test type ("Vendor A", "Campaign"). */
+const labelsFor = (s: PlanState, n: number, template: Template, keep = true) =>
+  Array.from({ length: n }, (_, i) => (keep && s.labels[i] && !isDefaultLabel(s.labels[i]) ? s.labels[i] : defaultLabel(template, i)));
+
+export function withCells(s: PlanState, n: number, template: Template = s.template): Partial<PlanState> {
   const even = Math.floor(100 / n);
   const split = Array.from({ length: n }, (_, i) => (i === n - 1 ? 100 - even * (n - 1) : even));
-  return { nCells: n, labels, split, confirmed: Array(n).fill(false), coinFlip: null };
+  return { nCells: n, labels: labelsFor(s, n, template), split, confirmed: Array(n).fill(false), coinFlip: null };
 }
 
 /** METHODOLOGY.md §13: one campaign everywhere except a holdout, or (§13.7) vendors splitting every market that isn't held out. */
@@ -152,8 +156,8 @@ export function withTemplate(s: PlanState, template: Template, cells: number): P
   const changed = kind !== kindOf(s.template);
   return {
     template,
-    ...withCells(s, cells),
-    ...(changed ? { labels: kind === "campaign" || kind === "crossover" ? ["Campaign"] : Array.from({ length: cells }, (_, i) => `Cell ${i + 1}`), ...SHARES[kind] } : {}),
+    ...withCells(s, cells, template),
+    ...(changed ? { labels: labelsFor(s, cells, template, false), ...SHARES[kind] } : {}),
     ...(changed && kind === "cells" ? { adsBeforeTest: null } : {}),
     ...(changed && kind === "crossover"
       ? { durations: sizableCrossoverDurations(s.lingering, s.data?.summary.days).durations, duration: crossoverSetup(s.lingering).durations[0], cooldown: 0 }
@@ -171,4 +175,4 @@ export const searchKey = (s: PlanState) =>
   JSON.stringify([s.data?.sha256, s.geoUnit, s.template === "crossover" ? `crossover-${s.lingering}` : isHoldout(s), s.nCells, s.primaryKpi, s.excluded, s.shareMin, s.shareMax,
     s.durations, s.cooldown, preDays(s), s.permutations, s.fitPeriod, s.seed]);
 
-export const STEPS = ["Template", "Your test", "Sales data", "Markets", "Timing", "Find markets", "Lock & share"] as const;
+export const STEPS = ["Goal", "Your test", "Sales data", "Markets", "Timing", "Find markets", "Lock & share"] as const;

@@ -6,9 +6,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 export type Level = "brief" | "guided" | "full";
 
 export const LEVELS: { id: Level; label: string; hint: string }[] = [
-  { id: "brief", label: "Brief", hint: "The answer and the money. For leaders." },
-  { id: "guided", label: "Guided", hint: "The answer, how the test works, and what to do. For marketers." },
-  { id: "full", label: "Full", hint: "Every number, check and setting. For analysts." },
+  { id: "brief", label: "Brief", hint: "Results: the answer and the money. Planning: the fewest questions." },
+  { id: "guided", label: "Guided", hint: "Results: the answer, how the test works, and what to do. Planning: each step explained, with pictures." },
+  { id: "full", label: "Full", hint: "Every number, check and setting, with the technical names. For analysts." },
 ];
 
 const KEY = "fosit-level";
@@ -45,6 +45,21 @@ export function LevelSwitch() {
     <div className="levels" role="radiogroup" aria-label="How much detail">
       {LEVELS.map((l) => (
         <button key={l.id} type="button" role="radio" aria-checked={level === l.id} title={l.hint} onClick={() => setLevel(l.id)}>{l.label}</button>
+      ))}
+    </div>
+  );
+}
+
+/** The same choice, shown in the page where it matters, with what each level means there (e.g. lib/words.ts PLAN_LEVELS). */
+export function LevelPicker({ hints, label }: { hints: Record<Level, string>; label: string }) {
+  const { level, setLevel } = useLevel();
+  return (
+    <div className="levelpick" role="group" aria-label={label}>
+      {LEVELS.map((l) => (
+        <button key={l.id} type="button" aria-pressed={level === l.id} onClick={() => setLevel(l.id)}>
+          <strong>{l.label}</strong>
+          <span className="muted small">{hints[l.id]}</span>
+        </button>
       ))}
     </div>
   );

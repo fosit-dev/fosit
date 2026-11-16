@@ -5,7 +5,8 @@ import { expect, test, type Request } from "@playwright/test";
 test("plans a national holdout on the sample data", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Plan a test" }).first().click();
-  await page.getByRole("button", { name: /National campaign with a holdout/ }).click();
+  await page.getByRole("button", { name: /Do my ads bring extra sales/ }).click();
+  await page.getByRole("button", { name: /Ads everywhere, except a small part/ }).click();
   const next = page.getByRole("button", { name: "Continue →" });
   await expect(next).toBeDisabled();
   await page.getByLabel("Yes, but only in some markets").check();
@@ -27,7 +28,7 @@ test("plans a national holdout on the sample data", async ({ page }) => {
   await page.getByRole("button", { name: "Find a fair holdout" }).click();
   const design = page.getByRole("article", { name: "Design 1" });
   await expect(design).toBeVisible({ timeout: 900_000 });
-  await expect(design.getByText(/of sales held out/)).toBeVisible();
+  await expect(design.getByText(/No ads: \d+ markets, \d+% of sales/)).toBeVisible();
   await expect(design.getByText(/in the campaign's markets/)).toBeVisible();
   await design.getByRole("button", { name: /Show markets/ }).click();
   await expect(design.getByText(/Holdout markets vs their twin/)).toBeVisible({ timeout: 60_000 });
@@ -91,9 +92,9 @@ test("plans a vendor split with a no-CTV group, and reads the split example", as
   await page.getByLabel(/No, it's off/).check();
   const next = page.getByRole("button", { name: "Continue →" });
   await next.click();
-  await expect(page.getByLabel("Cell 1 name")).toBeVisible();
-  await page.getByLabel("Cell 1 name").fill("Vendor A");
-  await page.getByLabel("Cell 2 name").fill("Vendor B");
+  await expect(page.getByLabel("Vendor 1 name")).toHaveValue("Vendor A");
+  await page.getByLabel("Vendor 1 name").fill("Vendor A");
+  await page.getByLabel("Vendor 2 name").fill("Vendor B");
   await page.getByLabel("Test name").fill("Split e2e");
   await next.click();
   await page.getByRole("button", { name: "Use sample data" }).click();
@@ -105,7 +106,8 @@ test("plans a vendor split with a no-CTV group, and reads the split example", as
   await page.getByRole("button", { name: "Find a fair holdout" }).click();
   const design = page.getByRole("article", { name: "Design 1" });
   await expect(design).toBeVisible({ timeout: 900_000 });
-  await expect(design.getByText(/of sales per vendor/)).toBeVisible();
+  await expect(design.getByText(/Vendor A: \d+ markets, \d+% of sales/)).toBeVisible();
+  await expect(design.getByText(/No CTV: \d+ markets, \d+% of sales/)).toBeVisible();
   await page.screenshot({ path: "test-results/s1-designs.png", fullPage: true });
   await next.click();
   for (const box of await page.getByLabel(/vendor confirmed they can target exactly these \d+ markets, and nothing in the \d+ held-out markets/).all()) await box.check();

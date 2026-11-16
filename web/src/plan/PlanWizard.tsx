@@ -166,7 +166,7 @@ export function PlanWizard({ startWithSample, onRead }: { startWithSample: boole
 
       {step === 0 && <StepTemplate s={s} set={set} />}
       {step === 1 && <StepTest s={s} set={set} />}
-      {step === 2 && <StepData s={s} loader={loader} />}
+      {step === 2 && <StepData s={s} loader={loader} set={set} />}
       {step === 3 && <StepMarkets s={s} set={set} />}
       {step === 4 && <StepTiming s={s} set={set} />}
       {step === 5 && <StepFind s={s} set={set} run={runSearch} cancel={cancel} running={running} progress={progress} error={searchError} />}

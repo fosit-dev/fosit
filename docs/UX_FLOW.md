@@ -8,8 +8,8 @@
 2. **Depth on demand.** Every number and term has an **ⓘ** (plain-English tooltip, two sentences max). Every tooltip has **Read more →** (an anchor in METHODOLOGY.md) and, where relevant, **See the code →** (the exact function in `/core` on GitHub).
 3. **No reasons to distrust.** No sign-up, no email gate, no upload, no tracking inside the tool, open source, reproducible, and a clear conflict-of-interest disclosure.
 4. **Honest by default.** "Inconclusive" gets the same visual weight as a win. Warnings are never hidden behind toggles.
-5. **Vendor-neutral.** Cells are "Cell 1 / Cell 2" until the user labels them. No vendor names anywhere in the UI, code, or defaults.
-6. **The answer first, at the reader's level.** A detail switch in the header (*Brief* for leaders, *Guided* for marketers, *Full* for analysts; `lib/level.tsx`) decides how much is shown. Brief: the answer, the money, the charts, and only the checks that did not pass. Guided (default): plus tables and explanations. Full: plus "In numbers" and the details open. Warnings and failed checks show at every level.
+5. **Vendor-neutral.** The groups are "Vendor A / Vendor B" until the user labels them. No real vendor names anywhere in the UI, code, or defaults.
+6. **The reader's level, in results and in planning.** A detail switch in the header (*Brief* for leaders, *Guided* for marketers, *Full* for analysts; `lib/level.tsx`) decides how much is shown. Brief: the answer, the money, the charts, and only the checks that did not pass. Guided (default): plus tables and explanations. Full: plus "In numbers" and the details open. Warnings and failed checks show at every level.
 7. **Realistic, not fussy.** Never ask for data that would not change the answer: 8 weeks of history is enough, and 1–2 late days still read as final (METHODOLOGY §11.1).
 
 ## Writing
@@ -58,9 +58,11 @@ Plan, lock and read also produce one self-contained HTML file (`core/fosit/templ
 
 1. **Plan:** we pick groups of markets: one per vendor, plus a group that sees no ads. *(Like handing out flyers on some streets and not others.)*
 2. **Run:** each vendor runs only in its own markets.
-3. **Read:** we compare each group with a statistical twin built from the no-ads markets. The gap is what the ads really did.
+3. **Read:** FOSIT compares each group with a twin (a mix of markets with no test ads that sells in step with the group). The gap is what the ads really did.
 
-**What you walk away with:** "What each vendor *really* delivered, in incremental orders, cost per incremental order (iCPA), and return on ad spend (iROAS), with honest ranges. Be a smart media-plan investor, and bring your CFO numbers that hold up."
+**See how a test works** *(Built 2026-11-16)*: four buttons (Compare two vendors · Test one campaign · A national campaign · A small business) switch a share bar with example sizes and the five numbered steps of that test (the same anatomy as Plan and the reports). Under the CTAs: "Never ran a test like this? FOSIT explains each step in plain words, with pictures. You do not need statistics."
+
+**What you walk away with:** "What each vendor *really* delivered: the extra orders that its ads caused, the cost of one extra order and the return for each $1 of ads, each with an honest range. Invest in media like an investor, and bring your CFO numbers that hold up." *(The terms iCPA and iROAS are in the ⓘ.)*
 
 **Trust strip:** 🔒 Runs in your browser · 📖 Open source (Apache 2.0) · 🧮 Every number shows its method · ✅ Checked against Meta's GeoLift on every code change · 🤷 "Inconclusive" is an allowed answer
 
@@ -70,66 +72,85 @@ Plan, lock and read also produce one self-contained HTML file (`core/fosit/templ
 
 ## Plan module
 
-### P1. Choose a template
+*(Built 2026-11-16: the Plan screens adapt to the reader. This section describes what is built; the older draft is in the git history.)*
 
-Cards, first one preselected:
+**The three levels in Plan** (the same switch as the reports, `lib/level.tsx`; the words are in `lib/words.ts`):
 
-1. **Two-vendor test** *(Recommended)*: "Split one CTV budget between two platforms and find out which one really drives sales."
-2. **Single-channel test:** "Is this channel driving incremental sales at all?"
-3. **National campaign with a holdout:** "Keep the campaign running almost everywhere, leave about a tenth of the country without it, and measure what it really drives." *(Built. [METHODOLOGY §13](METHODOLOGY.md#13-national-holdout).)* Asks right away: "In the weeks before the test, is this campaign running?" **No, it's off** · **Yes, everywhere** (note: the result will be a little cautious; keep the holdout dark through the cooldown) · **Yes, but only in some markets** (blocked: "FOSIT can't measure this cleanly…", with what to do instead).
-4. **Vendors split the country, plus a no-CTV group** *(Built, METHODOLOGY §13.7)*: "Each vendor runs in its own part of the country (for example 40% each) and a group with no CTV at all (for example 20%) shows what happens without it." Asks the same "running before the test?" question and the number of vendors (2–4). Later steps are those of the two-vendor test, except that the markets step asks that no one runs CTV in the held-out markets, the holdout share (15–25%) is under "Advanced", and design cards show each vendor's share of sales.
-5. **Small business: halves take turns** *(Built, METHODOLOGY §14)*: "For a few hundred orders a day or less. Two halves of the country take turns having the ads every few weeks, in a random order fixed in advance." Timing asks "How long does your advertising keep working after it stops?" (a few days: 2-week blocks, 16 or 24 weeks; a week or more: 4-week blocks, 24 or 32 weeks). Find is "Find balanced halves"; Lock draws the schedule and shows it block by block, and the email and PDF list it; vendors confirm they can switch halves on those dates. Read shows a block-by-block table and a "schedule followed" check.
-6. **Custom:** "Up to 6 cells, your own settings."
+| | Brief | Guided (default) | Full |
+|---|---|---|---|
+| Questions | The fewest. FOSIT chooses test lengths (3, 4, 6, 8 weeks), cooldown (7 days), history (all of it, up to 26 weeks) and group sizes, and says what it chose. | The same, plus optional ones (advertiser, lengths, cooldown, history, group sizes). | Every setting, including how FOSIT judges chance and fit. |
+| Explanation | One sentence. "How this test works" is folded away. | A 💡 line under each question says why FOSIT asks. Pictures are open. | As Guided. |
+| Words | Plain. | Plain; a ⓘ gives the term for the person who wants it. | The technical names: cell, MDE, iCPA, iROAS, fit error, balance gap, pre-period. |
+| Design cards | 3 designs, warnings only. | 5 designs, the checks as ✓ lines with the number. | 5 designs, chips with numbers, tables, power curves. |
 
-**Help from a person** *(Built, optional)*: when the deployment sets `VITE_CONSULT`, a "free analyst call" button sits in the header, and a short callout ("Finding this a lot to set up? …") on the intro and on P1. On adte.com it opens the site's own contact form.
+Rules: a test-design term never shows at Brief or Guided unless the person opens a ⓘ. A term that belongs to one test type (blocks, held-out markets) shows only when that type is chosen. Warnings and blockers show at every level.
 
-**National holdout differences in the later steps:** P2 has one "Campaign name" and a "Campaign budget during the test". P4 asks vendors to keep the held-out markets completely dark, and "Advanced" bounds the holdout's share of sales (10–20%). P6 is "Find a fair holdout": cards say "Can detect a lift of X or more in the campaign's markets", with chips for the share of sales held out and the number of markets held out vs. with ads; details compare the holdout with the markets with ads, and the chart shows the holdout's sales index vs. its twin. P7 asks the vendor(s) to confirm every held-out market stays free of ads until the cooldown ends; the email and plan PDF list the holdout first.
+**Pictures** (`components/Visuals.tsx`; the reports draw the same ones):
+- **Share bar:** the country as one bar, cut by share of sales. Color = a vendor's markets, gray = no ads. Example sizes before the search ("about 10%"), real sizes and market counts after it. The legend says the same in text.
+- **Anatomy:** five numbered steps for the chosen test type, one sentence each; select a step to read more.
+- **Timeline:** past sales, ads, cooldown, read, each as wide as it is long; it moves with the dates and lengths. A crossover adds the block strip.
+- **Will the test see it?:** a slider for the expected cost of one extra order (or the return for each 1 of ads), and per vendor a meter with the chance in words. It starts at the person's own limit when they gave one.
+
+### P1. Goal
+
+- **"How much detail do you want?"** Brief · Guided · Full, each with what it means for planning.
+- **"What do you want to find out?"** *Which vendor brings more extra sales?* (default) · *Do my ads bring extra sales?*
+- **"How do you want to run the test?"** Three cards for the chosen question, each with a small share bar, one sentence, "Good for…", and at Full the technical name:
+  - Compare vendors: **Each vendor in a few markets** *(Recommended; geo cells)* · **Vendors split the country** *(vendor split with a no-CTV holdout, §13.7; asks the number of vendors, 2–4)* · **More vendors, or my own settings** *(custom, up to 6)*.
+  - One campaign: **Ads in a few markets** *(one cell)* · **Ads everywhere, except a small part** *(national holdout, §13)* · **Two halves take turns** *(geo crossover, §14)*.
+- The two held-out designs ask right away: "In the weeks before the test, is this campaign running?" **No, it's off** · **Yes, everywhere** (note: the result is a little too low; keep the held-out markets dark through the cooldown) · **Yes, but only in some markets** (blocked: "FOSIT can't measure this cleanly…", with what to do instead).
+- **How this test works:** the share bar with example sizes and the anatomy of the chosen type.
+- **Help from a person** *(optional)*: when the deployment sets `VITE_CONSULT`, a "free analyst call" button sits in the header, and a short callout on the intro and on P1. On adte.com it opens the site's own contact form.
 
 ### P2. Your test
 
-- Cell labels: `Cell 1`, `Cell 2` (editable). ⓘ "Name them however you like. FOSIT never knows who's behind a cell, and treats every cell exactly the same."
-- Total budget + split slider (default 50/50) → shows each cell's budget.
-- Currency (default USD).
-- Primary goal: **Orders** / **Revenue** ⓘ
-- *"What would make this worth it?"* (optional): target iCPA **or** break-even iROAS ⓘ "This lets FOSIT tell 'no lift worth paying for' apart from 'can't tell yet'."
+- Test name; advertiser (optional, not at Brief).
+- Names: "Vendor 1 name", "Vendor 2 name" (Full: "Cell 1 name"), starting as `Vendor A`, `Vendor B`; one "Campaign name" for a one-campaign test. "FOSIT never knows who a vendor is, and it treats every vendor in the same way."
+- Budget and currency; a split slider for two vendors (default 50/50) that shows each budget.
+- "What do you count?" **Orders (or sign-ups, leads)** / **Revenue**.
+- "What would make this worth it?" **I'm not sure yet** · **I know the most I can pay for one extra order** (Full: a target iCPA) · **I know the revenue I need for each 1 of ads** (Full: a break-even iROAS), each with an example.
 
 ### P3. Your sales history
 
-- Geo unit first, because it decides which market IDs are valid: **Metro areas (Census CBSAs)** *(default)* · States · My own market IDs ⓘ. *(Built: moved here from P4.)*
-- Drop zone: "Drop a CSV with daily sales by market" · [See the format] · [Download a template] · [Use sample data]
-- Alternative link: "Only have an order export with ZIP codes? We'll turn it into markets for you." → orders-export helper.
-- After parsing, a **plain-English health card**: "✓ 168 days (24 weeks) of history · ✓ 412 markets · ⚠️ We filled 1,204 missing market-days with 0 (normal for small markets) · ✓ Orders and revenue found." Each line has ⓘ.
+- "What are the markets in your file?" **US metro areas** *(default; Full names the Census CBSA codes)* · **US states** · **My own list of markets**.
+- Drop zone with a small picture of the file (three example rows) · [See the format] · [Download a template] · [Use sample data]. "Only have an order export with ZIP codes?" opens the orders helper.
+- After parsing, a health card: "✓ 182 days (26 weeks) of history · ✓ 250 markets · ✓ Found: orders and revenue".
+- **Small business hint:** at about 400 orders a day or less, with a test type other than "Two halves take turns", a note says that this type often cannot see a useful effect (below about 100 a day: usually no design passes), and offers to switch. For a vendor comparison it adds that the other test measures one campaign.
 
 ### P4. Markets
 
-- Exclude markets: searchable multi-select with reasons ("local promo", "store opening"…).
-- Share of national sales per cell: min/max (3%–15%) under "Advanced".
-- ⚠️ **Targeting confirmation** (required before Lock, shown here first): "Both vendors must be able to target exactly these markets. Confirm with each vendor before you lock the plan."
+- ⚠️ **Targeting confirmation** (required before Lock, shown here first), worded for the test type.
+- "Leave any markets out?": searchable list with an optional reason. "Most tests leave out none."
+- Not at Brief: "How big can each vendor's group be?" (or "the part with no ads"), two sliders with a share bar that shows the middle of the limits. Open at Full.
 
 ### P5. Timing
 
-- Test length options to compare: 3 / 4 / 6 / 8 weeks (multi-select) · Cooldown: 7 days ⓘ · Planned start date.
-- Pre-period auto-filled from the data with a gauge: <8 weeks red, 8–12 amber, 12+ green.
-- *(Built)* Advanced: "Judge how well a twin fits": automatically (weekly totals when sales are small), day by day, or on weekly totals (METHODOLOGY §9.3). When weekly is used, the search summary says why and fit chips read "Fit error (weekly)".
+- The timeline, at every level. A crossover adds the block strip with an example order.
+- Brief: one sentence with what FOSIT chose. Guided and Full: test lengths to compare (3 / 4 / 6 / 8 weeks), cooldown, the weeks of past sales to learn from, with the "enough history" note (under 8 weeks: an error).
+- A crossover asks "How long does your advertising keep working after it stops?" (a few days: 2-week blocks, 16 or 24 weeks; a week or more: 4-week blocks, 24 or 32 weeks), with the "Choose carefully" note at every level.
+- Full only: "Advanced: statistics settings" (how to judge chance, how to judge a twin's fit, the seed).
 
 ### P6. Find markets (compute)
 
-- Button: **Find fair market splits**. Progress: "Searched 1,240 / 2,000 splits · Testing power on top 20 (7/20)". Cancellable. Results stream in.
-- **Ranked design cards** (top 5, "show more"):
-  - Big line: "**Can detect a lift of 6.5% or more** in each cell (4-week test)."
-  - Money line: "If a vendor's true iCPA is worse than **$84**, this test probably won't see it."
-  - Chips: Fit ✓ 4.1% · Balance ✓ 3% gap · 11% of national sales in test.
-  - Expand: geo lists per cell, a balance table (cell vs. cell on volume, share, population, trend, seasonality), and a pre-period chart of each cell vs. its twin.
-- **Power panel** for the selected design: power curve by lift (one line per duration) and power by budget for a hypothesized iCPA (slider). Each chart has ⓘ and "How we computed this →".
+- Button: **Find fair market splits** / **Find a fair holdout** / **Find balanced halves**. Progress in plain words. Cancellable.
+- Guided and Full: one line on what the search tried and kept.
+- **Design cards**, each with the share bar (real market counts and shares):
+  - Big line: "This test can see the ads if they raise sales by **6.5%** or more in each vendor's markets (4 weeks test)." (Full: "Can detect a lift of 6.5% or more in each cell".)
+  - Money line: "In money: if one extra order costs more than **$84**, the test will probably miss the effect."
+  - If the person's own limit is finer than the test: a warning that says so, and what helps.
+  - On the chosen design: **Will the test see it?**
+  - Checks: Guided "✓ The twin follows the real sales (4.1% off) · ✓ The groups are alike (3% apart) · ✓ No false alarms on past sales"; Brief shows only the ones that failed; Full shows "Fit error", "Balance gap" and the shares as chips.
+  - Expand: the market lists and the chart of each group against its twin; at Full also the table, the balance by measure and the power curves.
+- No design passed: what to try, in the person's words (for a small business: the other test type).
 
 ### P7. Lock & share
 
-- Optional: 🪙 **Let a coin decide which vendor gets which market set.** ⓘ "Then neither vendor can say the other got the better markets."
-- Checklist (all required): ☐ Cell 1's vendor confirmed they can target these markets · ☐ Cell 2's … · ☐ Dates and budget are final.
-- **Lock plan** → shows the hash big: `9f2c 81ab …` + short code `9F2C81AB`.
-- Downloads: **Plan PDF** (for everyone) · **Plan JSON** (to load at read time) · toggle "Include design diagnostics (shows your sales shares)".
-- "**Now email the PDF, JSON and this code to the advertiser and both vendors, before launch.** That email is your proof the plan was set in advance." [Copy email text]
-- *(Built)* "When the test is over, come back to <link>": the same link is in the email and the PDF and opens the tool on Read. [Go to Read results with this plan →] opens Read now, with the plan loaded.
+- The plan as a picture: the share bar (after the coin, if flipped), the timeline, and a table (who, budget, markets, share of your sales, the smallest rise in sales the test can see).
+- Optional: 🪙 "Let a coin decide which vendor gets which group of markets?"
+- Checklist (all required): each vendor confirmed its markets · dates and budgets are final.
+- **Lock plan** → the fingerprint and short code, with one sentence on what the code proves, and **What happens next** (today: send the files; before the start: vendors set up; during: do not change the plan; after: come back to read).
+- Downloads: **Plan PDF** · **Plan JSON** · **Interactive plan (HTML)** · [Copy email text] · "Include the planning details" toggle.
+- "When the test is over, come back to <link>": the same link is in the email and the PDF and opens the tool on Read. [Go to Read results with this plan →] opens Read now, with the plan loaded.
 
 ---
 

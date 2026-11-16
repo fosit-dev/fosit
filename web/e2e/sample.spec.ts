@@ -19,7 +19,7 @@ test("sample data flow works on mobile in dark mode", async ({ page }) => {
   await expect(page.getByRole("article", { name: "Design 1" })).toBeVisible({ timeout: 900_000 });
   console.log(`market search + power simulation took ${Math.round((Date.now() - started) / 1000)}s`);
   await page.getByRole("article", { name: "Design 1" }).getByRole("button", { name: /Show markets/ }).click();
-  await page.getByRole("button", { name: /About Minimum detectable effect/ }).first().click();
+  await page.getByRole("button", { name: /About Smallest effect the test can see/ }).first().click();
   await page.screenshot({ path: "test-results/m2-designs.png", fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 });
