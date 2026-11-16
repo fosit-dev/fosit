@@ -18,7 +18,7 @@ Every build of the web app writes `fosit-core.json` next to the app. It holds th
 1. Open `<site>/fosit-app/fosit-core.json` (or read the footer).
 2. Check out that commit and run `python web/scripts/build_core_bundle.py`. The bundle is built reproducibly, so it prints the same `sha256` if the site runs that code.
 
-As of 2026-11-15, the production site (adte.com) runs commit `d2c6091` (engine `1b8821fc…`), which is older than this repository's main branch. It was built before `fosit-core.json` recorded the commit, so it was matched by rebuilding. The staging site runs main.
+As of 2026-11-16, the production site (adte.com) runs commit `6b59191` (engine `bcd3d3e4…`), the commit tagged `v0.1.0-review.1`. The staging site runs a later commit of main; its footer names it. A change to the screens only (nothing under `core/`) keeps the engine fingerprint, so compare the commit as well as the fingerprint.
 
 ## Open questions for reviewers
 
